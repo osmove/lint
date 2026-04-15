@@ -1,8 +1,8 @@
 import chalk from "chalk";
 import { createSpinner } from "nanospinner";
 import * as api from "./api.js";
-import { getToken, getUsername, isLoggedIn } from "./auth.js";
-import { getCurrentBranch, getCurrentSha, getStagedFilePaths } from "./git.js";
+import { getToken, isLoggedIn } from "./auth.js";
+import { findFiles, getCurrentBranch, getCurrentSha, getStagedFilePaths } from "./git.js";
 import type { BaseLinter } from "./linters/base.js";
 import { BiomeLinter } from "./linters/biome.js";
 import { BrakemanLinter } from "./linters/brakeman.js";
@@ -14,9 +14,12 @@ import { PylintLinter } from "./linters/pylint.js";
 import { RuboCopLinter } from "./linters/rubocop.js";
 import { RuffLinter } from "./linters/ruff.js";
 import { StylelintLinter } from "./linters/stylelint.js";
-import { printReport, printSummaryTable } from "./reporter.js";
-import type { LintReport, LinterResult, PolicyRule, PreCommitOptions } from "./types.js";
+import { filterIgnoredFiles, loadRC, resolveEnabledLinters } from "./rc.js";
+import { formatJsonReport, printReport, printSummaryTable } from "./reporter.js";
+import type { LintReport, LinterName, LinterResult, PolicyRule, RunOptions } from "./types.js";
 import { cleanTmpDir, formatDuration, readLintConfig } from "./utils.js";
+
+// ── Linter registry ──
 
 const ALL_LINTERS: BaseLinter[] = [
   new BiomeLinter(),
@@ -31,56 +34,55 @@ const ALL_LINTERS: BaseLinter[] = [
   new PylintLinter(),
 ];
 
-function getAvailableLinters(): BaseLinter[] {
-  return ALL_LINTERS.filter((linter) => linter.isInstalled());
+const LINTER_MAP = new Map<LinterName, BaseLinter>(
+  ALL_LINTERS.map((l) => [l.name as LinterName, l]),
+);
+
+// ── Linter selection with conflict resolution ──
+
+function selectLinters(rc: ReturnType<typeof loadRC>): BaseLinter[] {
+  const installed = ALL_LINTERS.filter((l) => l.isInstalled());
+  const installedNames = installed.map((l) => l.name as LinterName);
+  const enabledNames = resolveEnabledLinters(rc, installedNames);
+  return installed.filter((l) => enabledNames.includes(l.name as LinterName));
 }
+
+// ── API helpers ──
 
 async function fetchPolicyRules(): Promise<PolicyRule[]> {
   if (!isLoggedIn()) return [];
-
   const config = readLintConfig();
   if (!config?.uuid || config.uuid.startsWith("local-")) return [];
-
   const token = getToken();
   if (!token) return [];
-
   const result = await api.fetchPolicy(config.uuid, token);
   return result.data?.policy_rules || [];
 }
 
 async function createCommitAttempt(): Promise<number | null> {
   if (!isLoggedIn()) return null;
-
   const config = readLintConfig();
   if (!config?.uuid || config.uuid.startsWith("local-")) return null;
-
   const token = getToken();
   if (!token) return null;
-
   const sha = getCurrentSha();
   const branch = getCurrentBranch();
-
   const result = await api.createCommitAttempt(config.uuid, token, sha, branch);
   return result.data?.id || null;
 }
 
 async function sendReport(reports: LintReport[], commitAttemptId: number | null): Promise<void> {
   if (!isLoggedIn() || !commitAttemptId) return;
-
   const config = readLintConfig();
   if (!config?.uuid || config.uuid.startsWith("local-")) return;
-
   const token = getToken();
   if (!token) return;
-  const totalErrors = reports.reduce((sum, r) => sum + r.error_count, 0);
-  const totalWarnings = reports.reduce((sum, r) => sum + r.warning_count, 0);
-
   try {
     await api.postReport(token, {
       commit_attempt_id: commitAttemptId,
       repository_uuid: config.uuid,
-      error_count: totalErrors,
-      warning_count: totalWarnings,
+      error_count: reports.reduce((s, r) => s + r.error_count, 0),
+      warning_count: reports.reduce((s, r) => s + r.warning_count, 0),
       linters: reports.map((r) => ({
         name: r.linter,
         error_count: r.error_count,
@@ -88,144 +90,238 @@ async function sendReport(reports: LintReport[], commitAttemptId: number | null)
       })),
     });
   } catch {
-    // Non-critical: report sending failure shouldn't block the commit
+    // Non-critical
   }
 }
 
-export async function preCommit(options: PreCommitOptions = {}): Promise<void> {
-  const startTime = Date.now();
+// ── Core linting engine ──
 
-  const files = getStagedFilePaths();
+export async function runLint(options: RunOptions = {}): Promise<void> {
+  const startTime = Date.now();
+  const rc = loadRC();
+
+  // Merge RC defaults with CLI options
+  const autofix = options.fix ?? rc.fix?.enabled ?? false;
+  const dryRun = options.dryRun ?? false;
+  const verbose = options.verbose ?? false;
+  const quiet = options.quiet ?? rc.output?.quiet ?? false;
+  const format = options.format ?? rc.output?.format ?? "text";
+  const isJson = format === "json";
+
+  // ── Resolve files ──
+  let files: string[];
+  let mode: string;
+
+  if (options.paths && options.paths.length > 0) {
+    // Lint specific paths: `lint .`, `lint src/`, `lint file.ts`
+    files = [];
+    for (const p of options.paths) {
+      files.push(...findFiles(p));
+    }
+    mode = options.paths.join(", ");
+  } else {
+    // Default: lint staged files
+    files = getStagedFilePaths();
+    mode = "staged files";
+  }
+
+  // Apply ignore patterns from .lintrc.yaml
+  const ignorePatterns = rc.ignore || [];
+  files = filterIgnoredFiles(files, ignorePatterns);
+
   if (files.length === 0) {
-    console.log(chalk.green("No staged files. Nothing to lint."));
+    if (isJson) {
+      console.log(JSON.stringify({ success: true, files: 0, reports: [] }));
+    } else if (!quiet) {
+      console.log(chalk.green("No files to lint."));
+    }
     return;
   }
 
-  const autofix = options.fix ?? false;
-  const verbose = options.verbose ?? false;
+  if (!quiet && !isJson) {
+    const action = dryRun ? "Checking" : autofix ? "Fixing" : "Linting";
+    console.log(chalk.cyan(`\nOmnilint — ${action} ${files.length} file(s) (${mode})...\n`));
+  }
 
-  console.log(
-    chalk.cyan(
-      `\nOmnilint — ${autofix ? "Fixing" : "Linting"} ${files.length} staged file(s)...\n`,
-    ),
-  );
-
-  // Fetch policy rules (non-blocking if API is down)
+  // ── Fetch policy rules ──
   let policyRules: PolicyRule[] = [];
   try {
     policyRules = await fetchPolicyRules();
-    if (verbose && policyRules.length > 0) {
+    if (verbose && !isJson && policyRules.length > 0) {
       console.log(chalk.gray(`  Loaded ${policyRules.length} policy rule(s) from API`));
     }
   } catch {
-    if (verbose) console.log(chalk.gray("  API offline — using linter defaults"));
+    if (verbose && !isJson) console.log(chalk.gray("  API offline — using linter defaults"));
   }
 
   const commitAttemptId = await createCommitAttempt().catch(() => null);
 
-  const available = getAvailableLinters();
-  if (available.length === 0) {
-    console.log(
-      chalk.yellow("No linters detected. Install one: npm i -g eslint, pip install ruff, etc."),
-    );
+  // ── Select linters (with conflict resolution) ──
+  const linters = selectLinters(rc);
+
+  if (linters.length === 0) {
+    if (isJson) {
+      console.log(
+        JSON.stringify({
+          success: true,
+          files: files.length,
+          reports: [],
+          message: "No linters available",
+        }),
+      );
+    } else if (!quiet) {
+      console.log(
+        chalk.yellow("No linters available. Run 'lint init' to set up, or install one manually."),
+      );
+    }
     return;
   }
 
+  if (verbose && !isJson) {
+    console.log(chalk.gray(`  Linters: ${linters.map((l) => l.name).join(", ")}\n`));
+  }
+
+  // ── Run linters (parallel for different languages, sequential for same files) ──
   const results: LinterResult[] = [];
   let hasErrors = false;
 
-  for (const linter of available) {
-    const relevantFiles = linter.selectFiles(files);
-    if (relevantFiles.length === 0) continue;
-
-    const spinner = createSpinner(`${linter.name} (${relevantFiles.length} files)`).start();
-
-    const result = linter.execute(files, policyRules, autofix);
-    if (!result) {
-      spinner.success({ text: `${linter.name} — skipped` });
-      continue;
-    }
-
-    results.push(result);
-
-    if (result.report.error_count > 0) {
-      spinner.error({
-        text: `${linter.name} — ${result.report.error_count} error(s), ${result.report.warning_count} warning(s)`,
-      });
-      hasErrors = true;
-    } else if (result.report.warning_count > 0) {
-      spinner.warn({
-        text: `${linter.name} — ${result.report.warning_count} warning(s)`,
-      });
-    } else {
-      spinner.success({ text: `${linter.name} — clean` });
-    }
-  }
-
-  // Print detailed report
-  const reports = results.map((r) => r.report);
-  if (reports.some((r) => r.error_count > 0 || r.warning_count > 0)) {
-    printReport(reports, options.truncate);
-    if (verbose) {
-      printSummaryTable(reports);
-    }
-  }
-
-  // Send report to API
-  await sendReport(reports, commitAttemptId);
-
-  // Clean up
-  if (!options.keep) {
-    cleanTmpDir();
-  }
-
-  // Print summary
-  const totalErrors = reports.reduce((sum, r) => sum + r.error_count, 0);
-  const totalWarnings = reports.reduce((sum, r) => sum + r.warning_count, 0);
-  const totalFixable = reports.reduce(
-    (sum, r) => sum + r.fixable_error_count + r.fixable_warning_count,
-    0,
+  // Group linters by whether they overlap on file types
+  const jsLinters = linters.filter((l) =>
+    ["biome", "oxlint", "eslint", "prettier"].includes(l.name),
+  );
+  const otherLinters = linters.filter(
+    (l) => !["biome", "oxlint", "eslint", "prettier"].includes(l.name),
   );
 
-  console.log("");
-  if (totalErrors > 0) {
-    console.log(chalk.red(`✗ ${totalErrors} error(s), ${totalWarnings} warning(s)`));
-    if (totalFixable > 0) {
-      console.log(chalk.yellow(`  ${totalFixable} auto-fixable. Run 'lint --fix' to fix.`));
+  // Run JS linters sequentially (they share files), others in parallel
+  const runLinter = (linter: BaseLinter): LinterResult | null => {
+    const relevantFiles = linter.selectFiles(files);
+    if (relevantFiles.length === 0) return null;
+
+    if (!quiet && !isJson) {
+      const spinner = createSpinner(`${linter.name} (${relevantFiles.length} files)`).start();
+      const result = linter.execute(files, policyRules, dryRun ? false : autofix);
+      if (!result) {
+        spinner.success({ text: `${linter.name} — skipped` });
+        return null;
+      }
+      if (result.report.error_count > 0) {
+        spinner.error({
+          text: `${linter.name} — ${result.report.error_count} error(s), ${result.report.warning_count} warning(s)`,
+        });
+      } else if (result.report.warning_count > 0) {
+        spinner.warn({ text: `${linter.name} — ${result.report.warning_count} warning(s)` });
+      } else {
+        spinner.success({ text: `${linter.name} — clean` });
+      }
+      return result;
     }
-  } else if (totalWarnings > 0) {
-    console.log(chalk.yellow(`⚠ ${totalWarnings} warning(s)`));
+
+    return linter.execute(files, policyRules, dryRun ? false : autofix);
+  };
+
+  // Run JS linters sequentially (formatter first if configured)
+  const fixStrategy = rc.fix?.strategy ?? "parallel";
+  if (fixStrategy === "formatter-first" && autofix) {
+    const formatters = jsLinters.filter((l) => ["prettier", "biome"].includes(l.name));
+    const nonFormatters = jsLinters.filter((l) => !["prettier", "biome"].includes(l.name));
+    for (const linter of [...formatters, ...nonFormatters]) {
+      const result = runLinter(linter);
+      if (result) {
+        results.push(result);
+        if (result.report.error_count > 0) hasErrors = true;
+      }
+    }
   } else {
-    console.log(chalk.green("✓ All files passed."));
+    for (const linter of jsLinters) {
+      const result = runLinter(linter);
+      if (result) {
+        results.push(result);
+        if (result.report.error_count > 0) hasErrors = true;
+      }
+    }
   }
 
-  if (options.time) {
-    console.log(chalk.gray(`  Done in ${formatDuration(Date.now() - startTime)}`));
+  // Run other linters (different languages — safe to parallelize)
+  const otherResults = await Promise.all(otherLinters.map(async (linter) => runLinter(linter)));
+  for (const result of otherResults) {
+    if (result) {
+      results.push(result);
+      if (result.report.error_count > 0) hasErrors = true;
+    }
   }
 
-  // Exit with error code if there are errors (blocks git commit)
-  if (hasErrors) {
-    process.exit(1);
+  // ── Output ──
+  const reports = results.map((r) => r.report);
+  const totalErrors = reports.reduce((s, r) => s + r.error_count, 0);
+  const totalWarnings = reports.reduce((s, r) => s + r.warning_count, 0);
+  const totalFixable = reports.reduce(
+    (s, r) => s + r.fixable_error_count + r.fixable_warning_count,
+    0,
+  );
+  const duration = Date.now() - startTime;
+
+  if (isJson) {
+    console.log(formatJsonReport(reports, { duration, dryRun, fix: autofix }));
+  } else {
+    // Detailed report
+    if (reports.some((r) => r.error_count > 0 || r.warning_count > 0)) {
+      printReport(reports, options.truncate);
+      if (verbose) printSummaryTable(reports);
+    }
+
+    // Summary
+    if (!quiet) {
+      console.log("");
+      if (dryRun && totalFixable > 0) {
+        console.log(
+          chalk.cyan(`  ${totalFixable} issue(s) would be fixed. Run without --dry-run to apply.`),
+        );
+      }
+      if (totalErrors > 0) {
+        console.log(chalk.red(`✗ ${totalErrors} error(s), ${totalWarnings} warning(s)`));
+        if (totalFixable > 0 && !autofix) {
+          console.log(chalk.yellow(`  ${totalFixable} auto-fixable. Run 'lint --fix' to fix.`));
+        }
+      } else if (totalWarnings > 0) {
+        console.log(chalk.yellow(`⚠ ${totalWarnings} warning(s)`));
+      } else {
+        console.log(chalk.green("✓ All files passed."));
+      }
+
+      if (options.time) {
+        console.log(chalk.gray(`  Done in ${formatDuration(duration)}`));
+      }
+    }
   }
+
+  // ── Report to API ──
+  await sendReport(reports, commitAttemptId);
+
+  // ── Cleanup ──
+  if (!options.keep) cleanTmpDir();
+
+  // ── Exit codes: 0 = clean, 1 = errors, 2 = warnings only ──
+  if (hasErrors) process.exit(1);
+  if (totalWarnings > 0 && options.exitOnWarnings) process.exit(2);
 }
 
-export async function lintStaged(
-  options?: string | Pick<PreCommitOptions, "format" | "fix" | "verbose">,
-): Promise<void> {
-  if (typeof options === "string") {
-    return preCommit({ format: options });
-  }
-  return preCommit(options);
+// ── Convenience wrappers ──
+
+export async function preCommit(options: RunOptions = {}): Promise<void> {
+  return runLint({ ...options, time: options.time ?? true });
+}
+
+export async function lintStaged(options?: RunOptions): Promise<void> {
+  return runLint(options);
 }
 
 export async function prepareCommitMsg(): Promise<void> {
-  // Hook for prepare-commit-msg — currently a no-op
-  // Future: AI commit message suggestion
+  // No-op unless AI commit messages are configured
 }
 
 export async function postCommitHook(): Promise<void> {
-  // Hook for post-commit — currently a no-op
-  // Future: post-commit analytics
+  // No-op — reserved for future analytics
 }
 
 export async function prettifyProject(extension: string): Promise<void> {
@@ -234,19 +330,14 @@ export async function prettifyProject(extension: string): Promise<void> {
     console.log(chalk.red("Prettier is not installed. Run: npm install -g prettier"));
     return;
   }
-
   const spinner = createSpinner(`Formatting all .${extension} files...`).start();
-
   try {
     const { execSync } = await import("node:child_process");
-    execSync(`prettier --write "**/*.${extension}"`, {
-      encoding: "utf-8",
-      stdio: "pipe",
-    });
+    execSync(`prettier --write "**/*.${extension}"`, { encoding: "utf-8", stdio: "pipe" });
     spinner.success({ text: `All .${extension} files formatted.` });
   } catch (error) {
     spinner.error({ text: `Prettier failed: ${(error as Error).message}` });
   }
 }
 
-export { ALL_LINTERS };
+export { ALL_LINTERS, LINTER_MAP };

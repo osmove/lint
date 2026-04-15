@@ -128,11 +128,26 @@ export interface AiIssue {
   suggestion?: string;
 }
 
-export interface PreCommitOptions {
-  keep?: boolean;
-  time?: boolean;
-  truncate?: boolean;
-  format?: string;
+// Unified options for all lint commands
+export interface RunOptions {
+  // File selection
+  paths?: string[];
+
+  // Behavior
   fix?: boolean;
+  dryRun?: boolean;
+
+  // Output
+  format?: "text" | "json";
+  quiet?: boolean;
   verbose?: boolean;
+  truncate?: boolean;
+  time?: boolean;
+
+  // Hooks
+  keep?: boolean;
+  exitOnWarnings?: boolean;
 }
+
+// Backward compat alias
+export type PreCommitOptions = RunOptions;
