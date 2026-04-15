@@ -97,7 +97,10 @@ export async function createRepository(
   });
 }
 
-export async function fetchPolicy(repositoryUUID: string, token: string): Promise<ApiResponse<Policy>> {
+export async function fetchPolicy(
+  repositoryUUID: string,
+  token: string,
+): Promise<ApiResponse<Policy>> {
   return request(`/${repositoryUUID}/policy.json`, { token });
 }
 

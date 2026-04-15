@@ -1,12 +1,19 @@
 import fs from "node:fs";
 import path from "node:path";
+import { confirm, input, select } from "@inquirer/prompts";
 import chalk from "chalk";
 import yaml from "js-yaml";
-import { input, confirm, select } from "@inquirer/prompts";
-import type { LintConfig, StagedFile } from "./types.js";
-import { exec, findGitRoot, ensureDir, readLintConfig, writeLintConfig, getDotLintDir } from "./utils.js";
-import { getUsername, getToken, isLoggedIn } from "./auth.js";
 import * as api from "./api.js";
+import { getToken, getUsername, isLoggedIn } from "./auth.js";
+import type { LintConfig, StagedFile } from "./types.js";
+import {
+  ensureDir,
+  exec,
+  findGitRoot,
+  getDotLintDir,
+  readLintConfig,
+  writeLintConfig,
+} from "./utils.js";
 
 // ── Staged files ──
 
@@ -171,8 +178,15 @@ export async function init(): Promise<void> {
     return;
   }
 
-  const username = getUsername()!;
-  const token = getToken()!;
+  const username = getUsername();
+  const token = getToken();
+  if (!username || !token) {
+    console.log(chalk.yellow("Not logged in. Initializing in offline mode."));
+    const config: LintConfig = { uuid: `local-${Date.now()}`, repository: repoName };
+    writeLintConfig(config);
+    console.log(chalk.green(`Initialized ${repoName} in offline mode.`));
+    return;
+  }
 
   // Try to find existing repo on server
   const searchResult = await api.searchRepository(username, repoName, token);

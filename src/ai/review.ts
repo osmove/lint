@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { createSpinner } from "nanospinner";
-import { chat } from "./client.js";
 import { getStagedDiff, getStagedFilePaths } from "../git.js";
+import { chat } from "./client.js";
 
 const SYSTEM_PROMPT = `You are an expert code reviewer working as part of Omnilint, a universal linting tool.
 Your job is to review code changes (git diffs) and provide actionable feedback.

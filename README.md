@@ -134,7 +134,7 @@ npm run lint              # Lint with Biome
 
 - TypeScript (strict), ESM
 - Build: tsup → Node 20+
-- Tests: Vitest (33 tests)
+- Tests: Vitest (59 tests, 7 suites)
 - CI: GitHub Actions (Node 20 + 22)
 - AI: Anthropic SDK (Claude)
 

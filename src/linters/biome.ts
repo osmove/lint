@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { FileReport, LinterResult, LintReport, Offense, PolicyRule } from "../types.js";
+import type { FileReport, LintReport, LinterResult, Offense, PolicyRule } from "../types.js";
 import { exec } from "../utils.js";
 import { BaseLinter } from "./base.js";
 
@@ -40,7 +40,9 @@ export class BiomeLinter extends BaseLinter {
     // Apply policy rules if any
     const linterRules: Record<string, Record<string, string>> = {};
     for (const rule of rules.filter((r) => r.linter === "biome")) {
-      const [group, name] = rule.slug.includes("/") ? rule.slug.split("/") : ["recommended", rule.slug];
+      const [group, name] = rule.slug.includes("/")
+        ? rule.slug.split("/")
+        : ["recommended", rule.slug];
       if (!linterRules[group]) linterRules[group] = {};
       linterRules[group][name] = rule.status === "enabled" ? rule.severity : "off";
     }

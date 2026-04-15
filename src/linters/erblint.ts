@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import yaml from "js-yaml";
-import type { FileReport, LinterResult, LintReport, Offense, PolicyRule } from "../types.js";
+import type { FileReport, LintReport, LinterResult, Offense, PolicyRule } from "../types.js";
 import { exec } from "../utils.js";
 import { BaseLinter } from "./base.js";
 
@@ -51,18 +51,27 @@ export class ErbLintLinter extends BaseLinter {
       if (output.files) {
         const fileReports: FileReport[] = output.files
           .filter((f: { offenses: unknown[] }) => f.offenses?.length > 0)
-          .map((f: { path: string; offenses: Array<{ linter: string; message: string; location: { start_line: number; start_column: number } }> }) => ({
-            path: f.path,
-            offenses: f.offenses.map(
-              (o): Offense => ({
-                rule: o.linter || "erblint",
-                message: o.message,
-                severity: "warning" as const,
-                line: o.location?.start_line || 1,
-                column: o.location?.start_column || 1,
-              }),
-            ),
-          }));
+          .map(
+            (f: {
+              path: string;
+              offenses: Array<{
+                linter: string;
+                message: string;
+                location: { start_line: number; start_column: number };
+              }>;
+            }) => ({
+              path: f.path,
+              offenses: f.offenses.map(
+                (o): Offense => ({
+                  rule: o.linter || "erblint",
+                  message: o.message,
+                  severity: "warning" as const,
+                  line: o.location?.start_line || 1,
+                  column: o.location?.start_column || 1,
+                }),
+              ),
+            }),
+          );
         return this.buildReport(fileReports);
       }
     } catch {
@@ -80,8 +89,8 @@ export class ErbLintLinter extends BaseLinter {
           rule: "erblint",
           message: match[4],
           severity: "warning",
-          line: parseInt(match[2], 10),
-          column: parseInt(match[3], 10),
+          line: Number.parseInt(match[2], 10),
+          column: Number.parseInt(match[3], 10),
         });
       }
     }

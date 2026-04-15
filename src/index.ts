@@ -1,13 +1,22 @@
-import { Command } from "commander";
+import { confirm, input, password } from "@inquirer/prompts";
 import chalk from "chalk";
-import { input, password, confirm } from "@inquirer/prompts";
-import { VERSION } from "./config.js";
-import * as auth from "./auth.js";
-import { init, installHooks, uninstallHooks } from "./git.js";
-import { preCommit, lintStaged, prepareCommitMsg, postCommitHook, prettifyProject } from "./orchestrator.js";
-import { reviewStagedChanges } from "./ai/review.js";
-import { fixStagedChanges } from "./ai/fix.js";
+import { Command } from "commander";
 import { saveApiKey } from "./ai/client.js";
+import { explainErrors } from "./ai/explain.js";
+import { fixStagedChanges } from "./ai/fix.js";
+import { reviewStagedChanges } from "./ai/review.js";
+import * as auth from "./auth.js";
+import { VERSION } from "./config.js";
+import { getStagedFilePaths, init, installHooks, uninstallHooks } from "./git.js";
+import {
+  ALL_LINTERS,
+  lintStaged,
+  postCommitHook,
+  preCommit,
+  prepareCommitMsg,
+  prettifyProject,
+} from "./orchestrator.js";
+import type { LintReport } from "./types.js";
 
 const program = new Command();
 
@@ -25,12 +34,16 @@ program
   .option("-t, --time", "Show execution time")
   .option("-T, --truncate", "Truncate output to first 10 offenses per file")
   .option("-f, --format <format>", "Output format")
+  .option("--fix", "Auto-fix issues where supported")
+  .option("--verbose", "Show detailed output")
   .action((options) => {
     preCommit({
       keep: options.keep,
       time: options.time,
       truncate: options.truncate,
       format: options.format,
+      fix: options.fix,
+      verbose: options.verbose,
     });
   });
 
@@ -38,8 +51,10 @@ program
   .command("lint:staged")
   .description("Lint staged files")
   .option("-f, --format <format>", "Output format")
+  .option("--fix", "Auto-fix issues where supported")
+  .option("--verbose", "Show detailed output")
   .action((options) => {
-    lintStaged(options.format);
+    lintStaged(options);
   });
 
 program
@@ -94,6 +109,25 @@ ai.command("review")
 ai.command("fix")
   .description("AI-powered auto-fix suggestions for staged changes")
   .action(() => fixStagedChanges());
+
+ai.command("explain")
+  .description("Explain linting errors in plain language")
+  .action(async () => {
+    console.log(chalk.cyan("Running linters to collect errors...\n"));
+    const files = getStagedFilePaths();
+    if (files.length === 0) {
+      console.log(chalk.yellow("No staged files."));
+      return;
+    }
+    const reports: LintReport[] = [];
+    for (const linter of ALL_LINTERS) {
+      if (!linter.isInstalled()) continue;
+      if (linter.selectFiles(files).length === 0) continue;
+      const result = linter.execute(files, [], false);
+      if (result?.report) reports.push(result.report);
+    }
+    await explainErrors(reports);
+  });
 
 ai.command("setup")
   .description("Configure your Anthropic API key for AI features")
@@ -157,9 +191,11 @@ program
 
 // ── Default action ──
 
-program.action(() => {
-  // No subcommand → lint staged files
-  lintStaged();
-});
+program
+  .option("--fix", "Auto-fix issues where supported")
+  .option("--verbose", "Show detailed output")
+  .action((options) => {
+    lintStaged({ fix: options.fix, verbose: options.verbose });
+  });
 
 program.parse();
