@@ -178,15 +178,9 @@ export async function init(): Promise<void> {
     return;
   }
 
-  const username = getUsername();
-  const token = getToken();
-  if (!username || !token) {
-    console.log(chalk.yellow("Not logged in. Initializing in offline mode."));
-    const config: LintConfig = { uuid: `local-${Date.now()}`, repository: repoName };
-    writeLintConfig(config);
-    console.log(chalk.green(`Initialized ${repoName} in offline mode.`));
-    return;
-  }
+  // Safe after isLoggedIn() check
+  const username = getUsername() as string;
+  const token = getToken() as string;
 
   // Try to find existing repo on server
   const searchResult = await api.searchRepository(username, repoName, token);

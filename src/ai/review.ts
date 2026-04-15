@@ -1,5 +1,4 @@
 import chalk from "chalk";
-import { createSpinner } from "nanospinner";
 import { getStagedDiff, getStagedFilePaths } from "../git.js";
 import { chat } from "./client.js";
 

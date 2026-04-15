@@ -1,5 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
 import type { FileReport, LintReport, LinterResult, Offense, PolicyRule } from "../types.js";
 import { exec } from "../utils.js";
 import { BaseLinter } from "./base.js";

@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import { confirm } from "@inquirer/prompts";
 import chalk from "chalk";
 import { getStagedDiff, getStagedFilePaths } from "../git.js";
 import { chat } from "./client.js";
