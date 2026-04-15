@@ -1,10 +1,10 @@
 import fs from "node:fs";
+import path from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
-import chalk from "chalk";
 import { input } from "@inquirer/prompts";
+import chalk from "chalk";
 import { AI_CONFIG_PATH } from "../config.js";
 import { ensureDir } from "../utils.js";
-import path from "node:path";
 
 let clientInstance: Anthropic | null = null;
 
@@ -38,7 +38,7 @@ export function getClient(): Anthropic | null {
 }
 
 export async function ensureClient(): Promise<Anthropic> {
-  let client = getClient();
+  const client = getClient();
   if (client) return client;
 
   console.log(chalk.yellow("No Anthropic API key found."));

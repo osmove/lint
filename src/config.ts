@@ -14,7 +14,21 @@ export const AI_CONFIG_PATH = path.join(HOME_DIR, LINT_DIR, "ai-config");
 
 export const SUPPORTED_EXTENSIONS: Record<string, string[]> = {
   eslint: [".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"],
-  prettier: [".js", ".jsx", ".ts", ".tsx", ".css", ".scss", ".less", ".json", ".html", ".vue", ".yaml", ".yml", ".md"],
+  prettier: [
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".css",
+    ".scss",
+    ".less",
+    ".json",
+    ".html",
+    ".vue",
+    ".yaml",
+    ".yml",
+    ".md",
+  ],
   rubocop: [".rb", ".rake", ".gemspec"],
   erblint: [".erb"],
   brakeman: [".rb"],

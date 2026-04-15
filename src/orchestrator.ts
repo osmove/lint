@@ -1,22 +1,22 @@
 import chalk from "chalk";
 import { createSpinner } from "nanospinner";
-import type { LinterResult, LintReport, PolicyRule, PreCommitOptions } from "./types.js";
-import { getStagedFilePaths, getCurrentSha, getCurrentBranch } from "./git.js";
-import { getToken, getUsername, isLoggedIn } from "./auth.js";
-import { readLintConfig, cleanTmpDir, formatDuration } from "./utils.js";
 import * as api from "./api.js";
-import { BaseLinter } from "./linters/base.js";
-import { ESLintLinter } from "./linters/eslint.js";
-import { PrettierLinter } from "./linters/prettier.js";
-import { RuboCopLinter } from "./linters/rubocop.js";
-import { ErbLintLinter } from "./linters/erblint.js";
-import { BrakemanLinter } from "./linters/brakeman.js";
-import { StylelintLinter } from "./linters/stylelint.js";
-import { PylintLinter } from "./linters/pylint.js";
+import { getToken, getUsername, isLoggedIn } from "./auth.js";
+import { getCurrentBranch, getCurrentSha, getStagedFilePaths } from "./git.js";
+import type { BaseLinter } from "./linters/base.js";
 import { BiomeLinter } from "./linters/biome.js";
-import { RuffLinter } from "./linters/ruff.js";
+import { BrakemanLinter } from "./linters/brakeman.js";
+import { ErbLintLinter } from "./linters/erblint.js";
+import { ESLintLinter } from "./linters/eslint.js";
 import { OxlintLinter } from "./linters/oxlint.js";
+import { PrettierLinter } from "./linters/prettier.js";
+import { PylintLinter } from "./linters/pylint.js";
+import { RuboCopLinter } from "./linters/rubocop.js";
+import { RuffLinter } from "./linters/ruff.js";
+import { StylelintLinter } from "./linters/stylelint.js";
 import { printReport } from "./reporter.js";
+import type { LintReport, LinterResult, PolicyRule, PreCommitOptions } from "./types.js";
+import { cleanTmpDir, formatDuration, readLintConfig } from "./utils.js";
 
 const ALL_LINTERS: BaseLinter[] = [
   new BiomeLinter(),
@@ -41,7 +41,9 @@ async function fetchPolicyRules(): Promise<PolicyRule[]> {
   const config = readLintConfig();
   if (!config?.uuid || config.uuid.startsWith("local-")) return [];
 
-  const token = getToken()!;
+  const token = getToken();
+  if (!token) return [];
+
   const result = await api.fetchPolicy(config.uuid, token);
   return result.data?.policy_rules || [];
 }
@@ -52,7 +54,9 @@ async function createCommitAttempt(): Promise<number | null> {
   const config = readLintConfig();
   if (!config?.uuid || config.uuid.startsWith("local-")) return null;
 
-  const token = getToken()!;
+  const token = getToken();
+  if (!token) return null;
+
   const sha = getCurrentSha();
   const branch = getCurrentBranch();
 
@@ -66,7 +70,8 @@ async function sendReport(reports: LintReport[], commitAttemptId: number | null)
   const config = readLintConfig();
   if (!config?.uuid || config.uuid.startsWith("local-")) return;
 
-  const token = getToken()!;
+  const token = getToken();
+  if (!token) return;
   const totalErrors = reports.reduce((sum, r) => sum + r.error_count, 0);
   const totalWarnings = reports.reduce((sum, r) => sum + r.warning_count, 0);
 
@@ -96,21 +101,33 @@ export async function preCommit(options: PreCommitOptions = {}): Promise<void> {
     return;
   }
 
-  console.log(chalk.cyan(`\nOmnilint — Linting ${files.length} staged file(s)...\n`));
+  const autofix = options.fix ?? false;
+  const verbose = options.verbose ?? false;
+
+  console.log(
+    chalk.cyan(
+      `\nOmnilint — ${autofix ? "Fixing" : "Linting"} ${files.length} staged file(s)...\n`,
+    ),
+  );
 
   // Fetch policy rules (non-blocking if API is down)
   let policyRules: PolicyRule[] = [];
   try {
     policyRules = await fetchPolicyRules();
+    if (verbose && policyRules.length > 0) {
+      console.log(chalk.gray(`  Loaded ${policyRules.length} policy rule(s) from API`));
+    }
   } catch {
-    // Continue without policy rules — use linter defaults
+    if (verbose) console.log(chalk.gray("  API offline — using linter defaults"));
   }
 
   const commitAttemptId = await createCommitAttempt().catch(() => null);
 
   const available = getAvailableLinters();
   if (available.length === 0) {
-    console.log(chalk.yellow("No linters detected. Install one: npm i -g eslint, pip install ruff, etc."));
+    console.log(
+      chalk.yellow("No linters detected. Install one: npm i -g eslint, pip install ruff, etc."),
+    );
     return;
   }
 
@@ -123,7 +140,7 @@ export async function preCommit(options: PreCommitOptions = {}): Promise<void> {
 
     const spinner = createSpinner(`${linter.name} (${relevantFiles.length} files)`).start();
 
-    const result = linter.execute(files, policyRules, false);
+    const result = linter.execute(files, policyRules, autofix);
     if (!result) {
       spinner.success({ text: `${linter.name} — skipped` });
       continue;
@@ -162,7 +179,10 @@ export async function preCommit(options: PreCommitOptions = {}): Promise<void> {
   // Print summary
   const totalErrors = reports.reduce((sum, r) => sum + r.error_count, 0);
   const totalWarnings = reports.reduce((sum, r) => sum + r.warning_count, 0);
-  const totalFixable = reports.reduce((sum, r) => sum + r.fixable_error_count + r.fixable_warning_count, 0);
+  const totalFixable = reports.reduce(
+    (sum, r) => sum + r.fixable_error_count + r.fixable_warning_count,
+    0,
+  );
 
   console.log("");
   if (totalErrors > 0) {
@@ -186,8 +206,13 @@ export async function preCommit(options: PreCommitOptions = {}): Promise<void> {
   }
 }
 
-export async function lintStaged(format?: string): Promise<void> {
-  return preCommit({ format });
+export async function lintStaged(
+  options?: string | Pick<PreCommitOptions, "format" | "fix" | "verbose">,
+): Promise<void> {
+  if (typeof options === "string") {
+    return preCommit({ format: options });
+  }
+  return preCommit(options);
 }
 
 export async function prepareCommitMsg(): Promise<void> {

@@ -1,8 +1,8 @@
 import fs from "node:fs";
-import chalk from "chalk";
 import { confirm } from "@inquirer/prompts";
-import { chat } from "./client.js";
+import chalk from "chalk";
 import { getStagedDiff, getStagedFilePaths } from "../git.js";
+import { chat } from "./client.js";
 
 const SYSTEM_PROMPT = `You are an expert code fixer working as part of Omnilint, a universal linting tool.
 Given a git diff of staged changes, identify issues and provide fixed code.
@@ -35,7 +35,9 @@ export async function fixStagedChanges(): Promise<void> {
     return;
   }
 
-  console.log(chalk.cyan(`\nAnalyzing ${files.length} staged file(s) for auto-fix suggestions...\n`));
+  console.log(
+    chalk.cyan(`\nAnalyzing ${files.length} staged file(s) for auto-fix suggestions...\n`),
+  );
 
   // Also send file contents for full context
   const fileContents: string[] = [];

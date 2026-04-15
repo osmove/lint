@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import chalk from "chalk";
+import * as api from "./api.js";
 import { REFS_DIR, TOKEN_PATH, USERNAME_PATH } from "./config.js";
 import { ensureDir } from "./utils.js";
-import * as api from "./api.js";
 
 export function getUsername(): string | null {
   try {
@@ -71,7 +71,7 @@ export async function printStatus(): Promise<void> {
   const username = getUsername();
   const token = getToken();
   if (!username || !token) {
-    console.log("Not logged in. Run " + chalk.cyan("lint login") + " to sign in.");
+    console.log(`Not logged in. Run ${chalk.cyan("lint login")} to sign in.`);
     return;
   }
   const result = await api.fetchUser(username, token);

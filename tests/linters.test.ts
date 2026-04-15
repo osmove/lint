@@ -1,14 +1,14 @@
-import { describe, it, expect } from "vitest";
-import { ESLintLinter } from "../src/linters/eslint.js";
-import { PrettierLinter } from "../src/linters/prettier.js";
-import { RuboCopLinter } from "../src/linters/rubocop.js";
+import { describe, expect, it } from "vitest";
 import { BiomeLinter } from "../src/linters/biome.js";
-import { RuffLinter } from "../src/linters/ruff.js";
-import { OxlintLinter } from "../src/linters/oxlint.js";
-import { StylelintLinter } from "../src/linters/stylelint.js";
-import { PylintLinter } from "../src/linters/pylint.js";
 import { BrakemanLinter } from "../src/linters/brakeman.js";
 import { ErbLintLinter } from "../src/linters/erblint.js";
+import { ESLintLinter } from "../src/linters/eslint.js";
+import { OxlintLinter } from "../src/linters/oxlint.js";
+import { PrettierLinter } from "../src/linters/prettier.js";
+import { PylintLinter } from "../src/linters/pylint.js";
+import { RuboCopLinter } from "../src/linters/rubocop.js";
+import { RuffLinter } from "../src/linters/ruff.js";
+import { StylelintLinter } from "../src/linters/stylelint.js";
 
 describe("ESLintLinter", () => {
   const linter = new ESLintLinter();
@@ -29,7 +29,14 @@ describe("ESLintLinter", () => {
         filePath: "/test/file.js",
         messages: [
           { ruleId: "no-unused-vars", severity: 2, message: "x is unused", line: 5, column: 3 },
-          { ruleId: "semi", severity: 1, message: "Missing semicolon", line: 10, column: 1, fix: {} },
+          {
+            ruleId: "semi",
+            severity: 1,
+            message: "Missing semicolon",
+            line: 10,
+            column: 1,
+            fix: {},
+          },
         ],
         errorCount: 1,
         warningCount: 1,

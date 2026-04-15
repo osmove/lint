@@ -133,4 +133,6 @@ export interface PreCommitOptions {
   time?: boolean;
   truncate?: boolean;
   format?: string;
+  fix?: boolean;
+  verbose?: boolean;
 }

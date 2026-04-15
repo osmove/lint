@@ -1,6 +1,6 @@
 import chalk from "chalk";
-import { chat } from "./client.js";
 import type { LintReport } from "../types.js";
+import { chat } from "./client.js";
 
 const SYSTEM_PROMPT = `You are a friendly code mentor working as part of Omnilint, a universal linting tool.
 Your job is to explain linting errors in plain language so developers can learn from them.
@@ -31,7 +31,9 @@ export async function explainErrors(reports: LintReport[]): Promise<void> {
 
   // Limit to first 20 unique rules
   const uniqueRules = [...new Set(allOffenses.map((o) => o.rule))].slice(0, 20);
-  const selectedOffenses = uniqueRules.map((rule) => allOffenses.find((o) => o.rule === rule)!);
+  const selectedOffenses = uniqueRules
+    .map((rule) => allOffenses.find((o) => o.rule === rule))
+    .filter((o) => o !== undefined);
 
   console.log(chalk.cyan(`\nExplaining ${selectedOffenses.length} linting issue(s)...\n`));
 

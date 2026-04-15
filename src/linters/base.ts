@@ -1,7 +1,7 @@
 import chalk from "chalk";
-import type { FileReport, LinterResult, LintReport, Offense, PolicyRule } from "../types.js";
-import { exec, isCommandAvailable, ensureTmpDir, filterFilesByExtensions } from "../utils.js";
 import { SUPPORTED_EXTENSIONS } from "../config.js";
+import type { FileReport, LintReport, LinterResult, Offense, PolicyRule } from "../types.js";
+import { ensureTmpDir, exec, filterFilesByExtensions, isCommandAvailable } from "../utils.js";
 
 export abstract class BaseLinter {
   abstract name: string;
