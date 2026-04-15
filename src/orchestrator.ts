@@ -14,7 +14,7 @@ import { PylintLinter } from "./linters/pylint.js";
 import { RuboCopLinter } from "./linters/rubocop.js";
 import { RuffLinter } from "./linters/ruff.js";
 import { StylelintLinter } from "./linters/stylelint.js";
-import { printReport } from "./reporter.js";
+import { printReport, printSummaryTable } from "./reporter.js";
 import type { LintReport, LinterResult, PolicyRule, PreCommitOptions } from "./types.js";
 import { cleanTmpDir, formatDuration, readLintConfig } from "./utils.js";
 
@@ -166,6 +166,9 @@ export async function preCommit(options: PreCommitOptions = {}): Promise<void> {
   const reports = results.map((r) => r.report);
   if (reports.some((r) => r.error_count > 0 || r.warning_count > 0)) {
     printReport(reports, options.truncate);
+    if (verbose) {
+      printSummaryTable(reports);
+    }
   }
 
   // Send report to API
