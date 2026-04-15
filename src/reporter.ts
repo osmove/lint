@@ -64,3 +64,48 @@ export function printSummaryTable(reports: LintReport[]): void {
     console.log(table.toString());
   }
 }
+
+export function formatJsonReport(
+  reports: LintReport[],
+  meta: { duration: number; dryRun?: boolean; fix?: boolean },
+): string {
+  const totalErrors = reports.reduce((s, r) => s + r.error_count, 0);
+  const totalWarnings = reports.reduce((s, r) => s + r.warning_count, 0);
+  const totalFixable = reports.reduce(
+    (s, r) => s + r.fixable_error_count + r.fixable_warning_count,
+    0,
+  );
+
+  return JSON.stringify(
+    {
+      success: totalErrors === 0,
+      summary: {
+        errors: totalErrors,
+        warnings: totalWarnings,
+        fixable: totalFixable,
+        duration_ms: meta.duration,
+        dry_run: meta.dryRun ?? false,
+        auto_fix: meta.fix ?? false,
+      },
+      linters: reports.map((r) => ({
+        name: r.linter,
+        errors: r.error_count,
+        warnings: r.warning_count,
+        fixable: r.fixable_error_count + r.fixable_warning_count,
+        files: r.files.map((f) => ({
+          path: f.path,
+          offenses: f.offenses.map((o) => ({
+            line: o.line,
+            column: o.column,
+            rule: o.rule,
+            message: o.message,
+            severity: o.severity,
+            fixable: o.fixable ?? false,
+          })),
+        })),
+      })),
+    },
+    null,
+    2,
+  );
+}

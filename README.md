@@ -17,40 +17,30 @@ Omnilint wraps multiple language-specific linters into a single CLI. Instead of 
 lint
 ```
 
-It auto-detects your languages, applies your team's policy, and lints everything — JavaScript, TypeScript, Python, Ruby, CSS, and more.
+It auto-detects your languages, resolves linter conflicts, and lints everything — JavaScript, TypeScript, Python, Ruby, CSS, and more.
 
 ## Quick Start
 
 ```sh
-# Install globally
 npm i -g lint
-
-# Navigate to your project
 cd /path/to/your/repo
-
-# Initialize
 lint init
-
-# Lint your staged files
 lint
 ```
 
-Or install locally:
-
-```sh
-npm i -D lint
-npx lint
-```
+`lint init` scans your project, detects languages, suggests linters, installs missing ones, creates `.lintrc.yaml`, and sets up git hooks — all interactively.
 
 ## Features
 
-- **Multi-language** — One tool for JS, TS, Python, Ruby, CSS, ERB, and more
-- **10 linters** — ESLint, Biome, oxlint, Prettier, RuboCop, Stylelint, Pylint, Ruff, Brakeman, erb-lint
-- **Git hooks** — Automatic pre-commit linting
-- **AI-powered** — Code review, auto-fix suggestions, and error explanations with Claude
-- **Policy-driven** — Centralized rules for your team via cloud config
-- **Zero config** — Smart defaults, customize when you need to
-- **Fast** — Rust-based linters (Biome, Ruff, oxlint) for instant feedback
+- **Smart init** — Auto-detects languages, frameworks, and package managers
+- **10 linters** — Biome, oxlint, ESLint, Prettier, Ruff, Pylint, RuboCop, Stylelint, Brakeman, erb-lint
+- **Conflict resolution** — Biome auto-replaces ESLint+Prettier, Ruff replaces Pylint
+- **Lint anything** — Staged files, directories, or specific files
+- **AI-powered** — Code review, auto-fix, commit messages, error explanations (Claude)
+- **JSON output** — `--format json` for CI/CD pipelines
+- **Parallel execution** — Different-language linters run simultaneously
+- **Git hooks** — Pre-commit with timeout, skip env, Husky/Lefthook compatibility
+- **Zero config** — Works out of the box, customize with `.lintrc.yaml`
 
 ## Supported Linters
 
@@ -64,17 +54,23 @@ npx lint
 | Ruby on Rails | Brakeman (security) | — |
 | Code Formatting | Prettier | — |
 
+When Biome is installed, ESLint/Prettier/oxlint are automatically disabled (configurable in `.lintrc.yaml`).
+
 ## Commands
 
 ### Linting
 
 ```sh
 lint                      # Lint staged files (default)
-lint pre-commit           # Run pre-commit hook
-lint pre-commit -t        # Show execution time
-lint pre-commit -T        # Truncate output (first 10 offenses)
-lint lint:staged          # Lint staged files
-lint prettify <ext>       # Run Prettier on all files with extension
+lint .                    # Lint entire project
+lint src/                 # Lint specific directory
+lint src/index.ts         # Lint specific file
+lint --fix                # Auto-fix issues
+lint --fix --dry-run      # Preview fixes without applying
+lint --format json        # JSON output for CI/CD
+lint -q                   # Quiet mode (summary only)
+lint -t                   # Show execution time
+lint --exit-on-warnings   # Exit code 2 on warnings
 ```
 
 ### AI (powered by Claude)
@@ -83,14 +79,15 @@ lint prettify <ext>       # Run Prettier on all files with extension
 lint ai setup             # Configure your Anthropic API key
 lint ai review            # AI code review of staged changes
 lint ai fix               # AI-powered auto-fix suggestions
+lint ai commit            # Generate commit message from staged diff
+lint ai explain           # Explain linting errors in plain language
 ```
 
-Set your API key via `lint ai setup` or the `ANTHROPIC_API_KEY` environment variable.
-
-### Setup
+### Setup & Diagnostics
 
 ```sh
-lint init                 # Initialize repository
+lint init                 # Smart setup wizard with auto-detection
+lint doctor               # Diagnose setup, linters, hooks health
 lint install:hooks        # Install git hooks
 lint uninstall:hooks      # Remove git hooks
 ```
@@ -98,25 +95,44 @@ lint uninstall:hooks      # Remove git hooks
 ### Account
 
 ```sh
-lint signup               # Create an account
-lint login                # Sign in
-lint logout               # Sign out
-lint whoami               # Current user status
+lint signup / login / logout / whoami
 ```
 
-## Git Hooks
+## Configuration
 
-Install git hooks to lint automatically on every commit:
+### `.lintrc.yaml`
+
+```yaml
+linters:
+  enabled: [biome, ruff, rubocop]
+  disabled: [eslint, prettier, oxlint]
+
+ignore:
+  - node_modules/**
+  - dist/**
+  - "**/*.test.ts"
+
+fix:
+  enabled: true
+  strategy: formatter-first  # or: parallel, sequential
+
+hooks:
+  timeout: 60               # seconds
+  skip_env: OMNILINT_SKIP   # OMNILINT_SKIP=1 git commit ...
+```
+
+Without `.lintrc.yaml`, Omnilint uses smart defaults with automatic conflict resolution.
+
+## Git Hooks
 
 ```sh
 lint install:hooks
 ```
 
-This installs `pre-commit`, `prepare-commit-msg`, and `post-commit` hooks.
-
-## Configuration
-
-Omnilint stores its configuration in the `.lint/` directory at the root of your repository. Team-wide policies are managed through the Omnilint cloud dashboard.
+- Installs pre-commit, prepare-commit-msg, and post-commit hooks
+- Auto-detects Husky/Lefthook and integrates instead of replacing
+- Includes timeout protection and skip mechanism
+- Skip: `OMNILINT_SKIP=1 git commit ...` or `git commit --no-verify`
 
 ## Development
 
@@ -125,7 +141,7 @@ git clone https://github.com/omnilint/lint.git
 cd lint
 npm install
 npm run build             # Build TypeScript → dist/
-npm test                  # Run tests
+npm test                  # Run tests (80 tests, 9 suites)
 npm run typecheck         # Type check
 npm run lint              # Lint with Biome
 ```
@@ -134,7 +150,7 @@ npm run lint              # Lint with Biome
 
 - TypeScript (strict), ESM
 - Build: tsup → Node 20+
-- Tests: Vitest (59 tests, 7 suites)
+- Tests: Vitest (80 tests, 9 suites)
 - CI: GitHub Actions (Node 20 + 22)
 - AI: Anthropic SDK (Claude)
 
