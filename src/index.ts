@@ -5,7 +5,9 @@ import { saveApiKey } from "./ai/client.js";
 import { printCommitSuggestion } from "./ai/commit.js";
 import { explainErrors } from "./ai/explain.js";
 import { fixStagedChanges } from "./ai/fix.js";
+import { generatePolicyLocal } from "./ai/policy.js";
 import { reviewStagedChanges } from "./ai/review.js";
+import { explainRule } from "./ai/rules.js";
 import * as auth from "./auth.js";
 import { VERSION } from "./config.js";
 import { checkLinterInstallation } from "./detect.js";
@@ -232,6 +234,14 @@ ai.command("explain")
     await explainErrors(reports);
   });
 
+ai.command("explain-rule <rule>")
+  .description("Explain a specific lint rule (e.g. no-unused-vars, E501)")
+  .action((rule) => explainRule(rule));
+
+ai.command("policy <description...>")
+  .description('Generate a .lintrc.yaml from a description (e.g. "strict TypeScript with Biome")')
+  .action((descParts) => generatePolicyLocal(descParts.join(" ")));
+
 ai.command("setup")
   .description("Configure your Anthropic API key")
   .action(async () => {
@@ -245,6 +255,13 @@ ai.command("setup")
     saveApiKey(apiKey);
     console.log(chalk.green("API key saved. AI features are now enabled."));
   });
+
+// ── Shortcut commands ──
+
+program
+  .command("explain <rule>")
+  .description("Explain a lint rule (shortcut for 'lint ai explain-rule')")
+  .action((rule) => explainRule(rule));
 
 // ── Account commands ──
 

@@ -1,4 +1,6 @@
 import chalk from "chalk";
+import * as api from "../api.js";
+import { getToken, isLoggedIn } from "../auth.js";
 import { getStagedDiff, getStagedFilePaths } from "../git.js";
 import { chat } from "./client.js";
 
@@ -41,5 +43,17 @@ export async function reviewStagedChanges(): Promise<void> {
     await chat(SYSTEM_PROMPT, userMessage, { stream: true, maxTokens: 4096 });
   } catch (error) {
     console.log(chalk.red("\nAI review failed:"), (error as Error).message);
+  }
+
+  // Also submit to backend if connected (non-blocking)
+  if (isLoggedIn()) {
+    const token = getToken();
+    if (token) {
+      api
+        .submitAiReview(token, [
+          { rule_name: "ai-review", file_path: files[0], line: 1, message: "AI review submitted" },
+        ])
+        .catch(() => {});
+    }
   }
 }

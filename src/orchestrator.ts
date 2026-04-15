@@ -72,22 +72,25 @@ async function createCommitAttempt(): Promise<number | null> {
 }
 
 async function sendReport(reports: LintReport[], commitAttemptId: number | null): Promise<void> {
-  if (!isLoggedIn() || !commitAttemptId) return;
+  if (!isLoggedIn()) return;
   const config = readLintConfig();
   if (!config?.uuid || config.uuid.startsWith("local-")) return;
   const token = getToken();
   if (!token) return;
   try {
-    await api.postReport(token, {
-      commit_attempt_id: commitAttemptId,
+    // Try new v1 endpoint first, fall back to legacy
+    await api.submitLintResults(token, {
+      commit_attempt_id: commitAttemptId ?? undefined,
       repository_uuid: config.uuid,
-      error_count: reports.reduce((s, r) => s + r.error_count, 0),
-      warning_count: reports.reduce((s, r) => s + r.warning_count, 0),
-      linters: reports.map((r) => ({
-        name: r.linter,
-        error_count: r.error_count,
-        warning_count: r.warning_count,
-      })),
+      policy_check: {
+        error_count: reports.reduce((s, r) => s + r.error_count, 0),
+        warning_count: reports.reduce((s, r) => s + r.warning_count, 0),
+        linters: reports.map((r) => ({
+          name: r.linter,
+          error_count: r.error_count,
+          warning_count: r.warning_count,
+        })),
+      },
     });
   } catch {
     // Non-critical
