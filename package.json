@@ -1,35 +1,53 @@
 {
   "name": "lint",
-  "version": "0.8.19",
-  "description": "Omnilint - Omniscient code linter.",
-  "main": "index.js",
+  "version": "1.0.0",
+  "description": "Omnilint — The universal linter with AI-powered code review.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "lint": "./dist/index.js",
+    "omnilint": "./dist/index.js"
+  },
   "scripts": {
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "echo \"*** Welcome to Omnilint ***\""
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist/",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@inquirer/prompts": "^7.2.0",
+    "chalk": "^5.4.1",
+    "cli-table3": "^0.6.5",
+    "commander": "^13.1.0",
+    "js-yaml": "^4.1.0",
+    "nanospinner": "^1.2.2",
+    "prettier": "^3.5.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.13.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.4"
   },
   "author": "Jimmy Douieb",
   "license": "Apache-2.0",
-  "preferGlobal": true,
-  "bin": {
-    "lint": "./index.js",
-    "omnilint": "./index.js"
-  },
-  "dependencies": {
-    "chalk": "^2.4.2",
-    "cli-table": "^0.3.1",
-    "commander": "^2.17.1",
-    "inquirer": "^6.1.0",
-    "js-yaml": ">=3.13.1",
-    "loadash": "^1.0.0",
-    "moment": "^2.22.2",
-    "ora": "^3.0.0",
-    "prettier": "^1.15.3",
-    "replace-in-file": "^3.4.2",
-    "request": "^2.87.0",
-    "simple-git": "^3.15.0",
-    "write-yaml": "^1.0.0"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/omnilint/lint.git"
@@ -37,5 +55,19 @@
   "bugs": {
     "url": "https://github.com/omnilint/lint/issues"
   },
-  "homepage": "https://www.omnilint.com"
+  "homepage": "https://www.omnilint.com",
+  "keywords": [
+    "lint",
+    "linter",
+    "eslint",
+    "prettier",
+    "rubocop",
+    "biome",
+    "ruff",
+    "oxlint",
+    "ai",
+    "code-review",
+    "git-hooks",
+    "pre-commit"
+  ]
 }
