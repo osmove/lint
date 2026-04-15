@@ -1,86 +1,112 @@
 # Omnilint (lint)
 
-Omnilint is a universal code linting CLI that orchestrates multiple language-specific linters through a single interface. It connects to a cloud API (`api.omnilint.com`) for policy-based rule management and integrates with git hooks for automated linting.
+Omnilint is a universal code linting CLI that orchestrates multiple language-specific linters through a single interface. It connects to a cloud API (`api.omnilint.com`) for policy-based rule management, integrates with git hooks, and provides AI-powered code review via Claude.
 
 **npm package**: `lint` (global command: `lint` or `omnilint`)
 
 ## Architecture
 
 ```
-index.js              → CLI entry point (commander.js)
-utils/
-├── linter.js         → Core linting orchestration (fetches policies, runs linters)
-├── user.js           → Authentication (login/signup/logout via API)
-├── initializer.js    → Repository initialization (creates .lint/ directory)
-├── filesHandler.js   → File I/O, git operations, .lint directory management
-├── hooks.js          → Git hook installation/management
-├── repository.js     → API calls for repository CRUD
-├── organization.js   → Organization management
-├── ascii-filter.js   → Output filtering
-└── linters/          → Language-specific linter wrappers
-    ├── eslint.js     → JavaScript/TypeScript (ESLint)
-    ├── prettier.js   → Code formatting (Prettier)
-    ├── ruboCop.js    → Ruby (RuboCop)
-    ├── erbLint.js    → ERB templates (erb-lint)
-    ├── brakeman.js   → Rails security (Brakeman)
-    ├── stylelint.js  → CSS/SCSS (Stylelint)
-    └── pylint.js     → Python (Pylint)
+src/
+├── index.ts           → CLI entry point (commander.js)
+├── types.ts           → TypeScript interfaces (LintReport, PolicyRule, etc.)
+├── config.ts          → Constants, paths, supported extensions
+├── utils.ts           → Shared utilities (exec, file helpers, git root)
+├── api.ts             → HTTP client for api.omnilint.com (native fetch)
+├── auth.ts            → User authentication (login/signup/logout)
+├── git.ts             → Git operations (staged files, hooks, init)
+├── orchestrator.ts    → Main linting orchestration engine
+├── reporter.ts        → Terminal output formatting (chalk + cli-table3)
+├── linters/
+│   ├── base.ts        → Abstract BaseLinter class
+│   ├── eslint.ts      → ESLint (JavaScript/TypeScript)
+│   ├── prettier.ts    → Prettier (code formatting)
+│   ├── rubocop.ts     → RuboCop (Ruby)
+│   ├── erblint.ts     → erb-lint (ERB templates)
+│   ├── brakeman.ts    → Brakeman (Rails security)
+│   ├── stylelint.ts   → Stylelint (CSS/SCSS)
+│   ├── pylint.ts      → Pylint (Python)
+│   ├── biome.ts       → Biome (JS/TS/CSS/JSON — Rust-based)
+│   ├── ruff.ts        → Ruff (Python — Rust-based)
+│   └── oxlint.ts      → oxlint (JS/TS — Rust-based)
+└── ai/
+    ├── client.ts      → Anthropic SDK wrapper (streaming, key management)
+    ├── review.ts      → AI code review of staged changes
+    ├── fix.ts         → AI auto-fix suggestions
+    └── explain.ts     → AI explanation of linting errors
 ```
 
 ## How It Works
 
 1. User runs `lint` or `lint pre-commit`
-2. CLI fetches staged files via `simple-git`
-3. Files are categorized by extension (`.js`, `.rb`, `.py`, `.scss`, etc.)
-4. Policy rules are fetched from `https://api.omnilint.com`
+2. CLI gets staged files via `git status -s`
+3. Files are categorized by extension and matched to available linters
+4. Policy rules are fetched from the API (optional, works offline)
 5. Linter configs are dynamically generated in `.lint/tmp/`
-6. Each linter runs via `child_process.execSync`
-7. Output is parsed and displayed with `chalk` + `cli-table`
+6. Each linter runs via `child_process.execSync`, output parsed as JSON
+7. Results are aggregated and displayed with spinners + colored output
+8. Report is sent to API (if connected)
 
 ## Development
 
 ```bash
-node -v          # Requires Node.js (currently no minimum version set)
-npm install      # Install dependencies
-node index.js    # Run locally
+node -v              # Requires Node.js >= 20
+npm install          # Install dependencies
+npm run build        # Build with tsup → dist/
+npm run dev          # Watch mode
+npm run test         # Run tests with Vitest
+npm run typecheck    # TypeScript type checking
+npm run lint         # Lint with Biome
 ```
 
-### Key Commands
+### Running locally
 
 ```bash
-lint                    # Lint staged files (default action)
-lint init               # Initialize repo with Omnilint
-lint install:hooks      # Install git hooks
-lint pre-commit         # Run pre-commit hook
-lint login / signup     # Authentication
+node dist/index.js          # Run built version
+npx tsx src/index.ts        # Run directly from source
 ```
+
+## Tech Stack
+
+- **Language**: TypeScript (strict mode)
+- **Build**: tsup (ESM output, targeting Node 20)
+- **Tests**: Vitest
+- **Linting**: Biome (self-linting)
+- **CI/CD**: GitHub Actions (Node 20 + 22 matrix)
+- **Dependencies**: chalk 5, commander 13, @inquirer/prompts 7, @anthropic-ai/sdk
 
 ## Configuration
 
-- `.lint/config` — Local repo config (contains repo UUID)
+- `.lint/config` — Local repo config (YAML, contains repo UUID)
 - `~/.lint/refs/user` — Stored username
 - `~/.lint/refs/token` — Stored API token
-- `.lintstagedrc` — lint-staged integration config
+- `~/.lint/ai-config` — Anthropic API key (JSON)
+- `ANTHROPIC_API_KEY` env var — Alternative API key source
+- `OMNILINT_API_URL` env var — Override API base URL
 
 ## API
 
-- **Base URL**: `https://api.omnilint.com`
-- **Dev URL**: `http://localhost:3000`
-- Authentication: username + token passed as query params
+- **Base URL**: `https://api.omnilint.com` (configurable via `OMNILINT_API_URL`)
+- Authentication: `user_token` query parameter
+- All requests use native `fetch` (no external HTTP library)
 
-## Known Issues (pre-modernization)
+## Adding a New Linter
 
-- `install:stylelint` calls `installRubocop()` instead of `installStylelint()` (bug)
-- `install:rubocop` references an uncommented import (will crash)
-- `loadash` dependency is a typo — not `lodash`, it's an empty/suspect package
-- `request` library is deprecated since 2020
-- No tests, no CI/CD, no TypeScript
-- Backup files in repo (`index copy.js`, `linters-backup-jan-2019/`)
+1. Create `src/linters/newlinter.ts` extending `BaseLinter`
+2. Implement: `createConfig()`, `run()`, `parseOutput()`
+3. Add extensions to `SUPPORTED_EXTENSIONS` in `src/config.ts`
+4. Register the linter in `ALL_LINTERS` array in `src/orchestrator.ts`
+5. Add tests in `tests/linters.test.ts`
 
-## Build & Test
+## Key Commands
 
-Currently no build step or test suite. Modernization plan targets:
-- TypeScript with `tsup` for building
-- Vitest for testing
-- GitHub Actions for CI/CD
-- Biome for self-linting
+```bash
+lint                    # Lint staged files (default)
+lint pre-commit -t      # Pre-commit hook with timing
+lint ai review          # AI code review
+lint ai fix             # AI auto-fix suggestions
+lint ai setup           # Configure Anthropic API key
+lint init               # Initialize repository
+lint install:hooks      # Install git hooks
+lint login / signup     # Authentication
+```
