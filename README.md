@@ -1,102 +1,136 @@
 ![Omnilint logo](./assets/images/logo-dark.png#gh-dark-mode-only)
 ![Omnilint logo](./assets/images/logo-light.png#gh-light-mode-only)
 
----
+**The universal linter.** One CLI to lint any language — now with AI-powered code review.
 
-# Installation (global)
-Install globally:
-```sh
-$ npm i -g lint
-```
-## Usage (global)
-
-Get inside your repository:
-```sh
-$ cd /path/to/repo
-```
-Use it globally
-```sh
-$ lint [COMMAND]
-```
-Start new repository:
-```sh
-$ lint init
-```
-Lint files linted by git:
-```sh
-$ lint
-```
-To install git hooks:
-```sh
-$ cd path/to/repository
-$ lint install:hooks
-```
+[![npm version](https://img.shields.io/npm/v/lint.svg)](https://www.npmjs.com/package/lint)
+[![license](https://img.shields.io/npm/l/lint.svg)](https://github.com/omnilint/lint/blob/master/LICENSE)
 
 ---
 
-## Installation (local)
-Install into your devDependencies:
-```sh
-$ npm i -D lint
-```
-### Usage (local)
-Use it with NPX from inside your repository:
+## What is Omnilint?
+
+Omnilint wraps multiple language-specific linters into a single CLI. Instead of configuring ESLint, Rubocop, Ruff, Biome, and Stylelint separately, run one command:
 
 ```sh
-$ npx lint [COMMAND]
+lint
 ```
 
-To install git hooks:
+It detects your languages, applies your team's policy, and lints everything — JavaScript, TypeScript, Python, Ruby, CSS, and more.
+
+## Quick Start
+
 ```sh
-$ npx lint install:hooks
+# Install globally
+npm i -g lint
+
+# Navigate to your project
+cd /path/to/your/repo
+
+# Initialize
+lint init
+
+# Lint your staged files
+lint
 ```
 
+Or install locally:
 
-```
-Usage: lint [options] [command]
-
-Options:
-  -v, --version          output the version number
-  -h, --help             output usage information
-
-Commands:
-  init                   Initializes current repository
-  install:hooks          Install git hooks
-  install:eslint         Install ESLint
-  install:erblint        Install ERB Lint
-  install:brakeman       Install Brakeman
-  install:rubocop        Install Rubocop
-  install:stylelint      Install StyleLint
-  lint:staged [options]  Lint Staged files
-  pre-commit [options]   Simulates pre-commit git hook actions.
-  prepare-commit-msg     Triggers 'prepare-commit-msg' hook actions.
-  post-commit            Triggers 'post-commit' hook actions.
-  prettify <extenstion>  Run Prettier on project.
-  login                  Sign in on local device.
-  logout                 Sign out from local device.
-  signup                 Creates an account
-  whoami                 Get current user status
-```
-
-## Sign Up
-Create your free Omnilint account:
 ```sh
-$ lint signup
+npm i -D lint
+npx lint
 ```
-## Log In
-Log in with your existing Omnilint account:
+
+## Features
+
+- **Multi-language** — One tool for JS, TS, Python, Ruby, CSS, ERB, and more
+- **Git hooks** — Automatic pre-commit linting
+- **Policy-driven** — Centralized rules for your team via cloud config
+- **AI-powered** — Code review and auto-fix with Claude *(coming soon)*
+- **Zero config** — Smart defaults, customize when you need to
+
+## Supported Linters
+
+| Language | Linter | Status |
+|----------|--------|--------|
+| JavaScript / TypeScript | ESLint, Biome | Supported |
+| Python | Ruff, Pylint | Supported |
+| Ruby | RuboCop | Supported |
+| CSS / SCSS | Stylelint | Supported |
+| ERB Templates | erb-lint | Supported |
+| Ruby on Rails | Brakeman (security) | Supported |
+| Code Formatting | Prettier | Supported |
+
+## Commands
+
+### Linting
+
 ```sh
-$ lint login
+lint                      # Lint staged files (default)
+lint pre-commit           # Run pre-commit hook
+lint pre-commit -t        # Show execution time
+lint pre-commit -T        # Truncate output (first 10 offenses)
+lint:staged               # Lint staged files
+prettify <ext>            # Run Prettier on all files with extension
 ```
-## Version
-Print the CLI version:
+
+### Setup
+
 ```sh
-$ lint version
+lint init                 # Initialize repository
+lint install:hooks        # Install git hooks
+lint install:eslint       # Install ESLint
+lint install:rubocop      # Install Rubocop
+lint install:stylelint    # Install Stylelint
+lint install:erblint      # Install ERB Lint
+lint install:brakeman     # Install Brakeman
 ```
-## Help
-Print the list of available commands:
+
+### Account
+
 ```sh
-$ lint --help
+lint signup               # Create an account
+lint login                # Sign in
+lint logout               # Sign out
+lint whoami               # Current user status
 ```
+
+### AI (coming soon)
+
+```sh
+lint ai:review            # AI-powered code review of staged changes
+lint ai:fix               # Intelligent auto-fix suggestions
+lint ai:explain           # Explain linting errors in plain language
+lint ai:config            # Generate linter config from AI analysis
+```
+
+## Git Hooks
+
+Install git hooks to lint automatically on every commit:
+
+```sh
+lint install:hooks
+```
+
+This installs `pre-commit`, `prepare-commit-msg`, and `post-commit` hooks.
+
+## Configuration
+
+Omnilint stores its configuration in the `.lint/` directory at the root of your repository. Team-wide policies are managed through the Omnilint cloud dashboard.
+
+## Development
+
+```sh
+git clone https://github.com/omnilint/lint.git
+cd lint
+npm install
+node index.js
+```
+
+## License
+
+[Apache-2.0](./LICENSE)
+
 ## Website
+
 [https://www.omnilint.com](https://www.omnilint.com)
