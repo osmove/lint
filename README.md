@@ -112,10 +112,10 @@ lint hooks uninstall      # Remove git hooks
 lint auth signup
 lint auth login
 lint auth logout
-lint auth whoami
+lint auth status
 ```
 
-Flat aliases like `lint signup`, `lint login`, `lint logout`, and `lint whoami` still work for backward compatibility, but `lint auth <action>` is now the canonical API.
+Aliases like `lint auth whoami`, `lint signup`, `lint login`, `lint logout`, and `lint whoami` still work for backward compatibility, but `lint auth <action>` is now the canonical API and `lint auth status` is the preferred status command.
 
 Internal hook entrypoints like `lint pre-commit`, `lint prepare-commit-msg`, and `lint post-commit` remain available for installed git hooks, but they are intentionally hidden from the main CLI help because they are not part of the primary user-facing surface.
 
