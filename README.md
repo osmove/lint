@@ -37,6 +37,7 @@ lint
 - **Lint anything** — Staged files, directories, or specific files
 - **AI-powered** — Code review, auto-fix, commit messages, error explanations (Claude)
 - **JSON output** — `--format json` for CI/CD pipelines
+- **Structured run metadata** — JSON output includes run mode, file count, selected linters, and policy metadata
 - **Parallel execution** — Different-language linters run simultaneously
 - **Managed hooks** — Portable hook install/uninstall/status with timeout, skip env, Husky/Lefthook compatibility
 - **Zero config** — Works out of the box, customize with `.lintrc.yaml`
@@ -158,6 +159,15 @@ lint doctor --json
 
 Use `lint doctor --json` when you want to consume the report from another tool, CI step, or control plane.
 
+## JSON Output
+
+`lint --format json` now returns a stable machine-readable payload with:
+
+- summary counts
+- per-linter and per-file offenses
+- run metadata such as cwd, mode, file count, selected linters, and policy rule count
+- a message field for empty or skipped runs
+
 ## Development
 
 ```sh
@@ -165,7 +175,7 @@ git clone https://github.com/omnilint/lint.git
 cd lint
 npm install
 npm run build             # Build TypeScript → dist/
-npm test                  # Run tests (90 tests, 10 suites)
+npm test                  # Run tests (93 tests, 10 suites)
 npm run typecheck         # Type check
 npm run lint              # Lint with Biome
 ```
@@ -174,7 +184,7 @@ npm run lint              # Lint with Biome
 
 - TypeScript (strict), ESM
 - Build: tsup → Node 20+
-- Tests: Vitest (90 tests, 10 suites)
+- Tests: Vitest (93 tests, 10 suites)
 - CI: GitHub Actions (Node 20 + 22)
 - AI: Anthropic SDK (Claude)
 
