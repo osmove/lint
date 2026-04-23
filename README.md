@@ -38,8 +38,9 @@ lint
 - **AI-powered** — Code review, auto-fix, commit messages, error explanations (Claude)
 - **JSON output** — `--format json` for CI/CD pipelines
 - **Parallel execution** — Different-language linters run simultaneously
-- **Git hooks** — Pre-commit with timeout, skip env, Husky/Lefthook compatibility
+- **Managed hooks** — Portable hook install/uninstall/status with timeout, skip env, Husky/Lefthook compatibility
 - **Zero config** — Works out of the box, customize with `.lintrc.yaml`
+- **Doctor mode** — Inspect branch, dirty state, linters, config, and hook health
 
 ## Supported Linters
 
@@ -87,6 +88,7 @@ lint ai explain           # Explain linting errors in plain language
 ```sh
 lint init                 # Smart setup wizard with auto-detection
 lint doctor               # Diagnose setup, linters, hooks health
+lint hooks:status         # Inspect managed hook status
 lint install:hooks        # Install git hooks
 lint uninstall:hooks      # Remove git hooks
 ```
@@ -126,12 +128,28 @@ Without `.lintrc.yaml`, Lint uses smart defaults with automatic conflict resolut
 
 ```sh
 lint install:hooks
+lint hooks:status
 ```
 
 - Installs pre-commit, prepare-commit-msg, and post-commit hooks
 - Auto-detects Husky/Lefthook and integrates instead of replacing
-- Includes timeout protection and skip mechanism
+- Includes portable timeout protection and skip mechanism
+- Uses explicit managed-hook markers for safer inspection and uninstall
 - Skip: `LINT_SKIP=1 git commit ...` or `git commit --no-verify`
+
+## Doctor
+
+```sh
+lint doctor
+```
+
+`lint doctor` gives a quick local health check for:
+
+- git root, branch, and dirty/clean state
+- `.lint/config` and `.lintrc.yaml`
+- auth status
+- installed vs enabled linters
+- managed vs unmanaged git hooks
 
 ## Development
 
@@ -140,7 +158,7 @@ git clone https://github.com/omnilint/lint.git
 cd lint
 npm install
 npm run build             # Build TypeScript → dist/
-npm test                  # Run tests (80 tests, 9 suites)
+npm test                  # Run tests (82 tests, 9 suites)
 npm run typecheck         # Type check
 npm run lint              # Lint with Biome
 ```
@@ -149,7 +167,7 @@ npm run lint              # Lint with Biome
 
 - TypeScript (strict), ESM
 - Build: tsup → Node 20+
-- Tests: Vitest (80 tests, 9 suites)
+- Tests: Vitest (82 tests, 9 suites)
 - CI: GitHub Actions (Node 20 + 22)
 - AI: Anthropic SDK (Claude)
 
