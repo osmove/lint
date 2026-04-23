@@ -71,6 +71,10 @@ export function writeRC(rc: LintRC): void {
   fs.writeFileSync(filePath, content, "utf-8");
 }
 
+export function formatRC(rc: LintRC): string {
+  return yaml.dump(rc, { lineWidth: 120, noRefs: true });
+}
+
 export function resolveEnabledLinters(rc: LintRC, allLinterNames: LinterName[]): LinterName[] {
   let enabled: LinterName[];
 
@@ -158,5 +162,27 @@ export function generateDefaultRC(linters: LinterName[]): LintRC {
       timeout: 60,
       skip_env: "LINT_SKIP",
     },
+  };
+}
+
+export function buildRecommendedRC(existing: LintRC, linters: LinterName[]): LintRC {
+  const base = generateDefaultRC(linters);
+
+  return {
+    linters: {
+      enabled: linters,
+      ...(existing.linters?.disabled ? { disabled: existing.linters.disabled } : {}),
+    },
+    ignore: [...new Set([...(existing.ignore || []), ...(base.ignore || [])])],
+    fix: {
+      enabled: existing.fix?.enabled ?? base.fix?.enabled,
+      strategy: existing.fix?.strategy ?? base.fix?.strategy,
+    },
+    hooks: {
+      timeout: existing.hooks?.timeout ?? base.hooks?.timeout,
+      skip_env: existing.hooks?.skip_env ?? base.hooks?.skip_env,
+    },
+    output: existing.output,
+    rules: existing.rules,
   };
 }

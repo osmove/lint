@@ -28,7 +28,7 @@ import {
   prettifyProject,
   runLint,
 } from "./orchestrator.js";
-import { loadRC } from "./rc.js";
+import { buildRecommendedRC, formatRC, loadRC, writeRC } from "./rc.js";
 import type { LintReport } from "./types.js";
 import { findGitRoot } from "./utils.js";
 
@@ -156,6 +156,42 @@ program
       installMissing: options.installMissing,
       installHooks: options.installHooks,
     }));
+
+program
+  .command("config:recommend")
+  .description("Show or write a recommended .lintrc.yaml for this project")
+  .option("--json", "Output the recommendation as JSON")
+  .option("--write", "Write the recommended config to .lintrc.yaml")
+  .action((options: { json?: boolean; write?: boolean }) => {
+    const project = detectProject(findGitRoot() || process.cwd());
+    const suggested = buildSuggestedLinterPlan(project)
+      .map((entry) => entry.name);
+    const existing = loadRC();
+    const recommended = buildRecommendedRC(existing, suggested);
+
+    if (options.write) {
+      writeRC(recommended);
+      console.log(chalk.green("Wrote recommended .lintrc.yaml"));
+      return;
+    }
+
+    if (options.json) {
+      console.log(
+        JSON.stringify(
+          {
+            suggested_linters: suggested,
+            recommended,
+          },
+          null,
+          2,
+        ),
+      );
+      return;
+    }
+
+    console.log(chalk.cyan.bold("\n  Recommended .lintrc.yaml\n"));
+    console.log(formatRC(recommended));
+  });
 
 program
   .command("install:hooks")
