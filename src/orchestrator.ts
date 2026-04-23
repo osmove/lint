@@ -107,6 +107,7 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
   const quiet = options.quiet ?? rc.output?.quiet ?? false;
   const format = options.format ?? rc.output?.format ?? "text";
   const isJson = format === "json";
+  const failOnWarnings = options.exitOnWarnings ?? false;
 
   // ── Resolve files ──
   let files: string[];
@@ -142,6 +143,8 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
           linterNames: [],
           policyRuleCount: 0,
           message: "No files to lint",
+          failOnWarnings,
+          requestedPaths: options.paths ?? [],
         }),
       );
     } else if (!quiet) {
@@ -184,6 +187,8 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
           linterNames: [],
           policyRuleCount: policyRules.length,
           message: "No linters available",
+          failOnWarnings,
+          requestedPaths: options.paths ?? [],
         }),
       );
     } else if (!quiet) {
@@ -289,6 +294,8 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
         fileCount: files.length,
         linterNames: linters.map((linter) => linter.name),
         policyRuleCount: policyRules.length,
+        failOnWarnings,
+        requestedPaths: options.paths ?? [],
       }),
     );
   } else {
@@ -331,7 +338,7 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
 
   // ── Exit codes: 0 = clean, 1 = errors, 2 = warnings only ──
   if (hasErrors) process.exit(1);
-  if (totalWarnings > 0 && options.exitOnWarnings) process.exit(2);
+  if (totalWarnings > 0 && failOnWarnings) process.exit(2);
 }
 
 // ── Convenience wrappers ──

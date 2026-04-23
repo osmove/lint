@@ -56,6 +56,31 @@ program
     });
   });
 
+program
+  .command("ci [paths...]")
+  .description("Run a repo-local quality gate for CI or control planes")
+  .option("--fix", "Auto-fix issues where supported")
+  .option("--dry-run", "Show what would be fixed without applying")
+  .option("-f, --format <format>", "Output format: json, text", "json")
+  .option("-q, --quiet", "Minimal output (just summary)")
+  .option("--verbose", "Detailed output")
+  .option("-T, --truncate", "Truncate to first 10 offenses per file")
+  .option("-t, --time", "Show execution time")
+  .option("--allow-warnings", "Exit 0 when only warnings are found")
+  .action((paths, options) => {
+    runLint({
+      paths: paths.length > 0 ? paths : ["."],
+      fix: options.fix,
+      dryRun: options.dryRun,
+      format: options.format,
+      quiet: options.quiet,
+      verbose: options.verbose,
+      truncate: options.truncate,
+      time: options.time,
+      exitOnWarnings: !options.allowWarnings,
+    });
+  });
+
 // ── Git hook commands ──
 
 program

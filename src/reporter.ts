@@ -12,6 +12,41 @@ export interface JsonReportMeta {
   linterNames?: string[];
   policyRuleCount?: number;
   message?: string;
+  failOnWarnings?: boolean;
+  requestedPaths?: string[];
+}
+
+type JsonRunStatus =
+  | "passed"
+  | "passed_with_warnings"
+  | "failed"
+  | "failed_on_warnings"
+  | "skipped";
+
+function resolveJsonOutcome(
+  reports: LintReport[],
+  meta: JsonReportMeta,
+): { status: JsonRunStatus; exitCode: number } {
+  const totalErrors = reports.reduce((s, r) => s + r.error_count, 0);
+  const totalWarnings = reports.reduce((s, r) => s + r.warning_count, 0);
+
+  if (reports.length === 0 && meta.message) {
+    return { status: "skipped", exitCode: 0 };
+  }
+
+  if (totalErrors > 0) {
+    return { status: "failed", exitCode: 1 };
+  }
+
+  if (totalWarnings > 0 && meta.failOnWarnings) {
+    return { status: "failed_on_warnings", exitCode: 2 };
+  }
+
+  if (totalWarnings > 0) {
+    return { status: "passed_with_warnings", exitCode: 0 };
+  }
+
+  return { status: "passed", exitCode: 0 };
 }
 
 export function printReport(reports: LintReport[], truncate = false): void {
@@ -87,10 +122,13 @@ export function formatJsonReport(
     (s, r) => s + r.fixable_error_count + r.fixable_warning_count,
     0,
   );
+  const outcome = resolveJsonOutcome(reports, meta);
 
   return JSON.stringify(
     {
-      success: totalErrors === 0,
+      success: outcome.exitCode === 0,
+      status: outcome.status,
+      exit_code: outcome.exitCode,
       summary: {
         errors: totalErrors,
         warnings: totalWarnings,
@@ -105,6 +143,7 @@ export function formatJsonReport(
         file_count: meta.fileCount ?? reports.reduce((sum, report) => sum + report.files.length, 0),
         linters: meta.linterNames ?? reports.map((report) => report.linter),
         policy_rule_count: meta.policyRuleCount ?? 0,
+        requested_paths: meta.requestedPaths ?? [],
       },
       ...(meta.message ? { message: meta.message } : {}),
       linters: reports.map((r) => ({
