@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { formatJsonReport, printReport, printSummaryTable } from "../src/reporter.js";
+import {
+  formatJsonReport,
+  formatRunDecisionReport,
+  printReport,
+  printSummaryTable,
+} from "../src/reporter.js";
 import type { LintReport } from "../src/types.js";
 
 describe("reporter", () => {
@@ -223,6 +228,53 @@ describe("reporter", () => {
       expect(parsed.success).toBe(false);
       expect(parsed.status).toBe("failed_on_warnings");
       expect(parsed.exit_code).toBe(2);
+    });
+  });
+
+  describe("formatRunDecisionReport", () => {
+    it("should format a human-readable run explanation", () => {
+      const lines = formatRunDecisionReport({
+        cwd: "/tmp/project",
+        mode: ".",
+        requestedPaths: ["."],
+        discoveredFileCount: 3,
+        lintableFileCount: 2,
+        ignoredFiles: [{ path: "dist/out.js", reason: "matched ignore pattern 'dist/**'" }],
+        linterSelection: [
+          { name: "biome", installed: true, enabled: true, selected: true, reason: "available" },
+          { name: "eslint", installed: true, enabled: true, selected: false, reason: "auto-resolved conflict" },
+        ],
+        fileCoverage: {
+          coveredFiles: [
+            {
+              path: "src/app.ts",
+              linters: ["biome"],
+              reason: "selected linter matched this file",
+            },
+          ],
+          uncoveredFiles: [
+            {
+              path: "README.txt",
+              reason: "no known linter supports this file type",
+            },
+          ],
+        },
+        policy: {
+          source: "cloud",
+          totalRules: 3,
+          applicableRules: 1,
+          byLinter: { biome: 1, eslint: 2 },
+        },
+      });
+
+      const output = lines.join("\n");
+      expect(output).toContain("Lint Explain Run");
+      expect(output).toContain("Files: 2 lintable / 3 discovered");
+      expect(output).toContain("✓ biome (available)");
+      expect(output).toContain("- eslint (auto-resolved conflict)");
+      expect(output).toContain("✓ src/app.ts -> biome");
+      expect(output).toContain("- README.txt (no known linter supports this file type)");
+      expect(output).toContain("biome: 1");
     });
   });
 });

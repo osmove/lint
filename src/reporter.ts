@@ -34,6 +34,32 @@ export interface JsonReportMeta {
   };
 }
 
+export interface RunDecisionReport {
+  cwd: string;
+  mode: string;
+  requestedPaths: string[];
+  discoveredFileCount: number;
+  lintableFileCount: number;
+  ignoredFiles: Array<{ path: string; reason: string }>;
+  linterSelection: Array<{
+    name: string;
+    installed: boolean;
+    enabled: boolean;
+    selected: boolean;
+    reason: string;
+  }>;
+  fileCoverage: {
+    coveredFiles: Array<{ path: string; linters: string[]; reason: string }>;
+    uncoveredFiles: Array<{ path: string; reason: string }>;
+  };
+  policy: {
+    source: "cloud" | "local";
+    totalRules: number;
+    applicableRules: number;
+    byLinter: Record<string, number>;
+  };
+}
+
 type JsonRunStatus =
   | "passed"
   | "passed_with_warnings"
@@ -199,4 +225,84 @@ export function formatJsonReport(
     null,
     2,
   );
+}
+
+export function formatRunDecisionReport(report: RunDecisionReport): string[] {
+  const lines: string[] = [];
+
+  lines.push("  Lint Explain Run");
+  lines.push("");
+  lines.push(`  CWD: ${report.cwd}`);
+  lines.push(`  Mode: ${report.mode}`);
+  lines.push(
+    `  Files: ${report.lintableFileCount} lintable / ${report.discoveredFileCount} discovered`,
+  );
+  lines.push(
+    `  Policy: ${report.policy.source} (${report.policy.applicableRules}/${report.policy.totalRules} applicable rules)`,
+  );
+
+  lines.push("");
+  lines.push("  Selected Linters:");
+  lines.push("");
+  for (const linter of report.linterSelection.filter((entry) => entry.selected)) {
+    lines.push(`    ✓ ${linter.name} (${linter.reason})`);
+  }
+
+  const skippedLinters = report.linterSelection.filter((entry) => !entry.selected);
+  if (skippedLinters.length > 0) {
+    lines.push("");
+    lines.push("  Skipped Linters:");
+    lines.push("");
+    for (const linter of skippedLinters) {
+      lines.push(`    - ${linter.name} (${linter.reason})`);
+    }
+  }
+
+  if (report.ignoredFiles.length > 0) {
+    lines.push("");
+    lines.push("  Ignored Files:");
+    lines.push("");
+    for (const file of report.ignoredFiles.slice(0, 10)) {
+      lines.push(`    - ${file.path} (${file.reason})`);
+    }
+    if (report.ignoredFiles.length > 10) {
+      lines.push(`    ... and ${report.ignoredFiles.length - 10} more`);
+    }
+  }
+
+  if (report.fileCoverage.coveredFiles.length > 0) {
+    lines.push("");
+    lines.push("  Covered Files:");
+    lines.push("");
+    for (const file of report.fileCoverage.coveredFiles.slice(0, 10)) {
+      lines.push(`    ✓ ${file.path} -> ${file.linters.join(", ")} (${file.reason})`);
+    }
+    if (report.fileCoverage.coveredFiles.length > 10) {
+      lines.push(`    ... and ${report.fileCoverage.coveredFiles.length - 10} more`);
+    }
+  }
+
+  if (report.fileCoverage.uncoveredFiles.length > 0) {
+    lines.push("");
+    lines.push("  Uncovered Files:");
+    lines.push("");
+    for (const file of report.fileCoverage.uncoveredFiles.slice(0, 10)) {
+      lines.push(`    - ${file.path} (${file.reason})`);
+    }
+    if (report.fileCoverage.uncoveredFiles.length > 10) {
+      lines.push(`    ... and ${report.fileCoverage.uncoveredFiles.length - 10} more`);
+    }
+  }
+
+  if (Object.keys(report.policy.byLinter).length > 0) {
+    lines.push("");
+    lines.push("  Policy Rules By Linter:");
+    lines.push("");
+    for (const [linter, count] of Object.entries(report.policy.byLinter)) {
+      lines.push(`    ${linter}: ${count}`);
+    }
+  }
+
+  lines.push("");
+  return lines;
 }

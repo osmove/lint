@@ -12,6 +12,7 @@ import { collectDoctorReport, formatDoctorReport } from "./doctor.js";
 import { getStagedFilePaths, init, inspectManagedHooks, uninstallHooks, installHooks } from "./git.js";
 import {
   ALL_LINTERS,
+  explainRun,
   postCommitHook,
   preCommit,
   prepareCommitMsg,
@@ -53,6 +54,17 @@ program
       truncate: options.truncate,
       time: options.time,
       exitOnWarnings: options.exitOnWarnings,
+    });
+  });
+
+program
+  .command("explain-run [paths...]")
+  .description("Explain file, linter, and policy decisions for a run without linting")
+  .option("--json", "Output explanation as JSON")
+  .action((paths, options: { json?: boolean }) => {
+    explainRun({
+      paths: paths.length > 0 ? paths : ["."],
+      json: options.json,
     });
   });
 
