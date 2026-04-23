@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   formatJsonReport,
+  formatRunDecisionJson,
   formatRunDecisionReport,
   printReport,
   printSummaryTable,
@@ -131,6 +132,8 @@ describe("reporter", () => {
         }),
       );
 
+      expect(parsed.schema_version).toBe("1");
+      expect(parsed.kind).toBe("lint_run");
       expect(parsed.success).toBe(false);
       expect(parsed.status).toBe("failed");
       expect(parsed.exit_code).toBe(1);
@@ -290,6 +293,40 @@ describe("reporter", () => {
       expect(output).toContain("- README.txt (no known linter supports this file type)");
       expect(output).toContain("biome: 1");
       expect(output).toContain("Install missing linters: prettier");
+    });
+
+    it("should format a machine-readable run explanation", () => {
+      const parsed = JSON.parse(
+        formatRunDecisionJson({
+          cwd: "/tmp/project",
+          mode: ".",
+          requestedPaths: ["."],
+          discoveredFileCount: 1,
+          lintableFileCount: 1,
+          ignoredFiles: [],
+          linterSelection: [],
+          fileCoverage: {
+            coveredFiles: [],
+            uncoveredFiles: [],
+          },
+          policy: {
+            source: "local",
+            totalRules: 0,
+            applicableRules: 0,
+            byLinter: {},
+          },
+          fixStrategy: {
+            autofix: false,
+            strategy: "parallel",
+          },
+          conflicts: [],
+          nextSteps: [],
+        }),
+      );
+
+      expect(parsed.schema_version).toBe("1");
+      expect(parsed.kind).toBe("lint_explain_run");
+      expect(parsed.cwd).toBe("/tmp/project");
     });
   });
 });

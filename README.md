@@ -231,6 +231,7 @@ lint config:recommend --write
 
 `lint --format json` now returns a stable machine-readable payload with:
 
+- `schema_version` and `kind` fields for consumer-side compatibility checks
 - summary counts
 - per-linter and per-file offenses
 - run metadata such as cwd, mode, requested paths, file count, selected linters, and policy rule count
