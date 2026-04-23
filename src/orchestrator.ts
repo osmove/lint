@@ -262,7 +262,18 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
   const duration = Date.now() - startTime;
 
   if (isJson) {
-    console.log(formatJsonReport(reports, { duration, dryRun, fix: autofix }));
+    console.log(
+      formatJsonReport(reports, {
+        duration,
+        dryRun,
+        fix: autofix,
+        cwd: process.cwd(),
+        mode,
+        fileCount: files.length,
+        linterNames: linters.map((linter) => linter.name),
+        policyRuleCount: policyRules.length,
+      }),
+    );
   } else {
     // Detailed report
     if (reports.some((r) => r.error_count > 0 || r.warning_count > 0)) {

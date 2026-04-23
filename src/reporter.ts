@@ -2,6 +2,17 @@ import chalk from "chalk";
 import Table from "cli-table3";
 import type { LintReport } from "./types.js";
 
+export interface JsonReportMeta {
+  duration: number;
+  dryRun?: boolean;
+  fix?: boolean;
+  cwd?: string;
+  mode?: string;
+  fileCount?: number;
+  linterNames?: string[];
+  policyRuleCount?: number;
+}
+
 export function printReport(reports: LintReport[], truncate = false): void {
   for (const report of reports) {
     if (report.error_count === 0 && report.warning_count === 0) continue;
@@ -67,7 +78,7 @@ export function printSummaryTable(reports: LintReport[]): void {
 
 export function formatJsonReport(
   reports: LintReport[],
-  meta: { duration: number; dryRun?: boolean; fix?: boolean },
+  meta: JsonReportMeta,
 ): string {
   const totalErrors = reports.reduce((s, r) => s + r.error_count, 0);
   const totalWarnings = reports.reduce((s, r) => s + r.warning_count, 0);
@@ -86,6 +97,13 @@ export function formatJsonReport(
         duration_ms: meta.duration,
         dry_run: meta.dryRun ?? false,
         auto_fix: meta.fix ?? false,
+      },
+      run: {
+        cwd: meta.cwd ?? process.cwd(),
+        mode: meta.mode ?? "staged files",
+        file_count: meta.fileCount ?? reports.reduce((sum, report) => sum + report.files.length, 0),
+        linters: meta.linterNames ?? reports.map((report) => report.linter),
+        policy_rule_count: meta.policyRuleCount ?? 0,
       },
       linters: reports.map((r) => ({
         name: r.linter,
