@@ -18,6 +18,12 @@ export interface DetectedLanguage {
   suggestedLinters: LinterName[];
 }
 
+export interface SuggestedLinterPlanEntry {
+  name: LinterName;
+  installed: boolean;
+  reasons: string[];
+}
+
 const SCAN_IGNORED_DIRS = new Set([
   ".git",
   ".idea",
@@ -232,6 +238,29 @@ export function checkLinterInstallation(
     name,
     installed: isCommandAvailable(commands[name]),
   }));
+}
+
+export function buildSuggestedLinterPlan(
+  project: DetectedProject,
+  installStatus = checkLinterInstallation(getAllSuggestedLinters(project)),
+): SuggestedLinterPlanEntry[] {
+  const reasonsByLinter = new Map<LinterName, Set<string>>();
+
+  for (const language of project.languages) {
+    for (const linter of language.suggestedLinters) {
+      const existing = reasonsByLinter.get(linter) || new Set<string>();
+      existing.add(`${language.name} (${language.reason})`);
+      reasonsByLinter.set(linter, existing);
+    }
+  }
+
+  return installStatus
+    .map((entry) => ({
+      name: entry.name,
+      installed: entry.installed,
+      reasons: [...(reasonsByLinter.get(entry.name) || new Set<string>())].sort(),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function printDetectionSummary(project: DetectedProject): void {

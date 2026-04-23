@@ -9,10 +9,12 @@ import { reviewStagedChanges } from "./ai/review.js";
 import * as auth from "./auth.js";
 import { VERSION } from "./config.js";
 import { collectDoctorReport, formatDoctorReport } from "./doctor.js";
+import { buildSuggestedLinterPlan, detectProject } from "./detect.js";
 import { getStagedFilePaths, init, inspectManagedHooks, uninstallHooks, installHooks } from "./git.js";
 import {
   ALL_LINTERS,
   explainRun,
+  LINTER_MAP,
   postCommitHook,
   preCommit,
   prepareCommitMsg,
@@ -135,6 +137,41 @@ program
     console.log("Installing git hooks...");
     const rc = loadRC();
     installHooks({ timeout: rc.hooks?.timeout, skipEnv: rc.hooks?.skip_env });
+  });
+
+program
+  .command("install:missing [paths...]")
+  .description("Install missing linters suggested for this project")
+  .option("--dry-run", "Show the missing linters without installing them")
+  .action((paths, options: { dryRun?: boolean }) => {
+    const root = findGitRoot() || process.cwd();
+    const project = detectProject(root);
+    const plan = buildSuggestedLinterPlan(project);
+    const missing = plan.filter((entry) => !entry.installed);
+
+    if (missing.length === 0) {
+      console.log(chalk.green("No suggested linters are missing."));
+      return;
+    }
+
+    console.log(chalk.bold("\n  Missing Suggested Linters\n"));
+    for (const entry of missing) {
+      console.log(`  - ${entry.name}`);
+      if (entry.reasons.length > 0) {
+        console.log(chalk.gray(`    ${entry.reasons.join(", ")}`));
+      }
+    }
+    console.log("");
+
+    if (options.dryRun) {
+      return;
+    }
+
+    for (const entry of missing) {
+      const linter = LINTER_MAP.get(entry.name);
+      if (!linter) continue;
+      linter.install();
+    }
   });
 
 program

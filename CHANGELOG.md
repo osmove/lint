@@ -14,6 +14,7 @@
 - richer `lint doctor --json` project and linter selection metadata for machine consumers
 - `lint explain-run` to inspect run decisions in text or JSON without executing linters
 - enriched `lint explain-run` with resolved conflicts, fix strategy, and recommended next steps
+- `lint install:missing` to turn missing-linter diagnostics into a direct action
 
 ### Changed
 
