@@ -17,6 +17,27 @@ interface BiomeDiagnostic {
   advices?: { advices: Array<{ log: [string, string] }> };
 }
 
+function offsetToLineColumn(source: string | undefined, offset: number): { line: number; column: number } {
+  if (!source || offset <= 0) {
+    return { line: 1, column: 1 };
+  }
+
+  const clampedOffset = Math.min(offset, source.length);
+  let line = 1;
+  let column = 1;
+
+  for (let i = 0; i < clampedOffset; i++) {
+    if (source[i] === "\n") {
+      line++;
+      column = 1;
+    } else {
+      column++;
+    }
+  }
+
+  return { line, column };
+}
+
 export class BiomeLinter extends BaseLinter {
   name = "biome" as const;
   command = "biome";
@@ -93,12 +114,14 @@ export class BiomeLinter extends BaseLinter {
     for (const diag of output.diagnostics || []) {
       const file = diag.location?.path?.file || "unknown";
       const offenses = fileMap.get(file) || [];
+      const position = offsetToLineColumn(diag.location?.sourceCode, diag.location?.span?.start || 0);
       offenses.push({
         rule: diag.category || "biome",
         message: diag.message?.content || diag.description || "Unknown issue",
         severity: diag.severity === "error" ? "error" : "warning",
-        line: 1, // Biome uses byte spans, not line numbers in JSON
-        column: 1,
+        line: position.line,
+        column: position.column,
+        source: diag.location?.sourceCode,
       });
       fileMap.set(file, offenses);
     }

@@ -1,5 +1,27 @@
-import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import { checkLinterInstallation, detectProject, getAllSuggestedLinters } from "../src/detect.js";
+
+const tempDirs: string[] = [];
+
+function createProject(files: string[]): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lint-detect-"));
+  tempDirs.push(dir);
+  for (const file of files) {
+    const target = path.join(dir, file);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, "", "utf-8");
+  }
+  return dir;
+}
+
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 describe("detectProject", () => {
   it("should detect the current project as JavaScript/TypeScript", () => {
@@ -21,6 +43,25 @@ describe("detectProject", () => {
     expect(Array.isArray(project.frameworks)).toBe(true);
     expect(typeof project.hasHusky).toBe("boolean");
     expect(typeof project.hasLefthook).toBe("boolean");
+  });
+
+  it("should detect nested stylesheet files", () => {
+    const projectDir = createProject(["app/frontend/styles/main.css"]);
+    const project = detectProject(projectDir);
+    expect(project.languages.find((l) => l.name === "CSS/SCSS")).toBeDefined();
+  });
+
+  it("should attach Rails linters to Ruby and ERB detection", () => {
+    const projectDir = createProject([
+      "Gemfile",
+      "config/routes.rb",
+      "bin/rails",
+      "app/views/home/index.erb",
+    ]);
+    const project = detectProject(projectDir);
+    expect(project.frameworks).toContain("Rails");
+    expect(project.languages.find((l) => l.name === "Ruby")?.suggestedLinters).toContain("brakeman");
+    expect(project.languages.find((l) => l.name === "ERB")?.suggestedLinters).toContain("erblint");
   });
 });
 
