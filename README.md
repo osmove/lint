@@ -293,12 +293,15 @@ cd lint
 npm install
 npm run verify            # Full maintainer check: typecheck, lint, audit, build, gate, tests
 npm run build             # Build TypeScript → dist/
+npm run package:check     # Verify the published npm package contents
 npm run quality-gate      # Run Lint against the whole repo
 npm run security:audit    # Fail on moderate+ dependency vulnerabilities
 npm test                  # Run tests (109 tests, 12 suites)
 npm run typecheck         # Type check
 npm run lint              # Lint with Biome
 ```
+
+`npm publish` now reuses the same `npm run verify` gate through `prepublishOnly`, so local publishes cannot skip the full maintainer validation pass. `npm run verify` also checks the npm package payload with `npm pack --dry-run`.
 
 ### Tech Stack
 
