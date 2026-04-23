@@ -7,6 +7,8 @@
 - `lint hooks:status` to inspect managed hook state from the CLI
 - richer `lint doctor` output with branch and dirty/clean repo status
 - `lint doctor --json` for machine-readable health reporting
+- `lint ci` as a repo-local quality gate command for CI and orchestration
+- `npm run quality-gate` so the repo can run Lint against itself in CI
 - offline API tests using mocked `fetch` instead of real network calls
 - doctor module coverage with dedicated tests
 
@@ -20,7 +22,9 @@
 - made Biome diagnostics report better line/column positions when source spans are available
 - defaulted linter execution back to repo-local configs unless cloud policy rules explicitly override them
 - enriched JSON output with stable run metadata for CI and orchestration consumers
+- added explicit JSON `status`, `exit_code`, and `requested_paths` fields
 - normalized empty and skipped JSON runs onto the same output schema
+- aligned warning failures across CLI exit codes and machine-readable output
 
 ## [1.0.0] - 2026-04-15
 

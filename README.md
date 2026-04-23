@@ -72,6 +72,7 @@ lint src/index.ts         # Lint specific file
 lint --fix                # Auto-fix issues
 lint --fix --dry-run      # Preview fixes without applying
 lint --format json        # JSON output for CI/CD
+lint ci                   # Repo-local quality gate (JSON + fail on warnings by default)
 lint -q                   # Quiet mode (summary only)
 lint -t                   # Show execution time
 lint --exit-on-warnings   # Exit code 2 on warnings
@@ -93,6 +94,7 @@ lint ai explain           # Explain linting errors in plain language
 lint init                 # Smart setup wizard with auto-detection
 lint doctor               # Diagnose setup, linters, hooks health
 lint doctor --json        # Machine-readable health report
+lint ci --allow-warnings  # Quality gate but keep warnings non-blocking
 lint hooks:status         # Inspect managed hook status
 lint install:hooks        # Install git hooks
 lint uninstall:hooks      # Remove git hooks
@@ -165,8 +167,25 @@ Use `lint doctor --json` when you want to consume the report from another tool, 
 
 - summary counts
 - per-linter and per-file offenses
-- run metadata such as cwd, mode, file count, selected linters, and policy rule count
+- run metadata such as cwd, mode, requested paths, file count, selected linters, and policy rule count
 - a message field for empty or skipped runs
+- explicit `status` and `exit_code` fields for CI and orchestration consumers
+
+## CI / Quality Gate
+
+```sh
+lint ci
+lint ci --format text
+lint ci src/
+lint ci --allow-warnings
+```
+
+`lint ci` is the repo-local quality gate mode:
+
+- defaults to linting the whole project (`.`)
+- defaults to JSON output for machine consumers
+- fails on warnings by default with exit code `2`
+- can be relaxed with `--allow-warnings`
 
 ## Development
 
@@ -175,7 +194,8 @@ git clone https://github.com/osmove/lint.git
 cd lint
 npm install
 npm run build             # Build TypeScript → dist/
-npm test                  # Run tests (93 tests, 10 suites)
+npm run quality-gate      # Run Lint against the whole repo
+npm test                  # Run tests (94 tests, 10 suites)
 npm run typecheck         # Type check
 npm run lint              # Lint with Biome
 ```
@@ -184,7 +204,7 @@ npm run lint              # Lint with Biome
 
 - TypeScript (strict), ESM
 - Build: tsup → Node 20+
-- Tests: Vitest (93 tests, 10 suites)
+- Tests: Vitest (94 tests, 10 suites)
 - CI: GitHub Actions (Node 20 + 22)
 - AI: Anthropic SDK (Claude)
 

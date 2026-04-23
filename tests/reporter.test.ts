@@ -96,10 +96,13 @@ describe("reporter", () => {
           fileCount: 1,
           linterNames: ["eslint"],
           policyRuleCount: 2,
+          requestedPaths: ["src/test.js"],
         }),
       );
 
       expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe("failed");
+      expect(parsed.exit_code).toBe(1);
       expect(parsed.summary.duration_ms).toBe(123);
       expect(parsed.run).toEqual({
         cwd: "/tmp/project",
@@ -107,6 +110,7 @@ describe("reporter", () => {
         file_count: 1,
         linters: ["eslint"],
         policy_rule_count: 2,
+        requested_paths: ["src/test.js"],
       });
     });
 
@@ -124,8 +128,47 @@ describe("reporter", () => {
       );
 
       expect(parsed.message).toBe("No files to lint");
+      expect(parsed.status).toBe("skipped");
+      expect(parsed.exit_code).toBe(0);
       expect(parsed.run.file_count).toBe(0);
+      expect(parsed.run.requested_paths).toEqual([]);
       expect(parsed.linters).toEqual([]);
+    });
+
+    it("should fail on warnings when requested", () => {
+      const warningOnlyReport: LintReport = {
+        ...mockReport,
+        error_count: 0,
+        warning_count: 1,
+        fixable_error_count: 0,
+        fixable_warning_count: 1,
+        files: [
+          {
+            path: "src/test.js",
+            offenses: [
+              {
+                rule: "semi",
+                message: "Missing semicolon",
+                severity: "warning",
+                line: 10,
+                column: 15,
+                fixable: true,
+              },
+            ],
+          },
+        ],
+      };
+
+      const parsed = JSON.parse(
+        formatJsonReport([warningOnlyReport], {
+          duration: 15,
+          failOnWarnings: true,
+        }),
+      );
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe("failed_on_warnings");
+      expect(parsed.exit_code).toBe(2);
     });
   });
 });
