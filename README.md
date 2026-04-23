@@ -109,8 +109,13 @@ lint hooks uninstall      # Remove git hooks
 ### Account
 
 ```sh
-lint signup / login / logout / whoami
+lint auth signup
+lint auth login
+lint auth logout
+lint auth whoami
 ```
+
+Flat aliases like `lint signup`, `lint login`, `lint logout`, and `lint whoami` still work for backward compatibility, but `lint auth <action>` is now the canonical API.
 
 ## Configuration
 
