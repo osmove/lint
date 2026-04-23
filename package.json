@@ -49,10 +49,10 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/omnilint/lint.git"
+    "url": "git+https://github.com/osmove/lint.git"
   },
   "bugs": {
-    "url": "https://github.com/omnilint/lint/issues"
+    "url": "https://github.com/osmove/lint/issues"
   },
   "homepage": "https://lint.to",
   "keywords": [

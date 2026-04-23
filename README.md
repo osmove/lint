@@ -3,8 +3,8 @@
 **The universal linter.** One CLI to lint any language — with AI-powered code review.
 
 [![npm version](https://img.shields.io/npm/v/lint.svg)](https://www.npmjs.com/package/lint)
-[![license](https://img.shields.io/npm/l/lint.svg)](https://github.com/omnilint/lint/blob/master/LICENSE)
-[![CI](https://github.com/omnilint/lint/actions/workflows/ci.yml/badge.svg)](https://github.com/omnilint/lint/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/lint.svg)](https://github.com/osmove/lint/blob/master/LICENSE)
+[![CI](https://github.com/osmove/lint/actions/workflows/ci.yml/badge.svg)](https://github.com/osmove/lint/actions/workflows/ci.yml)
 
 ---
 
@@ -171,7 +171,7 @@ Use `lint doctor --json` when you want to consume the report from another tool, 
 ## Development
 
 ```sh
-git clone https://github.com/omnilint/lint.git
+git clone https://github.com/osmove/lint.git
 cd lint
 npm install
 npm run build             # Build TypeScript → dist/
