@@ -336,6 +336,8 @@ export function buildMachineSummary(
 ): MachineSummaryReport {
   const actions: MachineSummaryReport["actions"] = [];
 
+  const hasPolicyScopeGap = report.policy.totalRules > report.policy.applicableRules;
+
   if (missingSelectedLinters.length > 0) {
     actions.push({
       id: "install_missing_linters",
@@ -363,7 +365,7 @@ export function buildMachineSummary(
     });
   }
 
-  if (report.policy.totalRules > report.policy.applicableRules) {
+  if (hasPolicyScopeGap) {
     actions.push({
       id: "review_policy_scope",
       label: "Review policy scope",
@@ -382,15 +384,22 @@ export function buildMachineSummary(
     uncovered_file_count: report.fileCoverage.uncoveredFiles.length,
     ignored_file_count: report.ignoredFiles.length,
     applicable_policy_rule_count: report.policy.applicableRules,
+    signals: {
+      needs_setup: doctorStatus !== "healthy",
+      has_missing_selected_linters: missingSelectedLinters.length > 0,
+      has_uncovered_files: report.fileCoverage.uncoveredFiles.length > 0,
+      has_policy_scope_gap: hasPolicyScopeGap,
+      is_actionable: actions.length > 0,
+    },
     next_steps: report.nextSteps,
     actions,
   };
 }
 
 export function getMachineSummaryExitCode(summary: MachineSummaryReport): number {
-  if (summary.doctor_status !== "healthy") return 1;
-  if (summary.missing_selected_linters.length > 0) return 1;
-  if (summary.uncovered_file_count > 0) return 1;
+  if (summary.signals.needs_setup) return 1;
+  if (summary.signals.has_missing_selected_linters) return 1;
+  if (summary.signals.has_uncovered_files) return 1;
   return 0;
 }
 

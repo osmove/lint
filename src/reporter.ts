@@ -80,6 +80,13 @@ export interface MachineSummaryReport {
   uncovered_file_count: number;
   ignored_file_count: number;
   applicable_policy_rule_count: number;
+  signals: {
+    needs_setup: boolean;
+    has_missing_selected_linters: boolean;
+    has_uncovered_files: boolean;
+    has_policy_scope_gap: boolean;
+    is_actionable: boolean;
+  };
   next_steps: string[];
   actions: Array<{
     id: string;

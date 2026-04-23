@@ -13,6 +13,13 @@ describe("orchestrator", () => {
           uncovered_file_count: 0,
           ignored_file_count: 0,
           applicable_policy_rule_count: 1,
+          signals: {
+            needs_setup: false,
+            has_missing_selected_linters: false,
+            has_uncovered_files: false,
+            has_policy_scope_gap: false,
+            is_actionable: false,
+          },
           next_steps: [],
           actions: [],
         }),
@@ -29,6 +36,13 @@ describe("orchestrator", () => {
           uncovered_file_count: 2,
           ignored_file_count: 0,
           applicable_policy_rule_count: 0,
+          signals: {
+            needs_setup: true,
+            has_missing_selected_linters: true,
+            has_uncovered_files: true,
+            has_policy_scope_gap: false,
+            is_actionable: true,
+          },
           next_steps: ["Install missing linters"],
           actions: [
             {

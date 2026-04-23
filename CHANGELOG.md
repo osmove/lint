@@ -22,6 +22,7 @@
 - `lint machine:summary` for a compact automation-focused JSON snapshot
 - structured `actions` in `lint machine:summary` so automation consumers can trigger the right remediation commands directly
 - `lint machine:summary --strict` to expose a simple non-zero shell signal for setup or coverage gaps
+- explicit `signals` booleans in `lint machine:summary` so consumers do not need to derive health from counts
 
 ### Changed
 
