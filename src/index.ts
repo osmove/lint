@@ -1,6 +1,7 @@
 import { confirm, input, password } from "@inquirer/prompts";
 import chalk from "chalk";
 import { Command } from "commander";
+import { pathToFileURL } from "node:url";
 import { saveApiKey } from "./ai/client.js";
 import { printCommitSuggestion } from "./ai/commit.js";
 import { explainErrors } from "./ai/explain.js";
@@ -160,7 +161,6 @@ program
       installHooks: options.installHooks,
     }));
 
-program
 function installManagedHooks(): void {
   console.log("Installing git hooks...");
   const rc = loadRC();
@@ -352,54 +352,68 @@ machineCommand
   .option("--strict", "Exit 1 when the repo still needs setup or has uncovered files")
   .action((paths, options: { strict?: boolean }) => runMachineSummary(paths, options));
 
-program
-  .command("install:hooks")
-  .description("Legacy alias for 'lint hooks install'")
-  .action(() => installManagedHooks());
+program.addCommand(
+  new Command("install:hooks")
+    .description("Legacy alias for 'lint hooks install'")
+    .action(() => installManagedHooks()),
+  { hidden: true },
+);
 
-program
-  .command("machine:summary [paths...]")
-  .description("Legacy alias for 'lint machine summary'")
-  .option("--strict", "Exit 1 when the repo still needs setup or has uncovered files")
-  .action((paths, options: { strict?: boolean }) => runMachineSummary(paths, options));
+program.addCommand(
+  new Command("machine:summary [paths...]")
+    .description("Legacy alias for 'lint machine summary'")
+    .option("--strict", "Exit 1 when the repo still needs setup or has uncovered files")
+    .action((paths, options: { strict?: boolean }) => runMachineSummary(paths, options)),
+  { hidden: true },
+);
 
-program
-  .command("setup:fix")
-  .description("Legacy alias for 'lint setup fix'")
-  .option("--dry-run", "Preview the setup changes without writing files")
-  .option("--json", "Output the setup plan as JSON")
-  .option("--no-install-missing", "Skip installing missing suggested linters")
-  .option("--no-install-hooks", "Skip installing managed git hooks")
-  .action((options: {
-    dryRun?: boolean;
-    json?: boolean;
-    installMissing?: boolean;
-    installHooks?: boolean;
-  }) => runSetupFix(options));
+program.addCommand(
+  new Command("setup:fix")
+    .description("Legacy alias for 'lint setup fix'")
+    .option("--dry-run", "Preview the setup changes without writing files")
+    .option("--json", "Output the setup plan as JSON")
+    .option("--no-install-missing", "Skip installing missing suggested linters")
+    .option("--no-install-hooks", "Skip installing managed git hooks")
+    .action((options: {
+      dryRun?: boolean;
+      json?: boolean;
+      installMissing?: boolean;
+      installHooks?: boolean;
+    }) => runSetupFix(options)),
+  { hidden: true },
+);
 
-program
-  .command("config:recommend")
-  .description("Legacy alias for 'lint config recommend'")
-  .option("--json", "Output the recommendation as JSON")
-  .option("--write", "Write the recommended config to .lintrc.yaml")
-  .action((options: { json?: boolean; write?: boolean }) => runRecommendedConfig(options));
+program.addCommand(
+  new Command("config:recommend")
+    .description("Legacy alias for 'lint config recommend'")
+    .option("--json", "Output the recommendation as JSON")
+    .option("--write", "Write the recommended config to .lintrc.yaml")
+    .action((options: { json?: boolean; write?: boolean }) => runRecommendedConfig(options)),
+  { hidden: true },
+);
 
-program
-  .command("install:missing [paths...]")
-  .description("Legacy alias for 'lint install missing'")
-  .option("--dry-run", "Show the missing linters without installing them")
-  .action((paths, options: { dryRun?: boolean }) => runInstallMissing(paths, options));
+program.addCommand(
+  new Command("install:missing [paths...]")
+    .description("Legacy alias for 'lint install missing'")
+    .option("--dry-run", "Show the missing linters without installing them")
+    .action((paths, options: { dryRun?: boolean }) => runInstallMissing(paths, options)),
+  { hidden: true },
+);
 
-program
-  .command("uninstall:hooks")
-  .description("Legacy alias for 'lint hooks uninstall'")
-  .action(() => uninstallHooks());
+program.addCommand(
+  new Command("uninstall:hooks")
+    .description("Legacy alias for 'lint hooks uninstall'")
+    .action(() => uninstallHooks()),
+  { hidden: true },
+);
 
-program
-  .command("hooks:status")
-  .description("Legacy alias for 'lint hooks status'")
-  .option("--json", "Output hook status as JSON")
-  .action((options: { json?: boolean }) => printHooksStatus(options));
+program.addCommand(
+  new Command("hooks:status")
+    .description("Legacy alias for 'lint hooks status'")
+    .option("--json", "Output hook status as JSON")
+    .action((options: { json?: boolean }) => printHooksStatus(options)),
+  { hidden: true },
+);
 
 program
   .command("prettify <extension>")
@@ -520,4 +534,9 @@ program
   .description("Show current login status")
   .action(() => auth.printStatus());
 
-program.parse();
+const entryArg = process.argv[1];
+if (entryArg && import.meta.url === pathToFileURL(entryArg).href) {
+  program.parse();
+}
+
+export { program };
