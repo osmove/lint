@@ -97,6 +97,21 @@ describe("reporter", () => {
           linterNames: ["eslint"],
           policyRuleCount: 2,
           requestedPaths: ["src/test.js"],
+          ignoredFiles: [{ path: "dist/out.js", reason: "matched ignore pattern 'dist/**'" }],
+          linterSelection: [
+            {
+              name: "eslint",
+              installed: true,
+              enabled: true,
+              selected: true,
+              reason: "selected by .lintrc",
+            },
+          ],
+          policySummary: {
+            source: "cloud",
+            totalRules: 2,
+            byLinter: { eslint: 2 },
+          },
         }),
       );
 
@@ -111,6 +126,23 @@ describe("reporter", () => {
         linters: ["eslint"],
         policy_rule_count: 2,
         requested_paths: ["src/test.js"],
+      });
+      expect(parsed.decisions).toEqual({
+        ignored_files: [{ path: "dist/out.js", reason: "matched ignore pattern 'dist/**'" }],
+        linter_selection: [
+          {
+            name: "eslint",
+            installed: true,
+            enabled: true,
+            selected: true,
+            reason: "selected by .lintrc",
+          },
+        ],
+        policy: {
+          source: "cloud",
+          totalRules: 2,
+          byLinter: { eslint: 2 },
+        },
       });
     });
 

@@ -14,7 +14,7 @@ import { PylintLinter } from "./linters/pylint.js";
 import { RuboCopLinter } from "./linters/rubocop.js";
 import { RuffLinter } from "./linters/ruff.js";
 import { StylelintLinter } from "./linters/stylelint.js";
-import { filterIgnoredFiles, loadRC, resolveEnabledLinters } from "./rc.js";
+import { filterIgnoredFiles, getIgnoredFileDecisions, loadRC, resolveEnabledLinters } from "./rc.js";
 import { formatJsonReport, printReport, printSummaryTable } from "./reporter.js";
 import type { LintReport, LinterName, LinterResult, PolicyRule, RunOptions } from "./types.js";
 import { cleanTmpDir, formatDuration, readLintConfig } from "./utils.js";
@@ -45,6 +45,46 @@ function selectLinters(rc: ReturnType<typeof loadRC>): BaseLinter[] {
   const installedNames = installed.map((l) => l.name as LinterName);
   const enabledNames = resolveEnabledLinters(rc, installedNames);
   return installed.filter((l) => enabledNames.includes(l.name as LinterName));
+}
+
+function describeLinterSelection(rc: ReturnType<typeof loadRC>): Array<{
+  name: string;
+  installed: boolean;
+  enabled: boolean;
+  selected: boolean;
+  reason: string;
+}> {
+  const installedNames = ALL_LINTERS.filter((linter) => linter.isInstalled()).map(
+    (linter) => linter.name as LinterName,
+  );
+  const selectedNames = new Set(resolveEnabledLinters(rc, installedNames));
+
+  return ALL_LINTERS.map((linter) => {
+    const name = linter.name as LinterName;
+    const installed = installedNames.includes(name);
+    const enabled = rc.linters?.enabled
+      ? rc.linters.enabled.includes(name)
+      : rc.linters?.disabled
+        ? !rc.linters.disabled.includes(name)
+        : installed;
+
+    let reason = "available";
+    if (!installed) {
+      reason = "not installed";
+    } else if (!selectedNames.has(name)) {
+      reason = rc.linters?.enabled || rc.linters?.disabled ? "filtered by .lintrc" : "auto-resolved conflict";
+    } else if (rc.linters?.enabled || rc.linters?.disabled) {
+      reason = "selected by .lintrc";
+    }
+
+    return {
+      name,
+      installed,
+      enabled,
+      selected: selectedNames.has(name),
+      reason,
+    };
+  });
 }
 
 // ── API helpers ──
@@ -128,7 +168,9 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
 
   // Apply ignore patterns from .lintrc.yaml
   const ignorePatterns = rc.ignore || [];
+  const ignoredFiles = getIgnoredFileDecisions(files, ignorePatterns);
   files = filterIgnoredFiles(files, ignorePatterns);
+  const linterSelection = describeLinterSelection(rc);
 
   if (files.length === 0) {
     if (isJson) {
@@ -145,6 +187,13 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
           message: "No files to lint",
           failOnWarnings,
           requestedPaths: options.paths ?? [],
+          ignoredFiles,
+          linterSelection,
+          policySummary: {
+            source: "local",
+            totalRules: 0,
+            byLinter: {},
+          },
         }),
       );
     } else if (!quiet) {
@@ -189,6 +238,20 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
           message: "No linters available",
           failOnWarnings,
           requestedPaths: options.paths ?? [],
+          ignoredFiles,
+          linterSelection,
+          policySummary: {
+            source: policyRules.length > 0 ? "cloud" : "local",
+            totalRules: policyRules.length,
+            byLinter: Object.fromEntries(
+              Object.entries(
+                policyRules.reduce<Record<string, number>>((counts, rule) => {
+                  counts[rule.linter] = (counts[rule.linter] || 0) + 1;
+                  return counts;
+                }, {}),
+              ).sort(([a], [b]) => a.localeCompare(b)),
+            ),
+          },
         }),
       );
     } else if (!quiet) {
@@ -296,6 +359,20 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
         policyRuleCount: policyRules.length,
         failOnWarnings,
         requestedPaths: options.paths ?? [],
+        ignoredFiles,
+        linterSelection,
+        policySummary: {
+          source: policyRules.length > 0 ? "cloud" : "local",
+          totalRules: policyRules.length,
+          byLinter: Object.fromEntries(
+            Object.entries(
+              policyRules.reduce<Record<string, number>>((counts, rule) => {
+                counts[rule.linter] = (counts[rule.linter] || 0) + 1;
+                return counts;
+              }, {}),
+            ).sort(([a], [b]) => a.localeCompare(b)),
+          ),
+        },
       }),
     );
   } else {

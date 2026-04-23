@@ -171,6 +171,7 @@ Use `lint doctor --json` when you want to consume the report from another tool, 
 - run metadata such as cwd, mode, requested paths, file count, selected linters, and policy rule count
 - a message field for empty or skipped runs
 - explicit `status` and `exit_code` fields for CI and orchestration consumers
+- a `decisions` block with ignored files, linter selection reasons, and cloud-vs-local policy summary
 
 ## CI / Quality Gate
 
