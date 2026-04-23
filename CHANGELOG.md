@@ -19,6 +19,8 @@
 - improved project detection across nested files and framework signals
 - made Biome diagnostics report better line/column positions when source spans are available
 - defaulted linter execution back to repo-local configs unless cloud policy rules explicitly override them
+- enriched JSON output with stable run metadata for CI and orchestration consumers
+- normalized empty and skipped JSON runs onto the same output schema
 
 ## [1.0.0] - 2026-04-15
 
