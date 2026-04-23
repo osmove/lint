@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildBootstrapPlan,
+  buildSetupFixPlan,
   getCurrentBranch,
   getCurrentSha,
   getStagedDiff,
@@ -84,6 +85,26 @@ describe("git operations", () => {
       expect(plan.missingLinters).toEqual(["biome"]);
       expect(plan.hookTimeout).toBe(60);
       expect(plan.hookSkipEnv).toBe("LINT_SKIP");
+    });
+  });
+
+  describe("buildSetupFixPlan", () => {
+    it("should reflect requested setup actions", () => {
+      const plan = buildSetupFixPlan({
+        repoName: "lint",
+        suggestedLinters: ["biome"],
+        installStatus: [{ name: "biome", installed: false }],
+        rcExists: true,
+        lintConfigExists: false,
+        installMissing: true,
+        installHooks: true,
+      });
+
+      expect(plan.recommendedLinters).toEqual(["biome"]);
+      expect(plan.willWriteRecommendedConfig).toBe(true);
+      expect(plan.willCreateLintConfig).toBe(true);
+      expect(plan.willInstallMissing).toBe(true);
+      expect(plan.willInstallHooks).toBe(true);
     });
   });
 });
