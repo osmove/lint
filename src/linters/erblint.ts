@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import yaml from "js-yaml";
 import type { FileReport, LintReport, LinterResult, Offense, PolicyRule } from "../types.js";
-import { exec } from "../utils.js";
+import { execFile } from "../utils.js";
 import { BaseLinter } from "./base.js";
 
 export class ErbLintLinter extends BaseLinter {
@@ -31,11 +31,15 @@ export class ErbLintLinter extends BaseLinter {
   }
 
   run(files: string[], configPath: string, _autofix: boolean): LinterResult {
-    const cmd = `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 erblint --config ${configPath} --format json ${files.join(" ")}`;
-
     let raw: string;
     try {
-      raw = exec(cmd, { silent: true });
+      raw = execFile("erblint", ["--config", configPath, "--format", "json", ...files], {
+        silent: true,
+        env: {
+          LANG: "en_US.UTF-8",
+          LC_ALL: "en_US.UTF-8",
+        },
+      });
     } catch (error) {
       raw = (error as { stdout?: string }).stdout || '{"files":[],"summary":{"offenses":0}}';
     }

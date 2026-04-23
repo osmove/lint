@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { FileReport, LintReport, LinterResult, Offense, PolicyRule } from "../types.js";
-import { exec } from "../utils.js";
+import { execFile } from "../utils.js";
 import { BaseLinter } from "./base.js";
 
 interface RuffDiagnostic {
@@ -55,12 +55,18 @@ target-version = "py312"
   }
 
   run(files: string[], configPath: string, autofix: boolean): LinterResult {
-    const action = autofix ? "check --fix" : "check";
-    const cmd = `ruff ${action} --config=${configPath} --output-format=json ${files.join(" ")}`;
-
     let raw: string;
     try {
-      raw = exec(cmd, { silent: true });
+      raw = execFile(
+        "ruff",
+        [
+          ...(autofix ? ["check", "--fix"] : ["check"]),
+          `--config=${configPath}`,
+          "--output-format=json",
+          ...files,
+        ],
+        { silent: true },
+      );
     } catch (error) {
       raw = (error as { stdout?: string }).stdout || "[]";
     }

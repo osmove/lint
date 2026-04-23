@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import yaml from "js-yaml";
 import type { FileReport, LintReport, LinterResult, Offense, PolicyRule } from "../types.js";
-import { exec } from "../utils.js";
+import { execFile } from "../utils.js";
 import { BaseLinter } from "./base.js";
 
 interface RubocopOffense {
@@ -47,12 +47,20 @@ export class RuboCopLinter extends BaseLinter {
   }
 
   run(files: string[], configPath: string, autofix: boolean): LinterResult {
-    const fixFlag = autofix ? " --autocorrect" : "";
-    const cmd = `rubocop --config ${configPath} --format json${fixFlag} ${files.join(" ")}`;
-
     let raw: string;
     try {
-      raw = exec(cmd, { silent: true });
+      raw = execFile(
+        "rubocop",
+        [
+          "--config",
+          configPath,
+          "--format",
+          "json",
+          ...(autofix ? ["--autocorrect"] : []),
+          ...files,
+        ],
+        { silent: true },
+      );
     } catch (error) {
       raw = (error as { stdout?: string }).stdout || '{"files":[],"summary":{"offense_count":0}}';
     }

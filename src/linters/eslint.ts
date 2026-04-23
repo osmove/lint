@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { FileReport, LintReport, LinterResult, Offense, PolicyRule } from "../types.js";
-import { exec } from "../utils.js";
+import { execFile } from "../utils.js";
 import { BaseLinter } from "./base.js";
 
 interface ESLintMessage {
@@ -55,12 +55,13 @@ export class ESLintLinter extends BaseLinter {
   }
 
   run(files: string[], configPath: string, autofix: boolean): LinterResult {
-    const fixFlag = autofix ? " --fix" : "";
-    const cmd = `eslint --config ${configPath} --format json${fixFlag} ${files.join(" ")}`;
-
     let raw: string;
     try {
-      raw = exec(cmd, { silent: true });
+      raw = execFile(
+        "eslint",
+        ["--config", configPath, "--format", "json", ...(autofix ? ["--fix"] : []), ...files],
+        { silent: true },
+      );
     } catch (error) {
       // ESLint exits with code 1 when there are lint errors — that's expected
       raw = (error as { stdout?: string }).stdout || "[]";

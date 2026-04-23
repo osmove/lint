@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { FileReport, LintReport, LinterResult, Offense, PolicyRule } from "../types.js";
-import { exec } from "../utils.js";
+import { execFile } from "../utils.js";
 import { BaseLinter } from "./base.js";
 
 interface OxlintDiagnostic {
@@ -36,11 +36,11 @@ export class OxlintLinter extends BaseLinter {
   }
 
   run(files: string[], configPath: string, _autofix: boolean): LinterResult {
-    const cmd = `oxlint --config=${configPath} --format=json ${files.join(" ")}`;
-
     let raw: string;
     try {
-      raw = exec(cmd, { silent: true });
+      raw = execFile("oxlint", [`--config=${configPath}`, "--format=json", ...files], {
+        silent: true,
+      });
     } catch (error) {
       raw = (error as { stdout?: string }).stdout || "[]";
     }

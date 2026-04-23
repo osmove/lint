@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { FileReport, LintReport, LinterResult, PolicyRule } from "../types.js";
-import { exec } from "../utils.js";
+import { execFile } from "../utils.js";
 import { BaseLinter } from "./base.js";
 
 export class PrettierLinter extends BaseLinter {
@@ -37,9 +37,8 @@ export class PrettierLinter extends BaseLinter {
 
   run(files: string[], configPath: string, autofix: boolean): LinterResult {
     if (autofix) {
-      const cmd = `prettier --config ${configPath} --write ${files.join(" ")}`;
       try {
-        exec(cmd, { silent: true });
+        execFile("prettier", ["--config", configPath, "--write", ...files], { silent: true });
       } catch {
         // Prettier may fail on some files, continue
       }
@@ -47,10 +46,9 @@ export class PrettierLinter extends BaseLinter {
     }
 
     // Check mode
-    const cmd = `prettier --config ${configPath} --check ${files.join(" ")}`;
     let raw: string;
     try {
-      raw = exec(cmd, { silent: true });
+      raw = execFile("prettier", ["--config", configPath, "--check", ...files], { silent: true });
       return { success: true, report: this.emptyReport(), raw };
     } catch (error) {
       raw = (error as { stdout?: string }).stdout || "";

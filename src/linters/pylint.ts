@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { FileReport, LintReport, LinterResult, Offense, PolicyRule } from "../types.js";
-import { exec } from "../utils.js";
+import { execFile } from "../utils.js";
 import { BaseLinter } from "./base.js";
 
 interface PylintMessage {
@@ -60,11 +60,13 @@ export class PylintLinter extends BaseLinter {
   }
 
   run(files: string[], configPath: string, _autofix: boolean): LinterResult {
-    const cmd = `pylint --rcfile=${configPath} --output-format=json ${files.join(" ")}`;
-
     let raw: string;
     try {
-      raw = exec(cmd, { silent: true });
+      raw = execFile(
+        "pylint",
+        [`--rcfile=${configPath}`, "--output-format=json", ...files],
+        { silent: true },
+      );
     } catch (error) {
       raw = (error as { stdout?: string }).stdout || "[]";
     }
