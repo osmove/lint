@@ -36,13 +36,17 @@ export class ErbLintLinter extends BaseLinter {
   run(files: string[], configPath: string, _autofix: boolean): LinterResult {
     let raw: string;
     try {
-      raw = execFile("erblint", [...(configPath ? ["--config", configPath] : []), "--format", "json", ...files], {
-        silent: true,
-        env: {
-          LANG: "en_US.UTF-8",
-          LC_ALL: "en_US.UTF-8",
+      raw = execFile(
+        "erblint",
+        [...(configPath ? ["--config", configPath] : []), "--format", "json", ...files],
+        {
+          silent: true,
+          env: {
+            LANG: "en_US.UTF-8",
+            LC_ALL: "en_US.UTF-8",
+          },
         },
-      });
+      );
     } catch (error) {
       raw = (error as { stdout?: string }).stdout || '{"files":[],"summary":{"offenses":0}}';
     }

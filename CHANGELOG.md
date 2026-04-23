@@ -33,6 +33,7 @@
 - `lint format write <extension>` is now the canonical formatting helper, while `prettify <extension>` remains a compatibility alias
 - `lint explain run` is now the canonical explain helper, while `explain-run` remains a compatibility alias
 - `lint setup init` is now the canonical interactive setup command, while top-level `init` remains a compatibility alias
+- added `npm run verify` as a full maintainer validation pass, and aligned README examples with the grouped canonical CLI surface
 - added `npm run security:audit` and wired it into CI so moderate+ dependency vulnerabilities fail the pipeline earlier
 
 ### Changed

@@ -182,7 +182,7 @@ Top-level aliases like `lint init`, `lint bootstrap`, and `lint doctor` also sti
 
 `lint explain-run` also still works as a compatibility alias, but the canonical explain helper is now `lint explain run`.
 
-Use `lint doctor --json` when you want to consume the report from another tool, CI step, or control plane.
+Use `lint setup doctor --json` when you want to consume the report from another tool, CI step, or control plane.
 
 ## Explain Run
 
@@ -215,10 +215,10 @@ lint install missing --dry-run .
 ## Bootstrap
 
 ```sh
-lint bootstrap
-lint bootstrap --dry-run
-lint bootstrap --json
-lint bootstrap --install-missing --install-hooks
+lint setup bootstrap
+lint setup bootstrap --dry-run
+lint setup bootstrap --json
+lint setup bootstrap --install-missing --install-hooks
 ```
 
 `lint setup bootstrap` is the non-interactive counterpart to `lint setup init`. It detects the project, writes a repo-local `.lintrc.yaml`, creates a local `.lint/config` when needed, and can optionally install missing linters and hooks.
@@ -291,10 +291,11 @@ lint ci --allow-warnings
 git clone https://github.com/osmove/lint.git
 cd lint
 npm install
+npm run verify            # Full maintainer check: typecheck, lint, audit, build, gate, tests
 npm run build             # Build TypeScript → dist/
 npm run quality-gate      # Run Lint against the whole repo
 npm run security:audit    # Fail on moderate+ dependency vulnerabilities
-npm test                  # Run tests (94 tests, 10 suites)
+npm test                  # Run tests (109 tests, 12 suites)
 npm run typecheck         # Type check
 npm run lint              # Lint with Biome
 ```
@@ -303,7 +304,7 @@ npm run lint              # Lint with Biome
 
 - TypeScript (strict), ESM
 - Build: tsup → Node 20+
-- Tests: Vitest (94 tests, 10 suites)
+- Tests: Vitest (109 tests, 12 suites)
 - CI: GitHub Actions (Node 20 + 22)
 - AI: Anthropic SDK (Claude)
 

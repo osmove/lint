@@ -1,7 +1,7 @@
+import { pathToFileURL } from "node:url";
 import { confirm, input, password } from "@inquirer/prompts";
 import chalk from "chalk";
 import { Command } from "commander";
-import { pathToFileURL } from "node:url";
 import { saveApiKey } from "./ai/client.js";
 import { printCommitSuggestion } from "./ai/commit.js";
 import { explainErrors } from "./ai/explain.js";
@@ -9,21 +9,21 @@ import { fixStagedChanges } from "./ai/fix.js";
 import { reviewStagedChanges } from "./ai/review.js";
 import * as auth from "./auth.js";
 import { VERSION } from "./config.js";
-import { collectDoctorReport, formatDoctorReport } from "./doctor.js";
 import { buildSuggestedLinterPlan, detectProject } from "./detect.js";
+import { collectDoctorReport, formatDoctorReport } from "./doctor.js";
 import {
   bootstrapProject,
   fixSetup,
   getStagedFilePaths,
   init,
   inspectManagedHooks,
-  uninstallHooks,
   installHooks,
+  uninstallHooks,
 } from "./git.js";
 import {
   ALL_LINTERS,
-  explainRun,
   LINTER_MAP,
+  explainRun,
   machineSummary,
   postCommitHook,
   preCommit,
@@ -31,8 +31,8 @@ import {
   prettifyProject,
   runLint,
 } from "./orchestrator.js";
-import { LINT_JSON_SCHEMA_VERSION } from "./reporter.js";
 import { buildRecommendedRC, formatRC, loadRC, writeRC } from "./rc.js";
+import { LINT_JSON_SCHEMA_VERSION } from "./reporter.js";
 import type { LintReport } from "./types.js";
 import { findGitRoot } from "./utils.js";
 
@@ -183,8 +183,7 @@ function runExplainRun(paths: string[], options: { json?: boolean }): void {
 
 function runRecommendedConfig(options: { json?: boolean; write?: boolean }): void {
   const project = detectProject(findGitRoot() || process.cwd());
-  const suggested = buildSuggestedLinterPlan(project)
-    .map((entry) => entry.name);
+  const suggested = buildSuggestedLinterPlan(project).map((entry) => entry.name);
   const existing = loadRC();
   const recommended = buildRecommendedRC(existing, suggested);
 
@@ -330,15 +329,11 @@ program.addCommand(
 );
 
 program.addCommand(
-  new Command("post-commit")
-    .description("Post-commit hook")
-    .action(() => runPostCommitCommand()),
+  new Command("post-commit").description("Post-commit hook").action(() => runPostCommitCommand()),
   { hidden: true },
 );
 
-const hooksCommand = program
-  .command("hooks")
-  .description("Manage Lint git hooks");
+const hooksCommand = program.command("hooks").description("Manage Lint git hooks");
 
 hooksCommand
   .command("install")
@@ -356,9 +351,7 @@ hooksCommand
   .option("--json", "Output hook status as JSON")
   .action((options: { json?: boolean }) => printHooksStatus(options));
 
-const setupCommand = program
-  .command("setup")
-  .description("Manage repo-local Lint setup");
+const setupCommand = program.command("setup").description("Manage repo-local Lint setup");
 
 setupCommand
   .command("init")
@@ -372,12 +365,14 @@ setupCommand
   .option("--json", "Output the bootstrap plan as JSON")
   .option("--install-missing", "Install suggested missing linters")
   .option("--install-hooks", "Install managed git hooks")
-  .action((options: {
-    dryRun?: boolean;
-    json?: boolean;
-    installMissing?: boolean;
-    installHooks?: boolean;
-  }) => runSetupBootstrap(options));
+  .action(
+    (options: {
+      dryRun?: boolean;
+      json?: boolean;
+      installMissing?: boolean;
+      installHooks?: boolean;
+    }) => runSetupBootstrap(options),
+  );
 
 setupCommand
   .command("fix")
@@ -386,12 +381,14 @@ setupCommand
   .option("--json", "Output the setup plan as JSON")
   .option("--no-install-missing", "Skip installing missing suggested linters")
   .option("--no-install-hooks", "Skip installing managed git hooks")
-  .action((options: {
-    dryRun?: boolean;
-    json?: boolean;
-    installMissing?: boolean;
-    installHooks?: boolean;
-  }) => runSetupFix(options));
+  .action(
+    (options: {
+      dryRun?: boolean;
+      json?: boolean;
+      installMissing?: boolean;
+      installHooks?: boolean;
+    }) => runSetupFix(options),
+  );
 
 setupCommand
   .command("doctor")
@@ -399,9 +396,7 @@ setupCommand
   .option("--json", "Output doctor status as JSON")
   .action((options: { json?: boolean }) => runDoctor(options));
 
-const configCommand = program
-  .command("config")
-  .description("Manage Lint configuration helpers");
+const configCommand = program.command("config").description("Manage Lint configuration helpers");
 
 configCommand
   .command("recommend")
@@ -410,9 +405,7 @@ configCommand
   .option("--write", "Write the recommended config to .lintrc.yaml")
   .action((options: { json?: boolean; write?: boolean }) => runRecommendedConfig(options));
 
-const installCommand = program
-  .command("install")
-  .description("Install Lint-related tooling");
+const installCommand = program.command("install").description("Install Lint-related tooling");
 
 installCommand
   .command("missing [paths...]")
@@ -440,9 +433,7 @@ explainCommand
   .option("--json", "Output explanation as JSON")
   .action((paths, options: { json?: boolean }) => runExplainRun(paths, options));
 
-const authCommand = program
-  .command("auth")
-  .description("Manage Lint authentication");
+const authCommand = program.command("auth").description("Manage Lint authentication");
 
 authCommand
   .command("status")
@@ -464,17 +455,14 @@ authCommand
   .description("Create a Lint account")
   .action(async () => runSignup());
 
-authCommand
-  .addCommand(
-    new Command("whoami")
-      .description("Legacy alias for 'lint auth status'")
-      .action(() => runAuthStatus()),
-    { hidden: true },
-  );
+authCommand.addCommand(
+  new Command("whoami")
+    .description("Legacy alias for 'lint auth status'")
+    .action(() => runAuthStatus()),
+  { hidden: true },
+);
 
-const formatCommand = program
-  .command("format")
-  .description("Formatting helpers");
+const formatCommand = program.command("format").description("Formatting helpers");
 
 formatCommand
   .command("write <extension>")
@@ -482,9 +470,7 @@ formatCommand
   .action((extension) => runFormatWrite(extension));
 
 program.addCommand(
-  new Command("init")
-    .description("Legacy alias for 'lint setup init'")
-    .action(() => init()),
+  new Command("init").description("Legacy alias for 'lint setup init'").action(() => init()),
   { hidden: true },
 );
 
@@ -518,12 +504,14 @@ program.addCommand(
     .option("--json", "Output the bootstrap plan as JSON")
     .option("--install-missing", "Install suggested missing linters")
     .option("--install-hooks", "Install managed git hooks")
-    .action((options: {
-      dryRun?: boolean;
-      json?: boolean;
-      installMissing?: boolean;
-      installHooks?: boolean;
-    }) => runSetupBootstrap(options)),
+    .action(
+      (options: {
+        dryRun?: boolean;
+        json?: boolean;
+        installMissing?: boolean;
+        installHooks?: boolean;
+      }) => runSetupBootstrap(options),
+    ),
   { hidden: true },
 );
 
@@ -534,12 +522,14 @@ program.addCommand(
     .option("--json", "Output the setup plan as JSON")
     .option("--no-install-missing", "Skip installing missing suggested linters")
     .option("--no-install-hooks", "Skip installing managed git hooks")
-    .action((options: {
-      dryRun?: boolean;
-      json?: boolean;
-      installMissing?: boolean;
-      installHooks?: boolean;
-    }) => runSetupFix(options)),
+    .action(
+      (options: {
+        dryRun?: boolean;
+        json?: boolean;
+        installMissing?: boolean;
+        installHooks?: boolean;
+      }) => runSetupFix(options),
+    ),
   { hidden: true },
 );
 
