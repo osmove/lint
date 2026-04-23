@@ -114,8 +114,14 @@ describe("reporter", () => {
             byLinter: { eslint: 2 },
           },
           fileCoverage: {
-            coveredFiles: [{ path: "src/test.js", linters: ["eslint"] }],
-            uncoveredFiles: [{ path: "notes.txt", reason: "no selected linter supports this file type" }],
+            coveredFiles: [
+              {
+                path: "src/test.js",
+                linters: ["eslint"],
+                reason: "selected linter matched this file",
+              },
+            ],
+            uncoveredFiles: [{ path: "notes.txt", reason: "no known linter supports this file type" }],
           },
         }),
       );
@@ -150,8 +156,14 @@ describe("reporter", () => {
           byLinter: { eslint: 2 },
         },
         file_coverage: {
-          coveredFiles: [{ path: "src/test.js", linters: ["eslint"] }],
-          uncoveredFiles: [{ path: "notes.txt", reason: "no selected linter supports this file type" }],
+          coveredFiles: [
+            {
+              path: "src/test.js",
+              linters: ["eslint"],
+              reason: "selected linter matched this file",
+            },
+          ],
+          uncoveredFiles: [{ path: "notes.txt", reason: "no known linter supports this file type" }],
         },
       });
     });

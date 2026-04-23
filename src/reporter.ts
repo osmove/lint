@@ -23,7 +23,7 @@ export interface JsonReportMeta {
     reason: string;
   }>;
   fileCoverage?: {
-    coveredFiles: Array<{ path: string; linters: string[] }>;
+    coveredFiles: Array<{ path: string; linters: string[]; reason: string }>;
     uncoveredFiles: Array<{ path: string; reason: string }>;
   };
   policySummary?: {
