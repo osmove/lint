@@ -364,7 +364,7 @@ export function buildMachineSummary(
     actions.push({
       id: "explain_run",
       label: "Explain run coverage",
-      command: "lint explain-run .",
+      command: "lint explain run .",
       reason: `${report.fileCoverage.uncoveredFiles.length} file(s) are not covered by a selected linter`,
     });
   }
@@ -374,7 +374,7 @@ export function buildMachineSummary(
     actions.push({
       id: "review_policy_scope",
       label: "Review policy scope",
-      command: "lint explain-run --json .",
+      command: "lint explain run --json .",
       reason: "Some cloud policy rules target linters that are not currently selected",
     });
   }

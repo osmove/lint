@@ -6,7 +6,16 @@ describe("cli", () => {
     const commandNames = program.commands.map((command) => command.name());
 
     expect(commandNames).toEqual(
-      expect.arrayContaining(["hooks", "setup", "config", "install", "machine", "auth", "format"]),
+      expect.arrayContaining([
+        "hooks",
+        "setup",
+        "config",
+        "install",
+        "machine",
+        "auth",
+        "format",
+        "explain",
+      ]),
     );
   });
 
@@ -22,6 +31,7 @@ describe("cli", () => {
         "config:recommend",
         "install:missing",
         "machine:summary",
+        "explain-run",
         "bootstrap",
         "doctor",
         "login",
@@ -41,6 +51,7 @@ describe("cli", () => {
     const machine = program.commands.find((command) => command.name() === "machine");
     const auth = program.commands.find((command) => command.name() === "auth");
     const format = program.commands.find((command) => command.name() === "format");
+    const explain = program.commands.find((command) => command.name() === "explain");
 
     expect(hooks?.helpInformation()).toContain("install");
     expect(hooks?.helpInformation()).toContain("status");
@@ -58,6 +69,7 @@ describe("cli", () => {
     expect(auth?.helpInformation()).toContain("signup");
     expect(auth?.helpInformation()).not.toContain("whoami");
     expect(format?.helpInformation()).toContain("write");
+    expect(explain?.helpInformation()).toContain("run");
   });
 
   it("keeps legacy aliases out of the root help output", () => {
@@ -67,6 +79,7 @@ describe("cli", () => {
     expect(help).toContain("setup");
     expect(help).toContain("auth");
     expect(help).toContain("format");
+    expect(help).toContain("explain");
     expect(help).not.toContain("bootstrap");
     expect(help).not.toContain("doctor");
     expect(help).not.toContain("pre-commit");
@@ -77,6 +90,7 @@ describe("cli", () => {
     expect(help).not.toContain("config:recommend");
     expect(help).not.toContain("install:missing");
     expect(help).not.toContain("machine:summary");
+    expect(help).not.toContain("explain-run");
     expect(help).not.toContain("login");
     expect(help).not.toContain("logout");
     expect(help).not.toContain("signup");
