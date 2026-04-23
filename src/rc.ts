@@ -36,6 +36,10 @@ const LINTER_REPLACEMENTS: Record<string, LinterName[]> = {
   ruff: ["pylint"],
 };
 
+export function getLinterReplacements(): Record<LinterName, LinterName[]> {
+  return LINTER_REPLACEMENTS as Record<LinterName, LinterName[]>;
+}
+
 export function findRCFile(): string | null {
   const gitRoot = findGitRoot() || process.cwd();
   for (const name of RC_FILENAMES) {

@@ -174,9 +174,12 @@ lint explain-run --json .
 `lint explain-run` shows:
 
 - which linters were selected or skipped, and why
+- which conflicts were auto-resolved
+- which fix strategy would be used
 - which files were ignored
 - which files are covered or uncovered
 - whether policy rules are local or cloud-backed, and how many are applicable
+- recommended next steps when coverage or tooling is incomplete
 
 ## JSON Output
 
