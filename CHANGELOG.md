@@ -52,6 +52,9 @@
 - added machine-readable run decisions for ignored files, linter selection, and policy origin
 - added file coverage and applicable policy-rule counts to machine-readable run decisions
 - refined uncovered-file reasons to distinguish unknown types, missing installs, and selection/configuration gaps
+- made `prepublishOnly` run `npm run verify` so package publishes reuse the full maintainer safety gate
+- extended `npm run verify` with `npm pack --dry-run` so maintainers validate the publish payload before release
+- added `npm run package:check` to CI so packaging regressions fail before publish
 
 ## [1.0.0] - 2026-04-15
 
