@@ -131,7 +131,19 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
 
   if (files.length === 0) {
     if (isJson) {
-      console.log(JSON.stringify({ success: true, files: 0, reports: [] }));
+      console.log(
+        formatJsonReport([], {
+          duration: Date.now() - startTime,
+          dryRun,
+          fix: autofix,
+          cwd: process.cwd(),
+          mode,
+          fileCount: 0,
+          linterNames: [],
+          policyRuleCount: 0,
+          message: "No files to lint",
+        }),
+      );
     } else if (!quiet) {
       console.log(chalk.green("No files to lint."));
     }
@@ -162,10 +174,15 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
   if (linters.length === 0) {
     if (isJson) {
       console.log(
-        JSON.stringify({
-          success: true,
-          files: files.length,
-          reports: [],
+        formatJsonReport([], {
+          duration: Date.now() - startTime,
+          dryRun,
+          fix: autofix,
+          cwd: process.cwd(),
+          mode,
+          fileCount: files.length,
+          linterNames: [],
+          policyRuleCount: policyRules.length,
           message: "No linters available",
         }),
       );
