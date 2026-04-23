@@ -94,6 +94,7 @@ lint ai explain           # Explain linting errors in plain language
 lint init                 # Smart setup wizard with auto-detection
 lint doctor               # Diagnose setup, linters, hooks health
 lint doctor --json        # Machine-readable health report
+lint explain-run .        # Explain file/linter/policy decisions without linting
 lint ci --allow-warnings  # Quality gate but keep warnings non-blocking
 lint hooks:status         # Inspect managed hook status
 lint install:hooks        # Install git hooks
@@ -161,6 +162,21 @@ lint doctor --json
 - managed vs unmanaged git hooks
 
 Use `lint doctor --json` when you want to consume the report from another tool, CI step, or control plane.
+
+## Explain Run
+
+```sh
+lint explain-run .
+lint explain-run src/
+lint explain-run --json .
+```
+
+`lint explain-run` shows:
+
+- which linters were selected or skipped, and why
+- which files were ignored
+- which files are covered or uncovered
+- whether policy rules are local or cloud-backed, and how many are applicable
 
 ## JSON Output
 

@@ -15,7 +15,13 @@ import { RuboCopLinter } from "./linters/rubocop.js";
 import { RuffLinter } from "./linters/ruff.js";
 import { StylelintLinter } from "./linters/stylelint.js";
 import { filterIgnoredFiles, getIgnoredFileDecisions, loadRC, resolveEnabledLinters } from "./rc.js";
-import { formatJsonReport, printReport, printSummaryTable } from "./reporter.js";
+import {
+  formatJsonReport,
+  formatRunDecisionReport,
+  printReport,
+  printSummaryTable,
+  type RunDecisionReport,
+} from "./reporter.js";
 import type { LintReport, LinterName, LinterResult, PolicyRule, RunOptions } from "./types.js";
 import { cleanTmpDir, formatDuration, readLintConfig } from "./utils.js";
 
@@ -172,6 +178,49 @@ function summarizePolicyRules(
     totalRules: policyRules.length,
     applicableRules: policyRules.filter((rule) => selectedLinterNames.has(rule.linter)).length,
     byLinter,
+  };
+}
+
+async function collectRunDecisionReport(options: RunOptions = {}): Promise<RunDecisionReport> {
+  const rc = loadRC();
+  let discoveredFiles: string[];
+  let mode: string;
+
+  if (options.paths && options.paths.length > 0) {
+    discoveredFiles = [];
+    for (const p of options.paths) {
+      discoveredFiles.push(...findFiles(p));
+    }
+    mode = options.paths.join(", ");
+  } else {
+    discoveredFiles = getStagedFilePaths();
+    mode = "staged files";
+  }
+
+  const ignorePatterns = rc.ignore || [];
+  const ignoredFiles = getIgnoredFileDecisions(discoveredFiles, ignorePatterns);
+  const files = filterIgnoredFiles(discoveredFiles, ignorePatterns);
+  const linterSelection = describeLinterSelection(rc);
+  const selectedLinters = selectLinters(rc);
+  const fileCoverage = describeFileCoverage(files, linterSelection, selectedLinters);
+
+  let policyRules: PolicyRule[] = [];
+  try {
+    policyRules = await fetchPolicyRules();
+  } catch {
+    policyRules = [];
+  }
+
+  return {
+    cwd: process.cwd(),
+    mode,
+    requestedPaths: options.paths ?? [],
+    discoveredFileCount: discoveredFiles.length,
+    lintableFileCount: files.length,
+    ignoredFiles,
+    linterSelection,
+    fileCoverage,
+    policy: summarizePolicyRules(policyRules, selectedLinters),
   };
 }
 
@@ -483,6 +532,20 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
   // ── Exit codes: 0 = clean, 1 = errors, 2 = warnings only ──
   if (hasErrors) process.exit(1);
   if (totalWarnings > 0 && failOnWarnings) process.exit(2);
+}
+
+export async function explainRun(
+  options: RunOptions & { json?: boolean } = {},
+): Promise<void> {
+  const report = await collectRunDecisionReport(options);
+  if (options.json) {
+    console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+
+  for (const line of formatRunDecisionReport(report)) {
+    console.log(line);
+  }
 }
 
 // ── Convenience wrappers ──
