@@ -12,11 +12,12 @@ import {
 } from "./detect.js";
 import { generateDefaultRC, writeRC } from "./rc.js";
 import type { LintConfig, LinterName, StagedFile } from "./types.js";
-import { ensureDir, exec, execGit, findGitDir, findGitRoot, readLintConfig, writeLintConfig } from "./utils.js";
+import { ensureDir, execFile, execGit, findGitDir, findGitRoot, readLintConfig, writeLintConfig } from "./utils.js";
 
 export const MANAGED_HOOK_MARKER = "Managed by Lint";
 
 export interface HookInspection {
+  name: string;
   hookPath: string;
   exists: boolean;
   managed: boolean;
@@ -204,15 +205,30 @@ fi
 function inspectHook(hooksDir: string, name: string): HookInspection {
   const hookPath = path.join(hooksDir, name);
   if (!fs.existsSync(hookPath)) {
-    return { hookPath, exists: false, managed: false };
+    return { name, hookPath, exists: false, managed: false };
   }
 
   const content = fs.readFileSync(hookPath, "utf-8");
   return {
+    name,
     hookPath,
     exists: true,
     managed: content.includes(MANAGED_HOOK_MARKER),
   };
+}
+
+export function inspectManagedHook(gitRoot: string, name: string): HookInspection | null {
+  const gitDir = findGitDir(gitRoot);
+  if (!gitDir) return null;
+  return inspectHook(path.join(gitDir, "hooks"), name);
+}
+
+export function inspectManagedHooks(gitRoot: string): HookInspection[] {
+  const gitDir = findGitDir(gitRoot);
+  if (!gitDir) return [];
+  return ["pre-commit", "prepare-commit-msg", "post-commit"].map((name) =>
+    inspectHook(path.join(gitDir, "hooks"), name),
+  );
 }
 
 export function installHooks(options?: { timeout?: number; skipEnv?: string }): void {
@@ -404,7 +420,7 @@ export async function init(): Promise<void> {
         if (cmd) {
           try {
             process.stdout.write(chalk.gray(`  Installing ${l.name}... `));
-            exec(cmd, { silent: true });
+            execFile("sh", ["-lc", cmd], { silent: true });
             console.log(chalk.green("done"));
           } catch {
             console.log(chalk.red("failed"));
