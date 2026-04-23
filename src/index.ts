@@ -26,7 +26,7 @@ const program = new Command();
 
 program
   .name("lint")
-  .description("Omnilint — The universal linter with AI-powered code review.")
+  .description("Lint — The universal linter with AI-powered code review.")
   .version(VERSION, "-v, --version");
 
 // ── Main lint command (default + with paths) ──
@@ -88,7 +88,7 @@ program
 
 program
   .command("init")
-  .description("Initialize Omnilint with smart project detection")
+  .description("Initialize Lint with smart project detection")
   .action(() => init());
 
 program
@@ -102,7 +102,7 @@ program
 
 program
   .command("uninstall:hooks")
-  .description("Remove Omnilint git hooks")
+  .description("Remove Lint git hooks")
   .action(() => uninstallHooks());
 
 program
@@ -114,9 +114,9 @@ program
 
 program
   .command("doctor")
-  .description("Diagnose Omnilint setup and linter health")
+  .description("Diagnose Lint setup and linter health")
   .action(async () => {
-    console.log(chalk.cyan.bold("\n  Omnilint Doctor\n"));
+    console.log(chalk.cyan.bold("\n  Lint Doctor\n"));
 
     // Git
     const gitRoot = findGitRoot();
@@ -182,11 +182,11 @@ program
         const hookPath = `${gitRoot}/.git/hooks/${hook}`;
         if (nodeFs.existsSync(hookPath)) {
           const content = nodeFs.readFileSync(hookPath, "utf-8");
-          const isOmnilint = content.includes("Omnilint") || content.includes("lint");
+          const isLintHook = content.includes("Installed by Lint") || content.includes("lint");
           console.log(
-            isOmnilint
+            isLintHook
               ? chalk.green(`    ✓ ${hook}`)
-              : chalk.yellow(`    ~ ${hook} (not Omnilint)`),
+              : chalk.yellow(`    ~ ${hook} (not Lint)`),
           );
         } else {
           console.log(chalk.gray(`    - ${hook} (not installed)`));
@@ -250,7 +250,7 @@ ai.command("setup")
 
 program
   .command("login")
-  .description("Sign in to Omnilint")
+  .description("Sign in to Lint")
   .action(async () => {
     if (auth.isLoggedIn()) {
       console.log(`Already logged in as ${chalk.green(auth.getUsername())}.`);
@@ -263,7 +263,7 @@ program
 
 program
   .command("logout")
-  .description("Sign out from Omnilint")
+  .description("Sign out from Lint")
   .action(async () => {
     if (!auth.isLoggedIn()) {
       console.log("Not logged in.");
@@ -275,7 +275,7 @@ program
 
 program
   .command("signup")
-  .description("Create an Omnilint account")
+  .description("Create a Lint account")
   .action(async () => {
     if (auth.isLoggedIn()) {
       console.log(`Already logged in as ${chalk.green(auth.getUsername())}.`);

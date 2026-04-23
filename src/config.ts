@@ -3,7 +3,7 @@ import path from "node:path";
 
 export const VERSION = "1.0.0";
 
-export const API_BASE_URL = process.env.OMNILINT_API_URL || "https://api.omnilint.com";
+export const API_BASE_URL = process.env.LINT_API_URL || "https://api.lint.to";
 
 export const HOME_DIR = os.homedir();
 export const LINT_DIR = ".lint";

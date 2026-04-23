@@ -1,6 +1,6 @@
 # Lint
 
-Lint is a universal code linting CLI that orchestrates multiple language-specific linters through a single interface. It connects to a cloud API (`api.lint.to`) for policy-based rule management, integrates with git hooks, and provides AI-powered code review via Claude.
+Lint is a universal code linting CLI that orchestrates multiple language-specific linters through a single interface. It connects to a cloud API (`api.lint.to`) for policy-based rule management, integrates with git hooks, and provides AI-powered code review via Codex.
 
 **npm package**: `lint` (global command: `lint`)
 

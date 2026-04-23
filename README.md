@@ -1,6 +1,3 @@
-![Omnilint logo](./assets/images/logo-dark.png#gh-dark-mode-only)
-![Omnilint logo](./assets/images/logo-light.png#gh-light-mode-only)
-
 **The universal linter.** One CLI to lint any language — with AI-powered code review.
 
 [![npm version](https://img.shields.io/npm/v/lint.svg)](https://www.npmjs.com/package/lint)
@@ -9,9 +6,9 @@
 
 ---
 
-## What is Omnilint?
+## What is Lint?
 
-Omnilint wraps multiple language-specific linters into a single CLI. Instead of configuring ESLint, Rubocop, Ruff, Biome, and Stylelint separately, run one command:
+Lint wraps multiple language-specific linters into a single CLI. Instead of configuring ESLint, Rubocop, Ruff, Biome, and Stylelint separately, run one command:
 
 ```sh
 lint
@@ -118,10 +115,10 @@ fix:
 
 hooks:
   timeout: 60               # seconds
-  skip_env: OMNILINT_SKIP   # OMNILINT_SKIP=1 git commit ...
+  skip_env: LINT_SKIP   # LINT_SKIP=1 git commit ...
 ```
 
-Without `.lintrc.yaml`, Omnilint uses smart defaults with automatic conflict resolution.
+Without `.lintrc.yaml`, Lint uses smart defaults with automatic conflict resolution.
 
 ## Git Hooks
 
@@ -132,7 +129,7 @@ lint install:hooks
 - Installs pre-commit, prepare-commit-msg, and post-commit hooks
 - Auto-detects Husky/Lefthook and integrates instead of replacing
 - Includes timeout protection and skip mechanism
-- Skip: `OMNILINT_SKIP=1 git commit ...` or `git commit --no-verify`
+- Skip: `LINT_SKIP=1 git commit ...` or `git commit --no-verify`
 
 ## Development
 
@@ -160,4 +157,4 @@ npm run lint              # Lint with Biome
 
 ## Website
 
-[https://www.omnilint.com](https://www.omnilint.com)
+[https://lint.to](https://lint.to)

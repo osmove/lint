@@ -1,12 +1,11 @@
 {
   "name": "lint",
   "version": "1.0.0",
-  "description": "Omnilint — The universal linter with AI-powered code review.",
+  "description": "Lint — The universal linter with AI-powered code review.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "lint": "./dist/index.js",
-    "omnilint": "./dist/index.js"
+    "lint": "./dist/index.js"
   },
   "scripts": {
     "build": "tsup",
@@ -55,7 +54,7 @@
   "bugs": {
     "url": "https://github.com/omnilint/lint/issues"
   },
-  "homepage": "https://www.omnilint.com",
+  "homepage": "https://lint.to",
   "keywords": [
     "lint",
     "linter",

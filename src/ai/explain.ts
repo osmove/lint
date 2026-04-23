@@ -2,7 +2,7 @@ import chalk from "chalk";
 import type { LintReport } from "../types.js";
 import { chat } from "./client.js";
 
-const SYSTEM_PROMPT = `You are a friendly code mentor working as part of Omnilint, a universal linting tool.
+const SYSTEM_PROMPT = `You are a friendly code mentor working as part of Lint, a universal linting tool.
 Your job is to explain linting errors in plain language so developers can learn from them.
 
 For each error/warning:

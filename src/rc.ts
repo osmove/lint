@@ -132,7 +132,7 @@ export function generateDefaultRC(linters: LinterName[]): LintRC {
     },
     hooks: {
       timeout: 60,
-      skip_env: "OMNILINT_SKIP",
+      skip_env: "LINT_SKIP",
     },
   };
 }

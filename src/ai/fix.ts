@@ -3,7 +3,7 @@ import chalk from "chalk";
 import { getStagedDiff, getStagedFilePaths } from "../git.js";
 import { chat } from "./client.js";
 
-const SYSTEM_PROMPT = `You are an expert code fixer working as part of Omnilint, a universal linting tool.
+const SYSTEM_PROMPT = `You are an expert code fixer working as part of Lint, a universal linting tool.
 Given a git diff of staged changes, identify issues and provide fixed code.
 
 For each fix:
