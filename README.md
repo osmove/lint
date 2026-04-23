@@ -98,6 +98,7 @@ lint config:recommend     # Print a recommended .lintrc.yaml
 lint doctor               # Diagnose setup, linters, hooks health
 lint doctor --json        # Machine-readable health report
 lint explain-run .        # Explain file/linter/policy decisions without linting
+lint machine:summary .    # Compact machine-readable summary for automation
 lint install:missing .    # Install suggested linters that are not installed yet
 lint ci --allow-warnings  # Quality gate but keep warnings non-blocking
 lint hooks:status         # Inspect managed hook status
@@ -239,6 +240,14 @@ lint config:recommend --write
 - explicit `status` and `exit_code` fields for CI and orchestration consumers
 - a `decisions` block with ignored files, linter selection reasons, and cloud-vs-local policy summary
 - file coverage details showing which selected linters handled which files, plus why uncovered files were skipped
+
+For automation consumers that only need a compact health/result snapshot, use:
+
+```sh
+lint machine:summary .
+```
+
+The compact summary also includes structured `actions` with ready-to-run commands like `lint install:missing .`, `lint setup:fix --dry-run`, or `lint explain-run .`, so a control plane can guide remediation without parsing prose.
 
 ## CI / Quality Gate
 

@@ -23,6 +23,7 @@ import {
   ALL_LINTERS,
   explainRun,
   LINTER_MAP,
+  machineSummary,
   postCommitHook,
   preCommit,
   prepareCommitMsg,
@@ -76,6 +77,18 @@ program
     explainRun({
       paths: paths.length > 0 ? paths : ["."],
       json: options.json,
+    });
+  });
+
+program
+  .command("machine:summary [paths...]")
+  .description("Output a compact machine-readable repo summary for automation consumers")
+  .action((paths) => {
+    const doctor = collectDoctorReport();
+    machineSummary({
+      paths: paths.length > 0 ? paths : ["."],
+      doctorStatus: doctor.status,
+      missingSelectedLinters: doctor.summary.missingSelectedLinters,
     });
   });
 

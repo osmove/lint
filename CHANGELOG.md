@@ -19,6 +19,8 @@
 - `lint config:recommend` to preview or write a recommended `.lintrc.yaml`
 - `lint setup:fix` to apply recommended repo-local setup in a single command
 - versioned machine-readable outputs with explicit `schema_version` and `kind`
+- `lint machine:summary` for a compact automation-focused JSON snapshot
+- structured `actions` in `lint machine:summary` so automation consumers can trigger the right remediation commands directly
 
 ### Changed
 

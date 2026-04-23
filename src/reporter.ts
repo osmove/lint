@@ -72,6 +72,23 @@ export interface RunDecisionReport {
   nextSteps: string[];
 }
 
+export interface MachineSummaryReport {
+  doctor_status: "healthy" | "needs_setup";
+  run_mode: string;
+  selected_linters: string[];
+  missing_selected_linters: string[];
+  uncovered_file_count: number;
+  ignored_file_count: number;
+  applicable_policy_rule_count: number;
+  next_steps: string[];
+  actions: Array<{
+    id: string;
+    label: string;
+    command: string;
+    reason: string;
+  }>;
+}
+
 type JsonRunStatus =
   | "passed"
   | "passed_with_warnings"
@@ -349,6 +366,18 @@ export function formatRunDecisionJson(report: RunDecisionReport): string {
     {
       schema_version: LINT_JSON_SCHEMA_VERSION,
       kind: "lint_explain_run",
+      ...report,
+    },
+    null,
+    2,
+  );
+}
+
+export function formatMachineSummaryJson(report: MachineSummaryReport): string {
+  return JSON.stringify(
+    {
+      schema_version: LINT_JSON_SCHEMA_VERSION,
+      kind: "lint_machine_summary",
       ...report,
     },
     null,

@@ -22,11 +22,13 @@ import {
   resolveEnabledLinters,
 } from "./rc.js";
 import {
+  formatMachineSummaryJson,
   formatJsonReport,
   formatRunDecisionJson,
   formatRunDecisionReport,
   printReport,
   printSummaryTable,
+  type MachineSummaryReport,
   type RunDecisionReport,
 } from "./reporter.js";
 import type { LintReport, LinterName, LinterResult, PolicyRule, RunOptions } from "./types.js";
@@ -271,7 +273,7 @@ function describeNextSteps(report: {
   return steps;
 }
 
-async function collectRunDecisionReport(options: RunOptions = {}): Promise<RunDecisionReport> {
+export async function collectRunDecisionReport(options: RunOptions = {}): Promise<RunDecisionReport> {
   const rc = loadRC();
   let discoveredFiles: string[];
   let mode: string;
@@ -324,6 +326,64 @@ async function collectRunDecisionReport(options: RunOptions = {}): Promise<RunDe
       fileCoverage,
       policy,
     }),
+  };
+}
+
+export function buildMachineSummary(
+  doctorStatus: "healthy" | "needs_setup",
+  report: RunDecisionReport,
+  missingSelectedLinters: string[],
+): MachineSummaryReport {
+  const actions: MachineSummaryReport["actions"] = [];
+
+  if (missingSelectedLinters.length > 0) {
+    actions.push({
+      id: "install_missing_linters",
+      label: "Install missing linters",
+      command: "lint install:missing .",
+      reason: `Missing selected linters: ${missingSelectedLinters.join(", ")}`,
+    });
+  }
+
+  if (doctorStatus === "needs_setup") {
+    actions.push({
+      id: "fix_setup",
+      label: "Fix repo setup",
+      command: "lint setup:fix --dry-run",
+      reason: "Repository setup is not yet healthy",
+    });
+  }
+
+  if (report.fileCoverage.uncoveredFiles.length > 0) {
+    actions.push({
+      id: "explain_run",
+      label: "Explain run coverage",
+      command: "lint explain-run .",
+      reason: `${report.fileCoverage.uncoveredFiles.length} file(s) are not covered by a selected linter`,
+    });
+  }
+
+  if (report.policy.totalRules > report.policy.applicableRules) {
+    actions.push({
+      id: "review_policy_scope",
+      label: "Review policy scope",
+      command: "lint explain-run --json .",
+      reason: "Some cloud policy rules target linters that are not currently selected",
+    });
+  }
+
+  return {
+    doctor_status: doctorStatus,
+    run_mode: report.mode,
+    selected_linters: report.linterSelection
+      .filter((entry) => entry.selected)
+      .map((entry) => entry.name),
+    missing_selected_linters: missingSelectedLinters,
+    uncovered_file_count: report.fileCoverage.uncoveredFiles.length,
+    ignored_file_count: report.ignoredFiles.length,
+    applicable_policy_rule_count: report.policy.applicableRules,
+    next_steps: report.nextSteps,
+    actions,
   };
 }
 
@@ -649,6 +709,20 @@ export async function explainRun(
   for (const line of formatRunDecisionReport(report)) {
     console.log(line);
   }
+}
+
+export async function machineSummary(
+  options: RunOptions & {
+    doctorStatus: "healthy" | "needs_setup";
+    missingSelectedLinters: string[];
+  },
+): Promise<void> {
+  const report = await collectRunDecisionReport(options);
+  console.log(
+    formatMachineSummaryJson(
+      buildMachineSummary(options.doctorStatus, report, options.missingSelectedLinters),
+    ),
+  );
 }
 
 // ── Convenience wrappers ──
