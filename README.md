@@ -88,6 +88,7 @@ lint ai explain           # Explain linting errors in plain language
 ```sh
 lint init                 # Smart setup wizard with auto-detection
 lint doctor               # Diagnose setup, linters, hooks health
+lint doctor --json        # Machine-readable health report
 lint hooks:status         # Inspect managed hook status
 lint install:hooks        # Install git hooks
 lint uninstall:hooks      # Remove git hooks
@@ -141,6 +142,7 @@ lint hooks:status
 
 ```sh
 lint doctor
+lint doctor --json
 ```
 
 `lint doctor` gives a quick local health check for:
@@ -151,6 +153,8 @@ lint doctor
 - installed vs enabled linters
 - managed vs unmanaged git hooks
 
+Use `lint doctor --json` when you want to consume the report from another tool, CI step, or control plane.
+
 ## Development
 
 ```sh
@@ -158,7 +162,7 @@ git clone https://github.com/omnilint/lint.git
 cd lint
 npm install
 npm run build             # Build TypeScript → dist/
-npm test                  # Run tests (82 tests, 9 suites)
+npm test                  # Run tests (84 tests, 10 suites)
 npm run typecheck         # Type check
 npm run lint              # Lint with Biome
 ```
@@ -167,7 +171,7 @@ npm run lint              # Lint with Biome
 
 - TypeScript (strict), ESM
 - Build: tsup → Node 20+
-- Tests: Vitest (82 tests, 9 suites)
+- Tests: Vitest (84 tests, 10 suites)
 - CI: GitHub Actions (Node 20 + 22)
 - AI: Anthropic SDK (Claude)
 

@@ -8,15 +8,8 @@ import { fixStagedChanges } from "./ai/fix.js";
 import { reviewStagedChanges } from "./ai/review.js";
 import * as auth from "./auth.js";
 import { VERSION } from "./config.js";
-import { checkLinterInstallation } from "./detect.js";
-import {
-  getCurrentBranch,
-  getStagedFilePaths,
-  init,
-  inspectManagedHooks,
-  uninstallHooks,
-  installHooks,
-} from "./git.js";
+import { collectDoctorReport, formatDoctorReport } from "./doctor.js";
+import { getStagedFilePaths, init, inspectManagedHooks, uninstallHooks, installHooks } from "./git.js";
 import {
   ALL_LINTERS,
   postCommitHook,
@@ -25,9 +18,9 @@ import {
   prettifyProject,
   runLint,
 } from "./orchestrator.js";
-import { findRCFile, loadRC } from "./rc.js";
-import type { LintReport, LinterName } from "./types.js";
-import { findGitRoot, readLintConfig, repoIsDirty } from "./utils.js";
+import { loadRC } from "./rc.js";
+import type { LintReport } from "./types.js";
+import { findGitRoot } from "./utils.js";
 
 const program = new Command();
 
@@ -154,89 +147,18 @@ program
 program
   .command("doctor")
   .description("Diagnose Lint setup and linter health")
-  .action(async () => {
-    console.log(chalk.cyan.bold("\n  Lint Doctor\n"));
-
-    // Git
-    const gitRoot = findGitRoot();
-    console.log(
-      gitRoot ? chalk.green(`  ✓ Git: ${gitRoot}`) : chalk.red("  ✗ Not a git repository"),
-    );
-    if (gitRoot) {
-      const branch = getCurrentBranch();
-      const dirty = repoIsDirty(gitRoot);
-      const dirtyLabel =
-        dirty === null ? chalk.gray("unknown") : dirty ? chalk.yellow("dirty") : chalk.green("clean");
-      console.log(`  ✓ Branch: ${branch} (${dirtyLabel})`);
+  .option("--json", "Output doctor status as JSON")
+  .action(async (options: { json?: boolean }) => {
+    const report = collectDoctorReport();
+    if (options.json) {
+      console.log(JSON.stringify(report, null, 2));
+      return;
     }
 
-    // Config
-    const config = readLintConfig();
-    if (config?.uuid) {
-      const mode = config.uuid.startsWith("local-") ? "offline" : "cloud";
-      console.log(chalk.green(`  ✓ Config: .lint/config (${mode})`));
-    } else {
-      console.log(chalk.yellow("  ✗ No .lint/config — run 'lint init'"));
+    console.log(chalk.cyan.bold(""));
+    for (const line of formatDoctorReport(report)) {
+      console.log(line);
     }
-
-    // RC file
-    const rcFile = findRCFile();
-    console.log(
-      rcFile
-        ? chalk.green(`  ✓ RC: ${rcFile}`)
-        : chalk.gray("  - No .lintrc.yaml (using defaults)"),
-    );
-
-    // Auth
-    console.log(
-      auth.isLoggedIn()
-        ? chalk.green(`  ✓ Auth: ${auth.getUsername()}`)
-        : chalk.gray("  - Not logged in (offline mode)"),
-    );
-
-    // Linters
-    console.log(chalk.bold("\n  Linters:\n"));
-    const allNames: LinterName[] = [
-      "biome",
-      "oxlint",
-      "eslint",
-      "prettier",
-      "ruff",
-      "pylint",
-      "rubocop",
-      "erblint",
-      "brakeman",
-      "stylelint",
-    ];
-    const status = checkLinterInstallation(allNames);
-    const rc = loadRC();
-    const enabledSet = new Set(rc.linters?.enabled || allNames);
-    const disabledSet = new Set(rc.linters?.disabled || []);
-
-    for (const l of status) {
-      const isEnabled = enabledSet.has(l.name) && !disabledSet.has(l.name);
-      const installed = l.installed ? chalk.green("installed") : chalk.red("not installed");
-      const enabled = isEnabled ? "" : chalk.gray(" (disabled in .lintrc.yaml)");
-      console.log(`    ${l.installed ? "✓" : "✗"} ${l.name}: ${installed}${enabled}`);
-    }
-
-    // Hooks
-    console.log(chalk.bold("\n  Git Hooks:\n"));
-    if (gitRoot) {
-      for (const inspection of inspectManagedHooks(gitRoot)) {
-        if (inspection.exists) {
-          console.log(
-            inspection.managed
-              ? chalk.green(`    ✓ ${inspection.name}`)
-              : chalk.yellow(`    ~ ${inspection.name} (not Lint)`),
-          );
-        } else {
-          console.log(chalk.gray(`    - ${inspection.name} (not installed)`));
-        }
-      }
-    }
-
-    console.log("");
   });
 
 // ── AI commands ──

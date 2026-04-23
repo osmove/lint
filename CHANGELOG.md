@@ -6,7 +6,9 @@
 
 - `lint hooks:status` to inspect managed hook state from the CLI
 - richer `lint doctor` output with branch and dirty/clean repo status
+- `lint doctor --json` for machine-readable health reporting
 - offline API tests using mocked `fetch` instead of real network calls
+- doctor module coverage with dedicated tests
 
 ### Changed
 
