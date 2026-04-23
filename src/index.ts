@@ -113,26 +113,6 @@ program
   .description("Initialize Lint with smart project detection")
   .action(() => init());
 
-program
-  .command("bootstrap")
-  .description("Bootstrap repo-local Lint config without interactive prompts")
-  .option("--dry-run", "Preview the bootstrap plan without writing files")
-  .option("--json", "Output the bootstrap plan as JSON")
-  .option("--install-missing", "Install suggested missing linters")
-  .option("--install-hooks", "Install managed git hooks")
-  .action((options: {
-    dryRun?: boolean;
-    json?: boolean;
-    installMissing?: boolean;
-    installHooks?: boolean;
-  }) =>
-    bootstrapProject({
-      dryRun: options.dryRun,
-      json: options.json,
-      installMissing: options.installMissing,
-      installHooks: options.installHooks,
-    }));
-
 function installManagedHooks(): void {
   console.log("Installing git hooks...");
   const rc = loadRC();
@@ -183,6 +163,33 @@ function runSetupFix(options: {
     installMissing: options.installMissing,
     installHooks: options.installHooks,
   });
+}
+
+function runSetupBootstrap(options: {
+  dryRun?: boolean;
+  json?: boolean;
+  installMissing?: boolean;
+  installHooks?: boolean;
+}): void {
+  bootstrapProject({
+    dryRun: options.dryRun,
+    json: options.json,
+    installMissing: options.installMissing,
+    installHooks: options.installHooks,
+  });
+}
+
+function runDoctor(options: { json?: boolean }): void {
+  const report = collectDoctorReport();
+  if (options.json) {
+    console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+
+  console.log(chalk.cyan.bold(""));
+  for (const line of formatDoctorReport(report)) {
+    console.log(line);
+  }
 }
 
 function runRecommendedConfig(options: { json?: boolean; write?: boolean }): void {
@@ -361,6 +368,20 @@ const setupCommand = program
   .description("Manage repo-local Lint setup");
 
 setupCommand
+  .command("bootstrap")
+  .description("Bootstrap repo-local Lint config without interactive prompts")
+  .option("--dry-run", "Preview the bootstrap plan without writing files")
+  .option("--json", "Output the bootstrap plan as JSON")
+  .option("--install-missing", "Install suggested missing linters")
+  .option("--install-hooks", "Install managed git hooks")
+  .action((options: {
+    dryRun?: boolean;
+    json?: boolean;
+    installMissing?: boolean;
+    installHooks?: boolean;
+  }) => runSetupBootstrap(options));
+
+setupCommand
   .command("fix")
   .description("Apply recommended repo-local Lint setup in one pass")
   .option("--dry-run", "Preview the setup changes without writing files")
@@ -373,6 +394,12 @@ setupCommand
     installMissing?: boolean;
     installHooks?: boolean;
   }) => runSetupFix(options));
+
+setupCommand
+  .command("doctor")
+  .description("Diagnose Lint setup and linter health")
+  .option("--json", "Output doctor status as JSON")
+  .action((options: { json?: boolean }) => runDoctor(options));
 
 const configCommand = program
   .command("config")
@@ -453,6 +480,22 @@ program.addCommand(
 );
 
 program.addCommand(
+  new Command("bootstrap")
+    .description("Legacy alias for 'lint setup bootstrap'")
+    .option("--dry-run", "Preview the bootstrap plan without writing files")
+    .option("--json", "Output the bootstrap plan as JSON")
+    .option("--install-missing", "Install suggested missing linters")
+    .option("--install-hooks", "Install managed git hooks")
+    .action((options: {
+      dryRun?: boolean;
+      json?: boolean;
+      installMissing?: boolean;
+      installHooks?: boolean;
+    }) => runSetupBootstrap(options)),
+  { hidden: true },
+);
+
+program.addCommand(
   new Command("setup:fix")
     .description("Legacy alias for 'lint setup fix'")
     .option("--dry-run", "Preview the setup changes without writing files")
@@ -474,6 +517,14 @@ program.addCommand(
     .option("--json", "Output the recommendation as JSON")
     .option("--write", "Write the recommended config to .lintrc.yaml")
     .action((options: { json?: boolean; write?: boolean }) => runRecommendedConfig(options)),
+  { hidden: true },
+);
+
+program.addCommand(
+  new Command("doctor")
+    .description("Legacy alias for 'lint setup doctor'")
+    .option("--json", "Output doctor status as JSON")
+    .action((options: { json?: boolean }) => runDoctor(options)),
   { hidden: true },
 );
 
@@ -534,23 +585,6 @@ program
   .action((extension) => prettifyProject(extension));
 
 // ── Doctor command ──
-
-program
-  .command("doctor")
-  .description("Diagnose Lint setup and linter health")
-  .option("--json", "Output doctor status as JSON")
-  .action(async (options: { json?: boolean }) => {
-    const report = collectDoctorReport();
-    if (options.json) {
-      console.log(JSON.stringify(report, null, 2));
-      return;
-    }
-
-    console.log(chalk.cyan.bold(""));
-    for (const line of formatDoctorReport(report)) {
-      console.log(line);
-    }
-  });
 
 // ── AI commands ──
 
