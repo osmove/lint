@@ -32,7 +32,7 @@ import {
   printSummaryTable,
 } from "./reporter.js";
 import type { LintReport, LinterName, LinterResult, PolicyRule, RunOptions } from "./types.js";
-import { cleanTmpDir, formatDuration, readLintConfig } from "./utils.js";
+import { cleanTmpDir, execFile, formatDuration, readLintConfig } from "./utils.js";
 
 // ── Linter registry ──
 
@@ -780,7 +780,7 @@ export async function postCommitHook(): Promise<void> {
   // No-op — reserved for future analytics
 }
 
-export async function prettifyProject(extension: string): Promise<void> {
+export async function formatProjectFiles(extension: string): Promise<void> {
   const prettier = new PrettierLinter();
   if (!prettier.isInstalled()) {
     console.log(chalk.red("Prettier is not installed. Run: npm install -g prettier"));
@@ -788,11 +788,11 @@ export async function prettifyProject(extension: string): Promise<void> {
   }
   const spinner = createSpinner(`Formatting all .${extension} files...`).start();
   try {
-    const { execSync } = await import("node:child_process");
-    execSync(`prettier --write "**/*.${extension}"`, { encoding: "utf-8", stdio: "pipe" });
+    execFile("prettier", ["--write", `**/*.${extension}`], { silent: true });
     spinner.success({ text: `All .${extension} files formatted.` });
   } catch (error) {
-    spinner.error({ text: `Prettier failed: ${(error as Error).message}` });
+    const err = error as Error & { stderr?: string };
+    spinner.error({ text: `Prettier failed: ${err.stderr || err.message}` });
   }
 }
 
