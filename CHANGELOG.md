@@ -23,6 +23,7 @@
 - structured `actions` in `lint machine:summary` so automation consumers can trigger the right remediation commands directly
 - `lint machine:summary --strict` to expose a simple non-zero shell signal for setup or coverage gaps
 - explicit `signals` booleans in `lint machine:summary` so consumers do not need to derive health from counts
+- top-level `status`, `blocking_reasons`, `warning_reasons`, and `primary_action` in `lint machine:summary` for simpler control-plane integration
 
 ### Changed
 

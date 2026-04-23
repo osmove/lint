@@ -333,6 +333,7 @@ describe("reporter", () => {
     it("should format a compact machine summary", () => {
       const parsed = JSON.parse(
         formatMachineSummaryJson({
+          status: "action_required",
           doctor_status: "needs_setup",
           run_mode: ".",
           selected_linters: ["biome"],
@@ -340,6 +341,8 @@ describe("reporter", () => {
           uncovered_file_count: 3,
           ignored_file_count: 1,
           applicable_policy_rule_count: 2,
+          blocking_reasons: ["needs_setup", "missing_selected_linters", "uncovered_files"],
+          warning_reasons: [],
           signals: {
             needs_setup: true,
             has_missing_selected_linters: true,
@@ -356,12 +359,25 @@ describe("reporter", () => {
               reason: "Missing selected linters: ruff",
             },
           ],
+          primary_action: {
+            id: "install_missing_linters",
+            label: "Install missing linters",
+            command: "lint install:missing .",
+            reason: "Missing selected linters: ruff",
+          },
         }),
       );
 
       expect(parsed.schema_version).toBe("1");
       expect(parsed.kind).toBe("lint_machine_summary");
+      expect(parsed.status).toBe("action_required");
       expect(parsed.selected_linters).toEqual(["biome"]);
+      expect(parsed.blocking_reasons).toEqual([
+        "needs_setup",
+        "missing_selected_linters",
+        "uncovered_files",
+      ]);
+      expect(parsed.warning_reasons).toEqual([]);
       expect(parsed.signals).toEqual({
         needs_setup: true,
         has_missing_selected_linters: true,
@@ -378,6 +394,12 @@ describe("reporter", () => {
           reason: "Missing selected linters: ruff",
         },
       ]);
+      expect(parsed.primary_action).toEqual({
+        id: "install_missing_linters",
+        label: "Install missing linters",
+        command: "lint install:missing .",
+        reason: "Missing selected linters: ruff",
+      });
     });
   });
 });
