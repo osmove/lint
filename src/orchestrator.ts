@@ -335,10 +335,12 @@ export function buildMachineSummary(
   missingSelectedLinters: string[],
 ): MachineSummaryReport {
   const actions: MachineSummaryReport["actions"] = [];
-
   const hasPolicyScopeGap = report.policy.totalRules > report.policy.applicableRules;
+  const blockingReasons: string[] = [];
+  const warningReasons: string[] = [];
 
   if (missingSelectedLinters.length > 0) {
+    blockingReasons.push("missing_selected_linters");
     actions.push({
       id: "install_missing_linters",
       label: "Install missing linters",
@@ -348,6 +350,7 @@ export function buildMachineSummary(
   }
 
   if (doctorStatus === "needs_setup") {
+    blockingReasons.push("needs_setup");
     actions.push({
       id: "fix_setup",
       label: "Fix repo setup",
@@ -357,6 +360,7 @@ export function buildMachineSummary(
   }
 
   if (report.fileCoverage.uncoveredFiles.length > 0) {
+    blockingReasons.push("uncovered_files");
     actions.push({
       id: "explain_run",
       label: "Explain run coverage",
@@ -366,6 +370,7 @@ export function buildMachineSummary(
   }
 
   if (hasPolicyScopeGap) {
+    warningReasons.push("policy_scope_gap");
     actions.push({
       id: "review_policy_scope",
       label: "Review policy scope",
@@ -375,6 +380,7 @@ export function buildMachineSummary(
   }
 
   return {
+    status: blockingReasons.length === 0 ? "ready" : "action_required",
     doctor_status: doctorStatus,
     run_mode: report.mode,
     selected_linters: report.linterSelection
@@ -384,6 +390,8 @@ export function buildMachineSummary(
     uncovered_file_count: report.fileCoverage.uncoveredFiles.length,
     ignored_file_count: report.ignoredFiles.length,
     applicable_policy_rule_count: report.policy.applicableRules,
+    blocking_reasons: blockingReasons,
+    warning_reasons: warningReasons,
     signals: {
       needs_setup: doctorStatus !== "healthy",
       has_missing_selected_linters: missingSelectedLinters.length > 0,
@@ -393,13 +401,12 @@ export function buildMachineSummary(
     },
     next_steps: report.nextSteps,
     actions,
+    primary_action: actions[0] ?? null,
   };
 }
 
 export function getMachineSummaryExitCode(summary: MachineSummaryReport): number {
-  if (summary.signals.needs_setup) return 1;
-  if (summary.signals.has_missing_selected_linters) return 1;
-  if (summary.signals.has_uncovered_files) return 1;
+  if (summary.status === "action_required") return 1;
   return 0;
 }
 

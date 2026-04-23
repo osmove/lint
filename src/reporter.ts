@@ -73,6 +73,7 @@ export interface RunDecisionReport {
 }
 
 export interface MachineSummaryReport {
+  status: "ready" | "action_required";
   doctor_status: "healthy" | "needs_setup";
   run_mode: string;
   selected_linters: string[];
@@ -80,6 +81,8 @@ export interface MachineSummaryReport {
   uncovered_file_count: number;
   ignored_file_count: number;
   applicable_policy_rule_count: number;
+  blocking_reasons: string[];
+  warning_reasons: string[];
   signals: {
     needs_setup: boolean;
     has_missing_selected_linters: boolean;
@@ -94,6 +97,12 @@ export interface MachineSummaryReport {
     command: string;
     reason: string;
   }>;
+  primary_action: {
+    id: string;
+    label: string;
+    command: string;
+    reason: string;
+  } | null;
 }
 
 type JsonRunStatus =

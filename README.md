@@ -250,6 +250,7 @@ lint machine:summary --strict .
 
 The compact summary also includes structured `actions` with ready-to-run commands like `lint install:missing .`, `lint setup:fix --dry-run`, or `lint explain-run .`, so a control plane can guide remediation without parsing prose.
 It also exposes explicit `signals` booleans like `needs_setup`, `has_missing_selected_linters`, and `has_uncovered_files` for lightweight consumers.
+For even simpler consumers, it now includes a top-level `status`, stable `blocking_reasons` / `warning_reasons`, and a `primary_action`.
 Use `--strict` when a shell script should fail fast on setup gaps or uncovered files without parsing JSON.
 
 ## CI / Quality Gate
