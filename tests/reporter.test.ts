@@ -335,26 +335,40 @@ describe("reporter", () => {
         formatMachineSummaryJson({
           doctor_status: "needs_setup",
           run_mode: ".",
-        selected_linters: ["biome"],
-        missing_selected_linters: ["ruff"],
-        uncovered_file_count: 3,
-        ignored_file_count: 1,
-        applicable_policy_rule_count: 2,
-        next_steps: ["Install missing linters"],
-        actions: [
-          {
-            id: "install_missing_linters",
-            label: "Install missing linters",
-            command: "lint install:missing .",
-            reason: "Missing selected linters: ruff",
+          selected_linters: ["biome"],
+          missing_selected_linters: ["ruff"],
+          uncovered_file_count: 3,
+          ignored_file_count: 1,
+          applicable_policy_rule_count: 2,
+          signals: {
+            needs_setup: true,
+            has_missing_selected_linters: true,
+            has_uncovered_files: true,
+            has_policy_scope_gap: false,
+            is_actionable: true,
           },
-        ],
-      }),
-    );
+          next_steps: ["Install missing linters"],
+          actions: [
+            {
+              id: "install_missing_linters",
+              label: "Install missing linters",
+              command: "lint install:missing .",
+              reason: "Missing selected linters: ruff",
+            },
+          ],
+        }),
+      );
 
       expect(parsed.schema_version).toBe("1");
       expect(parsed.kind).toBe("lint_machine_summary");
       expect(parsed.selected_linters).toEqual(["biome"]);
+      expect(parsed.signals).toEqual({
+        needs_setup: true,
+        has_missing_selected_linters: true,
+        has_uncovered_files: true,
+        has_policy_scope_gap: false,
+        is_actionable: true,
+      });
       expect(parsed.next_steps).toEqual(["Install missing linters"]);
       expect(parsed.actions).toEqual([
         {
