@@ -248,7 +248,7 @@ function describeNextSteps(report: {
 
   if (missingLinters.length > 0) {
     steps.push(
-      `Install missing linters: ${missingLinters.map((entry) => entry.name).join(", ")} (or run 'lint install:missing .')`,
+      `Install missing linters: ${missingLinters.map((entry) => entry.name).join(", ")} (or run 'lint install missing .')`,
     );
   }
 
@@ -344,7 +344,7 @@ export function buildMachineSummary(
     actions.push({
       id: "install_missing_linters",
       label: "Install missing linters",
-      command: "lint install:missing .",
+      command: "lint install missing .",
       reason: `Missing selected linters: ${missingSelectedLinters.join(", ")}`,
     });
   }
@@ -354,7 +354,7 @@ export function buildMachineSummary(
     actions.push({
       id: "fix_setup",
       label: "Fix repo setup",
-      command: "lint setup:fix --dry-run",
+      command: "lint setup fix --dry-run",
       reason: "Repository setup is not yet healthy",
     });
   }

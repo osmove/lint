@@ -81,20 +81,6 @@ program
   });
 
 program
-  .command("machine:summary [paths...]")
-  .description("Output a compact machine-readable repo summary for automation consumers")
-  .option("--strict", "Exit 1 when the repo still needs setup or has uncovered files")
-  .action((paths, options: { strict?: boolean }) => {
-    const doctor = collectDoctorReport();
-    machineSummary({
-      paths: paths.length > 0 ? paths : ["."],
-      doctorStatus: doctor.status,
-      missingSelectedLinters: doctor.summary.missingSelectedLinters,
-      strict: options.strict,
-    });
-  });
-
-program
   .command("ci [paths...]")
   .description("Run a repo-local quality gate for CI or control planes")
   .option("--fix", "Auto-fix issues where supported")
@@ -175,7 +161,154 @@ program
     }));
 
 program
-  .command("setup:fix")
+function installManagedHooks(): void {
+  console.log("Installing git hooks...");
+  const rc = loadRC();
+  installHooks({ timeout: rc.hooks?.timeout, skipEnv: rc.hooks?.skip_env });
+}
+
+function runMachineSummary(paths: string[], options: { strict?: boolean }): void {
+  const doctor = collectDoctorReport();
+  machineSummary({
+    paths: paths.length > 0 ? paths : ["."],
+    doctorStatus: doctor.status,
+    missingSelectedLinters: doctor.summary.missingSelectedLinters,
+    strict: options.strict,
+  });
+}
+
+function runSetupFix(options: {
+  dryRun?: boolean;
+  json?: boolean;
+  installMissing?: boolean;
+  installHooks?: boolean;
+}): void {
+  fixSetup({
+    dryRun: options.dryRun,
+    json: options.json,
+    installMissing: options.installMissing,
+    installHooks: options.installHooks,
+  });
+}
+
+function runRecommendedConfig(options: { json?: boolean; write?: boolean }): void {
+  const project = detectProject(findGitRoot() || process.cwd());
+  const suggested = buildSuggestedLinterPlan(project)
+    .map((entry) => entry.name);
+  const existing = loadRC();
+  const recommended = buildRecommendedRC(existing, suggested);
+
+  if (options.write) {
+    writeRC(recommended);
+    console.log(chalk.green("Wrote recommended .lintrc.yaml"));
+    return;
+  }
+
+  if (options.json) {
+    console.log(
+      JSON.stringify(
+        {
+          schema_version: LINT_JSON_SCHEMA_VERSION,
+          kind: "lint_recommended_config",
+          suggested_linters: suggested,
+          recommended,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  console.log(chalk.cyan.bold("\n  Recommended .lintrc.yaml\n"));
+  console.log(formatRC(recommended));
+}
+
+function runInstallMissing(paths: string[], options: { dryRun?: boolean }): void {
+  const root = findGitRoot() || process.cwd();
+  const project = detectProject(root);
+  const plan = buildSuggestedLinterPlan(project);
+  const missing = plan.filter((entry) => !entry.installed);
+
+  if (missing.length === 0) {
+    console.log(chalk.green("No suggested linters are missing."));
+    return;
+  }
+
+  console.log(chalk.bold("\n  Missing Suggested Linters\n"));
+  for (const entry of missing) {
+    console.log(`  - ${entry.name}`);
+    if (entry.reasons.length > 0) {
+      console.log(chalk.gray(`    ${entry.reasons.join(", ")}`));
+    }
+  }
+  console.log("");
+
+  if (options.dryRun) {
+    return;
+  }
+
+  for (const entry of missing) {
+    const linter = LINTER_MAP.get(entry.name);
+    if (!linter) continue;
+    linter.install();
+  }
+}
+
+function printHooksStatus(options: { json?: boolean }): void {
+  const gitRoot = findGitRoot();
+  if (!gitRoot) {
+    console.log(chalk.red("Not inside a git repository."));
+    return;
+  }
+
+  const hooks = inspectManagedHooks(gitRoot);
+  if (options.json) {
+    console.log(JSON.stringify(hooks, null, 2));
+    return;
+  }
+
+  console.log(chalk.bold("\n  Lint Hooks\n"));
+  for (const hook of hooks) {
+    const status = !hook.exists
+      ? chalk.gray("missing")
+      : hook.managed
+        ? chalk.green("managed")
+        : chalk.yellow("unmanaged");
+    console.log(`  ${hook.name}: ${status}`);
+    if (hook.exists) {
+      console.log(chalk.gray(`    ${hook.hookPath}`));
+    }
+  }
+  console.log("");
+}
+
+const hooksCommand = program
+  .command("hooks")
+  .description("Manage Lint git hooks");
+
+hooksCommand
+  .command("install")
+  .description("Install git hooks")
+  .action(() => installManagedHooks());
+
+hooksCommand
+  .command("uninstall")
+  .description("Remove Lint git hooks")
+  .action(() => uninstallHooks());
+
+hooksCommand
+  .command("status")
+  .description("Inspect Lint git hooks")
+  .option("--json", "Output hook status as JSON")
+  .action((options: { json?: boolean }) => printHooksStatus(options));
+
+const setupCommand = program
+  .command("setup")
+  .description("Manage repo-local Lint setup");
+
+setupCommand
+  .command("fix")
   .description("Apply recommended repo-local Lint setup in one pass")
   .option("--dry-run", "Preview the setup changes without writing files")
   .option("--json", "Output the setup plan as JSON")
@@ -186,132 +319,87 @@ program
     json?: boolean;
     installMissing?: boolean;
     installHooks?: boolean;
-  }) =>
-    fixSetup({
-      dryRun: options.dryRun,
-      json: options.json,
-      installMissing: options.installMissing,
-      installHooks: options.installHooks,
-    }));
+  }) => runSetupFix(options));
 
-program
-  .command("config:recommend")
+const configCommand = program
+  .command("config")
+  .description("Manage Lint configuration helpers");
+
+configCommand
+  .command("recommend")
   .description("Show or write a recommended .lintrc.yaml for this project")
   .option("--json", "Output the recommendation as JSON")
   .option("--write", "Write the recommended config to .lintrc.yaml")
-  .action((options: { json?: boolean; write?: boolean }) => {
-    const project = detectProject(findGitRoot() || process.cwd());
-    const suggested = buildSuggestedLinterPlan(project)
-      .map((entry) => entry.name);
-    const existing = loadRC();
-    const recommended = buildRecommendedRC(existing, suggested);
+  .action((options: { json?: boolean; write?: boolean }) => runRecommendedConfig(options));
 
-    if (options.write) {
-      writeRC(recommended);
-      console.log(chalk.green("Wrote recommended .lintrc.yaml"));
-      return;
-    }
+const installCommand = program
+  .command("install")
+  .description("Install Lint-related tooling");
 
-    if (options.json) {
-      console.log(
-        JSON.stringify(
-          {
-            schema_version: LINT_JSON_SCHEMA_VERSION,
-            kind: "lint_recommended_config",
-            suggested_linters: suggested,
-            recommended,
-          },
-          null,
-          2,
-        ),
-      );
-      return;
-    }
+installCommand
+  .command("missing [paths...]")
+  .description("Install missing linters suggested for this project")
+  .option("--dry-run", "Show the missing linters without installing them")
+  .action((paths, options: { dryRun?: boolean }) => runInstallMissing(paths, options));
 
-    console.log(chalk.cyan.bold("\n  Recommended .lintrc.yaml\n"));
-    console.log(formatRC(recommended));
-  });
+const machineCommand = program
+  .command("machine")
+  .description("Machine-readable Lint output helpers");
+
+machineCommand
+  .command("summary [paths...]")
+  .description("Output a compact machine-readable repo summary for automation consumers")
+  .option("--strict", "Exit 1 when the repo still needs setup or has uncovered files")
+  .action((paths, options: { strict?: boolean }) => runMachineSummary(paths, options));
 
 program
   .command("install:hooks")
-  .description("Install git hooks")
-  .action(() => {
-    console.log("Installing git hooks...");
-    const rc = loadRC();
-    installHooks({ timeout: rc.hooks?.timeout, skipEnv: rc.hooks?.skip_env });
-  });
+  .description("Legacy alias for 'lint hooks install'")
+  .action(() => installManagedHooks());
+
+program
+  .command("machine:summary [paths...]")
+  .description("Legacy alias for 'lint machine summary'")
+  .option("--strict", "Exit 1 when the repo still needs setup or has uncovered files")
+  .action((paths, options: { strict?: boolean }) => runMachineSummary(paths, options));
+
+program
+  .command("setup:fix")
+  .description("Legacy alias for 'lint setup fix'")
+  .option("--dry-run", "Preview the setup changes without writing files")
+  .option("--json", "Output the setup plan as JSON")
+  .option("--no-install-missing", "Skip installing missing suggested linters")
+  .option("--no-install-hooks", "Skip installing managed git hooks")
+  .action((options: {
+    dryRun?: boolean;
+    json?: boolean;
+    installMissing?: boolean;
+    installHooks?: boolean;
+  }) => runSetupFix(options));
+
+program
+  .command("config:recommend")
+  .description("Legacy alias for 'lint config recommend'")
+  .option("--json", "Output the recommendation as JSON")
+  .option("--write", "Write the recommended config to .lintrc.yaml")
+  .action((options: { json?: boolean; write?: boolean }) => runRecommendedConfig(options));
 
 program
   .command("install:missing [paths...]")
-  .description("Install missing linters suggested for this project")
+  .description("Legacy alias for 'lint install missing'")
   .option("--dry-run", "Show the missing linters without installing them")
-  .action((paths, options: { dryRun?: boolean }) => {
-    const root = findGitRoot() || process.cwd();
-    const project = detectProject(root);
-    const plan = buildSuggestedLinterPlan(project);
-    const missing = plan.filter((entry) => !entry.installed);
-
-    if (missing.length === 0) {
-      console.log(chalk.green("No suggested linters are missing."));
-      return;
-    }
-
-    console.log(chalk.bold("\n  Missing Suggested Linters\n"));
-    for (const entry of missing) {
-      console.log(`  - ${entry.name}`);
-      if (entry.reasons.length > 0) {
-        console.log(chalk.gray(`    ${entry.reasons.join(", ")}`));
-      }
-    }
-    console.log("");
-
-    if (options.dryRun) {
-      return;
-    }
-
-    for (const entry of missing) {
-      const linter = LINTER_MAP.get(entry.name);
-      if (!linter) continue;
-      linter.install();
-    }
-  });
+  .action((paths, options: { dryRun?: boolean }) => runInstallMissing(paths, options));
 
 program
   .command("uninstall:hooks")
-  .description("Remove Lint git hooks")
+  .description("Legacy alias for 'lint hooks uninstall'")
   .action(() => uninstallHooks());
 
 program
   .command("hooks:status")
-  .description("Inspect Lint git hooks")
+  .description("Legacy alias for 'lint hooks status'")
   .option("--json", "Output hook status as JSON")
-  .action((options: { json?: boolean }) => {
-    const gitRoot = findGitRoot();
-    if (!gitRoot) {
-      console.log(chalk.red("Not inside a git repository."));
-      return;
-    }
-
-    const hooks = inspectManagedHooks(gitRoot);
-    if (options.json) {
-      console.log(JSON.stringify(hooks, null, 2));
-      return;
-    }
-
-    console.log(chalk.bold("\n  Lint Hooks\n"));
-    for (const hook of hooks) {
-      const status = !hook.exists
-        ? chalk.gray("missing")
-        : hook.managed
-          ? chalk.green("managed")
-          : chalk.yellow("unmanaged");
-      console.log(`  ${hook.name}: ${status}`);
-      if (hook.exists) {
-        console.log(chalk.gray(`    ${hook.hookPath}`));
-      }
-    }
-    console.log("");
-  });
+  .action((options: { json?: boolean }) => printHooksStatus(options));
 
 program
   .command("prettify <extension>")
