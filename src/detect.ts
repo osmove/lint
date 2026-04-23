@@ -18,6 +18,22 @@ export interface DetectedLanguage {
   suggestedLinters: LinterName[];
 }
 
+const SCAN_IGNORED_DIRS = new Set([
+  ".git",
+  ".idea",
+  ".next",
+  ".nuxt",
+  ".venv",
+  ".yarn",
+  ".pnpm-store",
+  "build",
+  "coverage",
+  "dist",
+  "node_modules",
+  "tmp",
+  "vendor",
+]);
+
 const DETECTION_RULES: Array<{
   files: string[];
   language: string;
@@ -69,11 +85,43 @@ export function detectProject(rootDir?: string): DetectedProject {
     hasHusky: false,
     hasLefthook: false,
   };
+  const discoveredPaths = new Set<string>();
+  const discoveredExtensions = new Set<string>();
+
+  function walk(dir: string): void {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name.startsWith(".") && entry.name !== ".ruby-version" && entry.name !== ".python-version" && entry.name !== ".stylelintrc" && entry.name !== ".stylelintrc.json" && entry.name !== ".rubocop.yml" && entry.name !== ".nvmrc") {
+        continue;
+      }
+
+      const fullPath = path.join(dir, entry.name);
+      const relativePath = path.relative(root, fullPath).replaceAll(path.sep, "/");
+
+      if (entry.isDirectory()) {
+        if (!SCAN_IGNORED_DIRS.has(entry.name)) {
+          discoveredPaths.add(relativePath);
+          walk(fullPath);
+        }
+        continue;
+      }
+
+      if (entry.isFile()) {
+        discoveredPaths.add(relativePath);
+        discoveredExtensions.add(path.extname(entry.name).toLowerCase());
+      }
+    }
+  }
+
+  try {
+    walk(root);
+  } catch {
+    // Best-effort scan
+  }
 
   // Detect languages
   for (const rule of DETECTION_RULES) {
     for (const file of rule.files) {
-      if (fs.existsSync(path.join(root, file))) {
+      if (discoveredPaths.has(file) || fs.existsSync(path.join(root, file))) {
         if (!result.languages.some((l) => l.name === rule.language)) {
           result.languages.push({
             name: rule.language,
@@ -87,52 +135,47 @@ export function detectProject(rootDir?: string): DetectedProject {
   }
 
   // Also scan for files by extension
-  try {
-    const entries = fs.readdirSync(root, { withFileTypes: true });
-    const extensions = new Set<string>();
-    for (const entry of entries) {
-      if (entry.isFile()) {
-        extensions.add(path.extname(entry.name).toLowerCase());
-      }
-    }
-    // Check src/ too if it exists
-    const srcDir = path.join(root, "src");
-    if (fs.existsSync(srcDir)) {
-      for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
-        if (entry.isFile()) extensions.add(path.extname(entry.name).toLowerCase());
-      }
-    }
+  if (
+    (discoveredExtensions.has(".css") ||
+      discoveredExtensions.has(".scss") ||
+      discoveredExtensions.has(".sass") ||
+      discoveredExtensions.has(".less")) &&
+    !result.languages.some((l) => l.name === "CSS/SCSS")
+  ) {
+    result.languages.push({
+      name: "CSS/SCSS",
+      reason: "stylesheets found",
+      suggestedLinters: ["stylelint"],
+    });
+  }
 
-    if (
-      (extensions.has(".css") || extensions.has(".scss") || extensions.has(".sass")) &&
-      !result.languages.some((l) => l.name === "CSS/SCSS")
-    ) {
-      result.languages.push({
-        name: "CSS/SCSS",
-        reason: "*.css files found",
-        suggestedLinters: ["stylelint"],
-      });
-    }
-
-    if (extensions.has(".erb") && !result.languages.some((l) => l.name === "ERB")) {
-      result.languages.push({
-        name: "ERB",
-        reason: "*.erb files found",
-        suggestedLinters: ["erblint"],
-      });
-    }
-  } catch {
-    // Skip if can't read directory
+  if (discoveredExtensions.has(".erb") && !result.languages.some((l) => l.name === "ERB")) {
+    result.languages.push({
+      name: "ERB",
+      reason: "*.erb files found",
+      suggestedLinters: ["erblint"],
+    });
   }
 
   // Detect frameworks
   for (const fw of FRAMEWORK_SIGNALS) {
     for (const file of fw.files) {
-      if (fs.existsSync(path.join(root, file))) {
-        result.frameworks.push(fw.name);
-        // Add extra linters to relevant language
+      if (discoveredPaths.has(file) || fs.existsSync(path.join(root, file))) {
+        if (!result.frameworks.includes(fw.name)) {
+          result.frameworks.push(fw.name);
+        }
+
+        const preferredLanguage =
+          fw.name === "Rails"
+            ? ["Ruby", "ERB"]
+            : fw.name === "Django"
+              ? ["Python"]
+              : ["JavaScript/TypeScript"];
+
         for (const linter of fw.extraLinters) {
-          const lang = result.languages.find((l) => l.suggestedLinters.length > 0);
+          const lang =
+            result.languages.find((candidate) => preferredLanguage.includes(candidate.name)) ||
+            result.languages.find((candidate) => candidate.suggestedLinters.length > 0);
           if (lang && !lang.suggestedLinters.includes(linter)) {
             lang.suggestedLinters.push(linter);
           }

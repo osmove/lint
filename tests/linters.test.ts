@@ -137,6 +137,28 @@ describe("BiomeLinter", () => {
     expect(report.files).toEqual([]);
   });
 
+  it("should derive line and column from biome source spans", () => {
+    const raw = JSON.stringify({
+      diagnostics: [
+        {
+          category: "lint/suspicious/noDebugger",
+          severity: "error",
+          description: "Unexpected debugger statement.",
+          message: { content: "Unexpected debugger statement." },
+          location: {
+            path: { file: "src/app.ts" },
+            span: { start: 13, end: 21 },
+            sourceCode: "const x = 1;\ndebugger;\n",
+          },
+        },
+      ],
+    });
+
+    const report = linter.parseOutput(raw, []);
+    expect(report.files[0].offenses[0].line).toBe(2);
+    expect(report.files[0].offenses[0].column).toBe(1);
+  });
+
   it("should defer to project config when no biome policy rules are provided", () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lint-biome-"));
     expect(linter.createConfig([], tmpDir)).toBe("");
