@@ -3,7 +3,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   ensureDir,
-  exec,
+  execFile,
   filterFilesByExtensions,
   findGitRoot,
   formatDuration,
@@ -12,19 +12,26 @@ import {
   isCommandAvailable,
 } from "../src/utils.js";
 
-describe("exec", () => {
+describe("execFile", () => {
   it("should execute a command and return trimmed output", () => {
-    const result = exec("echo hello");
+    const result = execFile("node", ["-e", "process.stdout.write('hello')"]);
     expect(result).toBe("hello");
   });
 
-  it("should return stdout even on non-zero exit", () => {
-    // grep with no match returns exit code 1
-    expect(() => exec("false")).toThrow();
+  it("should throw on non-zero exit codes by default", () => {
+    expect(() => execFile("node", ["-e", "process.exit(1)"])).toThrow();
+  });
+
+  it("should respect okExitCodes", () => {
+    const result = execFile("node", ["-e", "process.stdout.write('warn'); process.exit(1)"], {
+      okExitCodes: [1],
+      silent: true,
+    });
+    expect(result).toBe("warn");
   });
 
   it("should respect the silent option", () => {
-    const result = exec("echo test", { silent: true });
+    const result = execFile("node", ["-e", "process.stdout.write('test')"], { silent: true });
     expect(result).toBe("test");
   });
 });

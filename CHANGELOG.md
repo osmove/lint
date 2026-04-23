@@ -56,6 +56,7 @@
 - extended `npm run verify` with `npm pack --dry-run` so maintainers validate the publish payload before release
 - added `npm run package:check` to CI so packaging regressions fail before publish
 - aligned maintainer docs with the grouped canonical CLI surface and removed drift-prone hard-coded test counts
+- aligned `CLAUDE.md` with the current maintainer surface and removed the unused shell-string `exec()` helper from `utils`
 
 ## [1.0.0] - 2026-04-15
 

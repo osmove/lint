@@ -11,7 +11,7 @@ src/
 ├── index.ts           → CLI entry point (commander.js)
 ├── types.ts           → TypeScript interfaces (LintReport, RunOptions, etc.)
 ├── config.ts          → Constants, paths, supported extensions
-├── utils.ts           → Shared utilities (exec, file helpers, git root)
+├── utils.ts           → Shared utilities (command helpers, file helpers, git root)
 ├── rc.ts              → .lintrc.yaml config loader, conflict resolution
 ├── detect.ts          → Project auto-detection (languages, frameworks, linters)
 ├── api.ts             → HTTP client for api.lint.to (native fetch)
