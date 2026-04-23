@@ -12,8 +12,8 @@
 - offline API tests using mocked `fetch` instead of real network calls
 - doctor module coverage with dedicated tests
 - richer `lint doctor --json` project and linter selection metadata for machine consumers
-- `lint explain-run` to inspect run decisions in text or JSON without executing linters
-- enriched `lint explain-run` with resolved conflicts, fix strategy, and recommended next steps
+- `lint explain run` to inspect run decisions in text or JSON without executing linters
+- enriched `lint explain run` with resolved conflicts, fix strategy, and recommended next steps
 - `lint install missing` to turn missing-linter diagnostics into a direct action
 - `lint bootstrap` for non-interactive repo-local setup and automation-friendly bootstrapping
 - `lint config recommend` to preview or write a recommended `.lintrc.yaml`
@@ -31,6 +31,7 @@
 - `lint auth status` is now the canonical status command, while `auth whoami` and top-level `whoami` remain compatibility aliases
 - `lint setup bootstrap` and `lint setup doctor` are now the canonical setup/diagnostic entrypoints, while top-level `bootstrap` and `doctor` remain compatibility aliases
 - `lint format write <extension>` is now the canonical formatting helper, while `prettify <extension>` remains a compatibility alias
+- `lint explain run` is now the canonical explain helper, while `explain-run` remains a compatibility alias
 - added `npm run security:audit` and wired it into CI so moderate+ dependency vulnerabilities fail the pipeline earlier
 
 ### Changed

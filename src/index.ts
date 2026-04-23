@@ -71,17 +71,6 @@ program
   });
 
 program
-  .command("explain-run [paths...]")
-  .description("Explain file, linter, and policy decisions for a run without linting")
-  .option("--json", "Output explanation as JSON")
-  .action((paths, options: { json?: boolean }) => {
-    explainRun({
-      paths: paths.length > 0 ? paths : ["."],
-      json: options.json,
-    });
-  });
-
-program
   .command("ci [paths...]")
   .description("Run a repo-local quality gate for CI or control planes")
   .option("--fix", "Auto-fix issues where supported")
@@ -190,6 +179,13 @@ function runDoctor(options: { json?: boolean }): void {
   for (const line of formatDoctorReport(report)) {
     console.log(line);
   }
+}
+
+function runExplainRun(paths: string[], options: { json?: boolean }): void {
+  explainRun({
+    paths: paths.length > 0 ? paths : ["."],
+    json: options.json,
+  });
 }
 
 function runRecommendedConfig(options: { json?: boolean; write?: boolean }): void {
@@ -436,6 +432,16 @@ machineCommand
   .option("--strict", "Exit 1 when the repo still needs setup or has uncovered files")
   .action((paths, options: { strict?: boolean }) => runMachineSummary(paths, options));
 
+const explainCommand = program
+  .command("explain")
+  .description("Explain Lint decisions and behavior");
+
+explainCommand
+  .command("run [paths...]")
+  .description("Explain file, linter, and policy decisions for a run without linting")
+  .option("--json", "Output explanation as JSON")
+  .action((paths, options: { json?: boolean }) => runExplainRun(paths, options));
+
 const authCommand = program
   .command("auth")
   .description("Manage Lint authentication");
@@ -476,6 +482,14 @@ formatCommand
   .command("write <extension>")
   .description("Run Prettier on all files with the given extension")
   .action((extension) => runFormatWrite(extension));
+
+program.addCommand(
+  new Command("explain-run [paths...]")
+    .description("Legacy alias for 'lint explain run'")
+    .option("--json", "Output explanation as JSON")
+    .action((paths, options: { json?: boolean }) => runExplainRun(paths, options)),
+  { hidden: true },
+);
 
 program.addCommand(
   new Command("install:hooks")
