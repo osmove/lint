@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { printReport, printSummaryTable } from "../src/reporter.js";
+import { formatJsonReport, printReport, printSummaryTable } from "../src/reporter.js";
 import type { LintReport } from "../src/types.js";
 
 describe("reporter", () => {
@@ -81,6 +81,33 @@ describe("reporter", () => {
       printSummaryTable([emptyReport]);
       expect(logSpy).not.toHaveBeenCalled();
       logSpy.mockRestore();
+    });
+  });
+
+  describe("formatJsonReport", () => {
+    it("should include run metadata for CI and orchestration", () => {
+      const parsed = JSON.parse(
+        formatJsonReport([mockReport], {
+          duration: 123,
+          dryRun: true,
+          fix: false,
+          cwd: "/tmp/project",
+          mode: "staged files",
+          fileCount: 1,
+          linterNames: ["eslint"],
+          policyRuleCount: 2,
+        }),
+      );
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.summary.duration_ms).toBe(123);
+      expect(parsed.run).toEqual({
+        cwd: "/tmp/project",
+        mode: "staged files",
+        file_count: 1,
+        linters: ["eslint"],
+        policy_rule_count: 2,
+      });
     });
   });
 });

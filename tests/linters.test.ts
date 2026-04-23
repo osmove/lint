@@ -205,6 +205,26 @@ describe("OxlintLinter", () => {
     const selected = linter.selectFiles(files);
     expect(selected).toEqual(["a.js", "b.mjs", "c.cjs"]);
   });
+
+  it("should derive line and column from oxlint label offsets", () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lint-oxlint-"));
+    const filePath = path.join(tmpDir, "app.js");
+    fs.writeFileSync(filePath, "const x = 1;\nconsole.log(x)\n", "utf-8");
+
+    const raw = JSON.stringify([
+      {
+        message: "Unexpected console statement",
+        code: { code: "no-console" },
+        labels: [{ span: { offset: 13, length: 7 } }],
+        severity: "warning",
+        filename: filePath,
+      },
+    ]);
+
+    const report = linter.parseOutput(raw, []);
+    expect(report.files[0].offenses[0].line).toBe(2);
+    expect(report.files[0].offenses[0].column).toBe(1);
+  });
 });
 
 describe("StylelintLinter", () => {

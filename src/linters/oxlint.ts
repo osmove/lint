@@ -13,6 +13,28 @@ interface OxlintDiagnostic {
   filename?: string;
 }
 
+function offsetToLineColumn(filePath: string, offset: number): { line: number; column: number } {
+  try {
+    const source = fs.readFileSync(filePath, "utf-8");
+    const clampedOffset = Math.min(Math.max(offset, 0), source.length);
+    let line = 1;
+    let column = 1;
+
+    for (let i = 0; i < clampedOffset; i++) {
+      if (source[i] === "\n") {
+        line++;
+        column = 1;
+      } else {
+        column++;
+      }
+    }
+
+    return { line, column };
+  } catch {
+    return { line: 1, column: 1 };
+  }
+}
+
 export class OxlintLinter extends BaseLinter {
   name = "oxlint" as const;
   command = "oxlint";
@@ -66,12 +88,14 @@ export class OxlintLinter extends BaseLinter {
     for (const diag of diagnostics) {
       const file = diag.filename || "unknown";
       const offenses = fileMap.get(file) || [];
+      const offset = diag.labels[0]?.span?.offset || 0;
+      const position = offsetToLineColumn(file, offset);
       offenses.push({
         rule: diag.code?.code || "oxlint",
         message: diag.message,
         severity: diag.severity === "error" ? "error" : "warning",
-        line: 1,
-        column: 1,
+        line: position.line,
+        column: position.column,
       });
       fileMap.set(file, offenses);
     }
