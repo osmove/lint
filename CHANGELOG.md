@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- `lint hooks:status` to inspect managed hook state from the CLI
+- richer `lint doctor` output with branch and dirty/clean repo status
+- offline API tests using mocked `fetch` instead of real network calls
+
+### Changed
+
+- aligned Git and hook management with Cockpit-style managed hook patterns
+- made hook execution portable on macOS by removing the dependency on GNU `timeout`
+- switched linter process execution to argv-based command spawning for safer path handling
+- improved staged file discovery using `git diff --cached --name-status -z`
+
 ## [1.0.0] - 2026-04-15
 
 ### Breaking Changes
