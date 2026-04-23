@@ -92,6 +92,7 @@ lint ai explain           # Explain linting errors in plain language
 
 ```sh
 lint init                 # Smart setup wizard with auto-detection
+lint bootstrap            # Non-interactive repo-local bootstrap
 lint doctor               # Diagnose setup, linters, hooks health
 lint doctor --json        # Machine-readable health report
 lint explain-run .        # Explain file/linter/policy decisions without linting
@@ -191,6 +192,17 @@ lint install:missing --dry-run .
 ```
 
 `lint install:missing` uses project detection to find suggested linters that are still missing, shows why they were suggested, and can install them with the linter-specific install command.
+
+## Bootstrap
+
+```sh
+lint bootstrap
+lint bootstrap --dry-run
+lint bootstrap --json
+lint bootstrap --install-missing --install-hooks
+```
+
+`lint bootstrap` is the non-interactive counterpart to `lint init`. It detects the project, writes a repo-local `.lintrc.yaml`, creates a local `.lint/config` when needed, and can optionally install missing linters and hooks.
 
 ## JSON Output
 

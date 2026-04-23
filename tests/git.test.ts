@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildBootstrapPlan,
   getCurrentBranch,
   getCurrentSha,
   getStagedDiff,
@@ -62,6 +63,27 @@ describe("git operations", () => {
     it("should return a string", () => {
       const diff = getStagedDiff();
       expect(typeof diff).toBe("string");
+    });
+  });
+
+  describe("buildBootstrapPlan", () => {
+    it("should include missing linters and config defaults", () => {
+      const plan = buildBootstrapPlan({
+        repoName: "lint",
+        suggestedLinters: ["biome", "ruff"],
+        installStatus: [
+          { name: "biome", installed: false },
+          { name: "ruff", installed: true },
+        ],
+        rcExists: false,
+        lintConfigExists: false,
+      });
+
+      expect(plan.repoName).toBe("lint");
+      expect(plan.selectedLinters).toEqual(["biome", "ruff"]);
+      expect(plan.missingLinters).toEqual(["biome"]);
+      expect(plan.hookTimeout).toBe(60);
+      expect(plan.hookSkipEnv).toBe("LINT_SKIP");
     });
   });
 });

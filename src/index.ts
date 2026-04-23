@@ -10,7 +10,14 @@ import * as auth from "./auth.js";
 import { VERSION } from "./config.js";
 import { collectDoctorReport, formatDoctorReport } from "./doctor.js";
 import { buildSuggestedLinterPlan, detectProject } from "./detect.js";
-import { getStagedFilePaths, init, inspectManagedHooks, uninstallHooks, installHooks } from "./git.js";
+import {
+  bootstrapProject,
+  getStagedFilePaths,
+  init,
+  inspectManagedHooks,
+  uninstallHooks,
+  installHooks,
+} from "./git.js";
 import {
   ALL_LINTERS,
   explainRun,
@@ -129,6 +136,26 @@ program
   .command("init")
   .description("Initialize Lint with smart project detection")
   .action(() => init());
+
+program
+  .command("bootstrap")
+  .description("Bootstrap repo-local Lint config without interactive prompts")
+  .option("--dry-run", "Preview the bootstrap plan without writing files")
+  .option("--json", "Output the bootstrap plan as JSON")
+  .option("--install-missing", "Install suggested missing linters")
+  .option("--install-hooks", "Install managed git hooks")
+  .action((options: {
+    dryRun?: boolean;
+    json?: boolean;
+    installMissing?: boolean;
+    installHooks?: boolean;
+  }) =>
+    bootstrapProject({
+      dryRun: options.dryRun,
+      json: options.json,
+      installMissing: options.installMissing,
+      installHooks: options.installHooks,
+    }));
 
 program
   .command("install:hooks")

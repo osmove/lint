@@ -15,6 +15,7 @@
 - `lint explain-run` to inspect run decisions in text or JSON without executing linters
 - enriched `lint explain-run` with resolved conflicts, fix strategy, and recommended next steps
 - `lint install:missing` to turn missing-linter diagnostics into a direct action
+- `lint bootstrap` for non-interactive repo-local setup and automation-friendly bootstrapping
 
 ### Changed
 
