@@ -286,6 +286,7 @@ cd lint
 npm install
 npm run build             # Build TypeScript → dist/
 npm run quality-gate      # Run Lint against the whole repo
+npm run security:audit    # Fail on moderate+ dependency vulnerabilities
 npm test                  # Run tests (94 tests, 10 suites)
 npm run typecheck         # Type check
 npm run lint              # Lint with Biome

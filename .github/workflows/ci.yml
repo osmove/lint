@@ -31,6 +31,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Security audit
+        run: npm run security:audit
+
       - name: Build
         run: npm run build
 

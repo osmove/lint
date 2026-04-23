@@ -15,6 +15,7 @@
     "test:coverage": "vitest run --coverage",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
+    "security:audit": "npm audit --audit-level=moderate",
     "quality-gate": "node ./dist/index.js ci --format text .",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build"
