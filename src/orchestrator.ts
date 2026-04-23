@@ -89,31 +89,62 @@ function describeLinterSelection(rc: ReturnType<typeof loadRC>): Array<{
 
 function describeFileCoverage(
   files: string[],
+  selection: Array<{
+    name: string;
+    installed: boolean;
+    enabled: boolean;
+    selected: boolean;
+    reason: string;
+  }>,
   linters: BaseLinter[],
 ): {
-  coveredFiles: Array<{ path: string; linters: string[] }>;
+  coveredFiles: Array<{ path: string; linters: string[]; reason: string }>;
   uncoveredFiles: Array<{ path: string; reason: string }>;
 } {
+  const selectionByName = new Map(selection.map((entry) => [entry.name, entry]));
   const coverage = files.map((file) => {
     const selectedLinters = linters
       .filter((linter) => linter.selectFiles([file]).length > 0)
       .map((linter) => linter.name)
       .sort();
+    const supportedByKnownLinters = ALL_LINTERS.filter((linter) => linter.selectFiles([file]).length > 0)
+      .map((linter) => linter.name)
+      .sort();
+    const supportedInstalledLinters = supportedByKnownLinters.filter(
+      (name) => selectionByName.get(name)?.installed,
+    );
+    const supportedEnabledLinters = supportedByKnownLinters.filter(
+      (name) => selectionByName.get(name)?.enabled,
+    );
+
+    let reason = "selected linter matched this file";
+    if (selectedLinters.length === 0) {
+      if (supportedByKnownLinters.length === 0) {
+        reason = "no known linter supports this file type";
+      } else if (supportedInstalledLinters.length === 0) {
+        reason = `supported by ${supportedByKnownLinters.join(", ")}, but those linters are not installed`;
+      } else if (supportedEnabledLinters.length === 0) {
+        reason = `supported by ${supportedInstalledLinters.join(", ")}, but disabled by configuration`;
+      } else {
+        reason = `supported by ${supportedEnabledLinters.join(", ")}, but none were selected`;
+      }
+    } else if (selectedLinters.length > 1) {
+      reason = "multiple selected linters matched this file";
+    }
 
     return {
       path: file,
       linters: selectedLinters,
+      reason,
     };
   });
 
   return {
     coveredFiles: coverage.filter((entry) => entry.linters.length > 0),
-    uncoveredFiles: coverage
-      .filter((entry) => entry.linters.length === 0)
-      .map((entry) => ({
-        path: entry.path,
-        reason: "no selected linter supports this file type",
-      })),
+    uncoveredFiles: coverage.filter((entry) => entry.linters.length === 0).map((entry) => ({
+      path: entry.path,
+      reason: entry.reason,
+    })),
   };
 }
 
@@ -229,7 +260,7 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
   files = filterIgnoredFiles(files, ignorePatterns);
   const linterSelection = describeLinterSelection(rc);
   const selectedLinters = selectLinters(rc);
-  const fileCoverage = describeFileCoverage(files, selectedLinters);
+  const fileCoverage = describeFileCoverage(files, linterSelection, selectedLinters);
 
   if (files.length === 0) {
     if (isJson) {

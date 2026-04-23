@@ -28,6 +28,7 @@
 - aligned warning failures across CLI exit codes and machine-readable output
 - added machine-readable run decisions for ignored files, linter selection, and policy origin
 - added file coverage and applicable policy-rule counts to machine-readable run decisions
+- refined uncovered-file reasons to distinguish unknown types, missing installs, and selection/configuration gaps
 
 ## [1.0.0] - 2026-04-15
 
