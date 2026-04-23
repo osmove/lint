@@ -27,6 +27,7 @@
 - canonical hook commands are now grouped under `lint hooks <install|status|uninstall>`, with legacy aliases kept for compatibility
 - canonical setup-style commands are now grouped under namespaces like `lint setup fix`, `lint config recommend`, `lint install missing`, and `lint machine summary`, with legacy colon aliases kept for compatibility
 - canonical account commands are now grouped under `lint auth <login|logout|signup|whoami>`, with flat aliases kept for compatibility
+- internal hook entrypoints like `lint pre-commit` stay available but are now hidden from the root help output to keep the primary CLI surface clean
 
 ### Changed
 

@@ -117,6 +117,8 @@ lint auth whoami
 
 Flat aliases like `lint signup`, `lint login`, `lint logout`, and `lint whoami` still work for backward compatibility, but `lint auth <action>` is now the canonical API.
 
+Internal hook entrypoints like `lint pre-commit`, `lint prepare-commit-msg`, and `lint post-commit` remain available for installed git hooks, but they are intentionally hidden from the main CLI help because they are not part of the primary user-facing surface.
+
 ## Configuration
 
 ### `.lintrc.yaml`

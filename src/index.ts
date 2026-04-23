@@ -106,34 +106,6 @@ program
     });
   });
 
-// ── Git hook commands ──
-
-program
-  .command("pre-commit")
-  .description("Pre-commit hook: lint staged files")
-  .option("--fix", "Auto-fix issues")
-  .option("-t, --time", "Show execution time")
-  .option("-T, --truncate", "Truncate output")
-  .option("-q, --quiet", "Minimal output")
-  .action((options) => {
-    preCommit({
-      fix: options.fix,
-      time: options.time ?? true,
-      truncate: options.truncate,
-      quiet: options.quiet,
-    });
-  });
-
-program
-  .command("prepare-commit-msg")
-  .description("Prepare-commit-msg hook")
-  .action(() => prepareCommitMsg());
-
-program
-  .command("post-commit")
-  .description("Post-commit hook")
-  .action(() => postCommitHook());
-
 // ── Setup commands ──
 
 program
@@ -165,6 +137,28 @@ function installManagedHooks(): void {
   console.log("Installing git hooks...");
   const rc = loadRC();
   installHooks({ timeout: rc.hooks?.timeout, skipEnv: rc.hooks?.skip_env });
+}
+
+function runPreCommitHook(options: {
+  fix?: boolean;
+  time?: boolean;
+  truncate?: boolean;
+  quiet?: boolean;
+}): void {
+  preCommit({
+    fix: options.fix,
+    time: options.time ?? true,
+    truncate: options.truncate,
+    quiet: options.quiet,
+  });
+}
+
+function runPrepareCommitMsgHook(): void {
+  prepareCommitMsg();
+}
+
+function runPostCommitCommand(): void {
+  postCommitHook();
 }
 
 function runMachineSummary(paths: string[], options: { strict?: boolean }): void {
@@ -316,6 +310,31 @@ async function runSignup(): Promise<void> {
 function runWhoAmI(): void {
   auth.printStatus();
 }
+
+program.addCommand(
+  new Command("pre-commit")
+    .description("Pre-commit hook: lint staged files")
+    .option("--fix", "Auto-fix issues")
+    .option("-t, --time", "Show execution time")
+    .option("-T, --truncate", "Truncate output")
+    .option("-q, --quiet", "Minimal output")
+    .action((options) => runPreCommitHook(options)),
+  { hidden: true },
+);
+
+program.addCommand(
+  new Command("prepare-commit-msg")
+    .description("Prepare-commit-msg hook")
+    .action(() => runPrepareCommitMsgHook()),
+  { hidden: true },
+);
+
+program.addCommand(
+  new Command("post-commit")
+    .description("Post-commit hook")
+    .action(() => runPostCommitCommand()),
+  { hidden: true },
+);
 
 const hooksCommand = program
   .command("hooks")
