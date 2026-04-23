@@ -1,4 +1,4 @@
-import { execSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import yaml from "js-yaml";
@@ -16,21 +16,6 @@ interface CommandFailure extends Error {
   stdout?: string;
   stderr?: string;
   status?: number | null;
-}
-
-export function exec(command: string, options?: { cwd?: string; silent?: boolean }): string {
-  try {
-    return execSync(command, {
-      cwd: options?.cwd,
-      encoding: "utf-8",
-      stdio: options?.silent ? "pipe" : ["pipe", "pipe", "pipe"],
-      timeout: 120_000,
-    }).trim();
-  } catch (error) {
-    const err = error as { status?: number; stdout?: string; stderr?: string };
-    if (err.stdout) return err.stdout.toString().trim();
-    throw error;
-  }
 }
 
 export function execFile(command: string, args: string[], options: CommandOptions = {}): string {
