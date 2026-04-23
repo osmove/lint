@@ -21,10 +21,13 @@ export class RuffLinter extends BaseLinter {
   configFileName = "ruff.toml";
 
   createConfig(rules: PolicyRule[], tmpDir: string): string {
+    const ruffRules = rules.filter((r) => r.linter === "ruff");
+    if (ruffRules.length === 0) return "";
+
     const selectRules: string[] = [];
     const ignoreRules: string[] = [];
 
-    for (const rule of rules.filter((r) => r.linter === "ruff")) {
+    for (const rule of ruffRules) {
       if (rule.status === "enabled") {
         selectRules.push(rule.slug);
       } else {
@@ -41,8 +44,6 @@ target-version = "py312"
 
     if (selectRules.length > 0) {
       content += `select = [${selectRules.map((r) => `"${r}"`).join(", ")}]\n`;
-    } else {
-      content += `select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]\n`;
     }
 
     if (ignoreRules.length > 0) {
@@ -61,7 +62,7 @@ target-version = "py312"
         "ruff",
         [
           ...(autofix ? ["check", "--fix"] : ["check"]),
-          `--config=${configPath}`,
+          ...(configPath ? [`--config=${configPath}`] : []),
           "--output-format=json",
           ...files,
         ],

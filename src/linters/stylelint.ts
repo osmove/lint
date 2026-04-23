@@ -22,10 +22,13 @@ export class StylelintLinter extends BaseLinter {
   configFileName = ".stylelintrc.json";
 
   createConfig(rules: PolicyRule[], tmpDir: string): string {
+    const stylelintPolicyRules = rules.filter((r) => r.linter === "stylelint");
+    if (stylelintPolicyRules.length === 0) return "";
+
     const config: Record<string, unknown> = { rules: {} };
     const stylelintRules: Record<string, unknown> = {};
 
-    for (const rule of rules.filter((r) => r.linter === "stylelint")) {
+    for (const rule of stylelintPolicyRules) {
       if (rule.status === "enabled") {
         stylelintRules[rule.slug] = [true, { severity: rule.severity }];
       } else {
@@ -44,7 +47,7 @@ export class StylelintLinter extends BaseLinter {
     try {
       raw = execFile(
         "stylelint",
-        ["--config", configPath, "-f", "json", ...(autofix ? ["--fix"] : []), ...files],
+        [...(configPath ? ["--config", configPath] : []), "-f", "json", ...(autofix ? ["--fix"] : []), ...files],
         { silent: true },
       );
     } catch (error) {

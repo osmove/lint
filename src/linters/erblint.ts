@@ -12,13 +12,16 @@ export class ErbLintLinter extends BaseLinter {
   configFileName = ".erb-lint.yml";
 
   createConfig(rules: PolicyRule[], tmpDir: string): string {
+    const erblintRules = rules.filter((r) => r.linter === "erblint");
+    if (erblintRules.length === 0) return "";
+
     const config: Record<string, unknown> = {
       linters: {
         Rubocop: { enabled: true },
       },
     };
 
-    for (const rule of rules.filter((r) => r.linter === "erblint")) {
+    for (const rule of erblintRules) {
       if (!config.linters) config.linters = {};
       (config.linters as Record<string, unknown>)[rule.slug] = {
         enabled: rule.status === "enabled",
@@ -33,7 +36,7 @@ export class ErbLintLinter extends BaseLinter {
   run(files: string[], configPath: string, _autofix: boolean): LinterResult {
     let raw: string;
     try {
-      raw = execFile("erblint", ["--config", configPath, "--format", "json", ...files], {
+      raw = execFile("erblint", [...(configPath ? ["--config", configPath] : []), "--format", "json", ...files], {
         silent: true,
         env: {
           LANG: "en_US.UTF-8",

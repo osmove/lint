@@ -29,6 +29,9 @@ export class ESLintLinter extends BaseLinter {
   configFileName = "eslintrc.json";
 
   createConfig(rules: PolicyRule[], tmpDir: string): string {
+    const eslintPolicyRules = rules.filter((r) => r.linter === "eslint");
+    if (eslintPolicyRules.length === 0) return "";
+
     const config: Record<string, unknown> = {
       env: { es2022: true, node: true, browser: true },
       parserOptions: {
@@ -40,7 +43,7 @@ export class ESLintLinter extends BaseLinter {
     };
 
     const eslintRules: Record<string, unknown> = {};
-    for (const rule of rules.filter((r) => r.linter === "eslint")) {
+    for (const rule of eslintPolicyRules) {
       if (rule.status === "enabled") {
         eslintRules[rule.slug] = rule.severity === "error" ? "error" : "warn";
       } else {
@@ -59,7 +62,13 @@ export class ESLintLinter extends BaseLinter {
     try {
       raw = execFile(
         "eslint",
-        ["--config", configPath, "--format", "json", ...(autofix ? ["--fix"] : []), ...files],
+        [
+          ...(configPath ? ["--config", configPath] : []),
+          "--format",
+          "json",
+          ...(autofix ? ["--fix"] : []),
+          ...files,
+        ],
         { silent: true },
       );
     } catch (error) {

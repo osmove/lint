@@ -24,6 +24,9 @@ export class BiomeLinter extends BaseLinter {
   configFileName = "biome.json";
 
   createConfig(rules: PolicyRule[], tmpDir: string): string {
+    const biomeRules = rules.filter((r) => r.linter === "biome");
+    if (biomeRules.length === 0) return "";
+
     const config: Record<string, unknown> = {
       $schema: "https://biomejs.dev/schemas/1.9.0/schema.json",
       linter: {
@@ -39,7 +42,7 @@ export class BiomeLinter extends BaseLinter {
 
     // Apply policy rules if any
     const linterRules: Record<string, Record<string, string>> = {};
-    for (const rule of rules.filter((r) => r.linter === "biome")) {
+    for (const rule of biomeRules) {
       const [group, name] = rule.slug.includes("/")
         ? rule.slug.split("/")
         : ["recommended", rule.slug];
@@ -63,7 +66,7 @@ export class BiomeLinter extends BaseLinter {
         "biome",
         [
           ...(autofix ? ["check", "--write"] : ["lint"]),
-          `--config-path=${path.dirname(configPath)}`,
+          ...(configPath ? [`--config-path=${path.dirname(configPath)}`] : []),
           "--reporter=json",
           ...files,
         ],
