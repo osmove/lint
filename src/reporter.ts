@@ -11,6 +11,7 @@ export interface JsonReportMeta {
   fileCount?: number;
   linterNames?: string[];
   policyRuleCount?: number;
+  message?: string;
 }
 
 export function printReport(reports: LintReport[], truncate = false): void {
@@ -105,6 +106,7 @@ export function formatJsonReport(
         linters: meta.linterNames ?? reports.map((report) => report.linter),
         policy_rule_count: meta.policyRuleCount ?? 0,
       },
+      ...(meta.message ? { message: meta.message } : {}),
       linters: reports.map((r) => ({
         name: r.linter,
         errors: r.error_count,

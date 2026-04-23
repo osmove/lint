@@ -109,5 +109,23 @@ describe("reporter", () => {
         policy_rule_count: 2,
       });
     });
+
+    it("should preserve a message for empty or skipped runs", () => {
+      const parsed = JSON.parse(
+        formatJsonReport([], {
+          duration: 5,
+          cwd: "/tmp/project",
+          mode: "staged files",
+          fileCount: 0,
+          linterNames: [],
+          policyRuleCount: 0,
+          message: "No files to lint",
+        }),
+      );
+
+      expect(parsed.message).toBe("No files to lint");
+      expect(parsed.run.file_count).toBe(0);
+      expect(parsed.linters).toEqual([]);
+    });
   });
 });
