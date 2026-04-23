@@ -1,3 +1,5 @@
+# Lint
+
 **The universal linter.** One CLI to lint any language — with AI-powered code review.
 
 [![npm version](https://img.shields.io/npm/v/lint.svg)](https://www.npmjs.com/package/lint)
