@@ -303,6 +303,8 @@ npm run lint              # Lint with Biome
 
 `npm publish` now reuses the same `npm run verify` gate through `prepublishOnly`, so local publishes cannot skip the full maintainer validation pass. `npm run verify` also checks the npm package payload with `npm pack --dry-run`.
 
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the maintainer workflow, CLI conventions, and release hygiene checklist.
+
 ### Tech Stack
 
 - TypeScript (strict), ESM
