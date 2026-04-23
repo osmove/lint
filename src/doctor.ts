@@ -2,6 +2,7 @@ import * as auth from "./auth.js";
 import { checkLinterInstallation, detectProject, getAllSuggestedLinters } from "./detect.js";
 import { getCurrentBranch, inspectManagedHooks } from "./git.js";
 import { autoResolveConflicts, findRCFile, loadRC, resolveEnabledLinters } from "./rc.js";
+import { LINT_JSON_SCHEMA_VERSION } from "./reporter.js";
 import type { LinterName } from "./types.js";
 import { findGitRoot, readLintConfig, repoIsDirty } from "./utils.js";
 
@@ -40,6 +41,8 @@ export interface DoctorProjectLanguage {
 }
 
 export interface DoctorReport {
+  schema_version?: string;
+  kind?: string;
   status: "healthy" | "needs_setup";
   git: {
     root: string | null;
@@ -122,6 +125,8 @@ export function collectDoctorReport(): DoctorReport {
     gitRoot && (config?.uuid || rcFile) && missingSelectedLinters.length === 0 ? "healthy" : "needs_setup";
 
   return {
+    schema_version: LINT_JSON_SCHEMA_VERSION,
+    kind: "lint_doctor",
     status,
     git: {
       root: gitRoot,

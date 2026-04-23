@@ -2,6 +2,8 @@ import chalk from "chalk";
 import Table from "cli-table3";
 import type { LintReport } from "./types.js";
 
+export const LINT_JSON_SCHEMA_VERSION = "1";
+
 export interface JsonReportMeta {
   duration: number;
   dryRun?: boolean;
@@ -180,6 +182,8 @@ export function formatJsonReport(
 
   return JSON.stringify(
     {
+      schema_version: LINT_JSON_SCHEMA_VERSION,
+      kind: "lint_run",
       success: outcome.exitCode === 0,
       status: outcome.status,
       exit_code: outcome.exitCode,
@@ -338,4 +342,16 @@ export function formatRunDecisionReport(report: RunDecisionReport): string[] {
 
   lines.push("");
   return lines;
+}
+
+export function formatRunDecisionJson(report: RunDecisionReport): string {
+  return JSON.stringify(
+    {
+      schema_version: LINT_JSON_SCHEMA_VERSION,
+      kind: "lint_explain_run",
+      ...report,
+    },
+    null,
+    2,
+  );
 }

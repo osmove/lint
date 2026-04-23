@@ -29,6 +29,7 @@ import {
   prettifyProject,
   runLint,
 } from "./orchestrator.js";
+import { LINT_JSON_SCHEMA_VERSION } from "./reporter.js";
 import { buildRecommendedRC, formatRC, loadRC, writeRC } from "./rc.js";
 import type { LintReport } from "./types.js";
 import { findGitRoot } from "./utils.js";
@@ -200,6 +201,8 @@ program
       console.log(
         JSON.stringify(
           {
+            schema_version: LINT_JSON_SCHEMA_VERSION,
+            kind: "lint_recommended_config",
             suggested_linters: suggested,
             recommended,
           },

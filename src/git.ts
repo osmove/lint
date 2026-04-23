@@ -12,6 +12,7 @@ import {
   printDetectionSummary,
 } from "./detect.js";
 import { buildRecommendedRC, generateDefaultRC, loadRC, writeRC } from "./rc.js";
+import { LINT_JSON_SCHEMA_VERSION } from "./reporter.js";
 import type { LintConfig, LinterName, StagedFile } from "./types.js";
 import { ensureDir, execFile, execGit, findGitDir, findGitRoot, readLintConfig, writeLintConfig } from "./utils.js";
 
@@ -590,6 +591,8 @@ export function bootstrapProject(options?: {
     console.log(
       JSON.stringify(
         {
+          schema_version: LINT_JSON_SCHEMA_VERSION,
+          kind: "lint_bootstrap",
           ...plan,
           install_missing_requested: options.installMissing ?? false,
           install_hooks_requested: options.installHooks ?? false,
@@ -675,6 +678,8 @@ export function fixSetup(options?: {
     console.log(
       JSON.stringify(
         {
+          schema_version: LINT_JSON_SCHEMA_VERSION,
+          kind: "lint_setup_fix",
           ...plan,
           dry_run: options.dryRun ?? false,
           recommended_config: recommendedRc,

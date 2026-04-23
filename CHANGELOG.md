@@ -18,6 +18,7 @@
 - `lint bootstrap` for non-interactive repo-local setup and automation-friendly bootstrapping
 - `lint config:recommend` to preview or write a recommended `.lintrc.yaml`
 - `lint setup:fix` to apply recommended repo-local setup in a single command
+- versioned machine-readable outputs with explicit `schema_version` and `kind`
 
 ### Changed
 

@@ -23,6 +23,7 @@ import {
 } from "./rc.js";
 import {
   formatJsonReport,
+  formatRunDecisionJson,
   formatRunDecisionReport,
   printReport,
   printSummaryTable,
@@ -641,7 +642,7 @@ export async function explainRun(
 ): Promise<void> {
   const report = await collectRunDecisionReport(options);
   if (options.json) {
-    console.log(JSON.stringify(report, null, 2));
+    console.log(formatRunDecisionJson(report));
     return;
   }
 
