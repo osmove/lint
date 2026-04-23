@@ -1,5 +1,5 @@
 import type { FileReport, LintReport, LinterResult, Offense, PolicyRule } from "../types.js";
-import { exec } from "../utils.js";
+import { execFile } from "../utils.js";
 import { BaseLinter } from "./base.js";
 
 interface BrakemanWarning {
@@ -29,11 +29,12 @@ export class BrakemanLinter extends BaseLinter {
 
   run(files: string[], _configPath: string, _autofix: boolean): LinterResult {
     const onlyFiles = files.join(",");
-    const cmd = `brakeman -f json --no-pager --only-files "${onlyFiles}"`;
 
     let raw: string;
     try {
-      raw = exec(cmd, { silent: true });
+      raw = execFile("brakeman", ["-f", "json", "--no-pager", "--only-files", onlyFiles], {
+        silent: true,
+      });
     } catch (error) {
       const err = error as { stdout?: string; status?: number };
       if (err.status === 4) {

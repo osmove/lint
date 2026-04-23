@@ -1,6 +1,7 @@
 import { confirm, input, password } from "@inquirer/prompts";
 import chalk from "chalk";
 import { Command } from "commander";
+import path from "node:path";
 import { saveApiKey } from "./ai/client.js";
 import { printCommitSuggestion } from "./ai/commit.js";
 import { explainErrors } from "./ai/explain.js";
@@ -9,7 +10,7 @@ import { reviewStagedChanges } from "./ai/review.js";
 import * as auth from "./auth.js";
 import { VERSION } from "./config.js";
 import { checkLinterInstallation } from "./detect.js";
-import { getStagedFilePaths, init, installHooks, uninstallHooks } from "./git.js";
+import { getStagedFilePaths, init, installHooks, MANAGED_HOOK_MARKER, uninstallHooks } from "./git.js";
 import {
   ALL_LINTERS,
   postCommitHook,
@@ -20,7 +21,7 @@ import {
 } from "./orchestrator.js";
 import { findRCFile, loadRC } from "./rc.js";
 import type { LintReport, LinterName } from "./types.js";
-import { findGitRoot, isCommandAvailable, readLintConfig } from "./utils.js";
+import { findGitDir, findGitRoot, readLintConfig } from "./utils.js";
 
 const program = new Command();
 
@@ -178,11 +179,14 @@ program
     console.log(chalk.bold("\n  Git Hooks:\n"));
     if (gitRoot) {
       const nodeFs = await import("node:fs");
+      const gitDir = findGitDir(gitRoot);
       for (const hook of ["pre-commit", "prepare-commit-msg", "post-commit"]) {
-        const hookPath = `${gitRoot}/.git/hooks/${hook}`;
+        const hookPath = gitDir
+          ? path.join(gitDir, "hooks", hook)
+          : path.join(gitRoot, ".git", "hooks", hook);
         if (nodeFs.existsSync(hookPath)) {
           const content = nodeFs.readFileSync(hookPath, "utf-8");
-          const isLintHook = content.includes("Installed by Lint") || content.includes("lint");
+          const isLintHook = content.includes(MANAGED_HOOK_MARKER);
           console.log(
             isLintHook
               ? chalk.green(`    ✓ ${hook}`)

@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { SUPPORTED_EXTENSIONS } from "../config.js";
 import type { FileReport, LintReport, LinterResult, Offense, PolicyRule } from "../types.js";
-import { ensureTmpDir, exec, filterFilesByExtensions, isCommandAvailable } from "../utils.js";
+import { ensureTmpDir, execFile, filterFilesByExtensions, isCommandAvailable } from "../utils.js";
 
 export abstract class BaseLinter {
   abstract name: string;
@@ -20,7 +20,7 @@ export abstract class BaseLinter {
   install(): void {
     console.log(chalk.cyan(`Installing ${this.name}...`));
     try {
-      exec(this.installCmd);
+      execFile("sh", ["-lc", this.installCmd]);
       console.log(chalk.green(`${this.name} installed.`));
     } catch (error) {
       console.log(chalk.red(`Failed to install ${this.name}.`), (error as Error).message);

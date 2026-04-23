@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { FileReport, LintReport, LinterResult, Offense, PolicyRule } from "../types.js";
-import { exec } from "../utils.js";
+import { execFile } from "../utils.js";
 import { BaseLinter } from "./base.js";
 
 interface BiomeDiagnostic {
@@ -57,12 +57,18 @@ export class BiomeLinter extends BaseLinter {
   }
 
   run(files: string[], configPath: string, autofix: boolean): LinterResult {
-    const action = autofix ? "check --write" : "lint";
-    const cmd = `biome ${action} --config-path=${path.dirname(configPath)} --reporter=json ${files.join(" ")}`;
-
     let raw: string;
     try {
-      raw = exec(cmd, { silent: true });
+      raw = execFile(
+        "biome",
+        [
+          ...(autofix ? ["check", "--write"] : ["lint"]),
+          `--config-path=${path.dirname(configPath)}`,
+          "--reporter=json",
+          ...files,
+        ],
+        { silent: true },
+      );
     } catch (error) {
       raw = (error as { stdout?: string }).stdout || '{"diagnostics":[]}';
     }

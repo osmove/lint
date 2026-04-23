@@ -12,39 +12,54 @@ import {
 } from "./detect.js";
 import { generateDefaultRC, writeRC } from "./rc.js";
 import type { LintConfig, LinterName, StagedFile } from "./types.js";
-import { ensureDir, exec, findGitRoot, readLintConfig, writeLintConfig } from "./utils.js";
+import { ensureDir, exec, execGit, findGitDir, findGitRoot, readLintConfig, writeLintConfig } from "./utils.js";
+
+export const MANAGED_HOOK_MARKER = "Managed by Lint";
+
+export interface HookInspection {
+  hookPath: string;
+  exists: boolean;
+  managed: boolean;
+}
 
 // ── Staged files ──
 
 export function getStagedFiles(): StagedFile[] {
   try {
-    const output = exec("git status -s", { silent: true });
+    const output = execGit(["diff", "--cached", "--name-status", "-z", "--diff-filter=AMDR"], undefined, {
+      silent: true,
+    });
     if (!output) return [];
 
-    return output
-      .split("\n")
-      .filter((line) => line.trim())
-      .map((line) => {
-        const statusCode = line.substring(0, 2).trim();
-        const filePath = line.substring(3).trim();
-        let status: StagedFile["status"];
+    const entries = output.split("\0").filter(Boolean);
+    const files: StagedFile[] = [];
 
-        switch (statusCode) {
-          case "A":
-            status = "added";
-            break;
-          case "D":
-            status = "deleted";
-            break;
-          case "R":
-            status = "renamed";
-            break;
-          default:
-            status = "modified";
-        }
+    for (let i = 0; i < entries.length; ) {
+      const statusCode = entries[i++] || "";
+      let status: StagedFile["status"];
+      let filePath: string;
 
-        return { path: filePath, status };
-      });
+      if (statusCode.startsWith("A")) {
+        status = "added";
+        filePath = entries[i++] || "";
+      } else if (statusCode.startsWith("D")) {
+        status = "deleted";
+        filePath = entries[i++] || "";
+      } else if (statusCode.startsWith("R")) {
+        status = "renamed";
+        i += 1; // old path
+        filePath = entries[i++] || "";
+      } else {
+        status = "modified";
+        filePath = entries[i++] || "";
+      }
+
+      if (filePath) {
+        files.push({ path: filePath, status });
+      }
+    }
+
+    return files;
   } catch {
     return [];
   }
@@ -60,7 +75,7 @@ export function getStagedFilePaths(excludeDeleted = true): string[] {
 
 export function getCurrentSha(): string {
   try {
-    return exec("git rev-parse HEAD", { silent: true });
+    return execGit(["rev-parse", "HEAD"], undefined, { silent: true });
   } catch {
     return "unknown";
   }
@@ -68,7 +83,7 @@ export function getCurrentSha(): string {
 
 export function getCurrentBranch(): string {
   try {
-    return exec("git rev-parse --abbrev-ref HEAD", { silent: true });
+    return execGit(["rev-parse", "--abbrev-ref", "HEAD"], undefined, { silent: true });
   } catch {
     return "unknown";
   }
@@ -76,7 +91,7 @@ export function getCurrentBranch(): string {
 
 export function getStagedDiff(): string {
   try {
-    return exec("git diff --cached", { silent: true });
+    return execGit(["diff", "--cached"], undefined, { silent: true });
   } catch {
     return "";
   }
@@ -126,23 +141,78 @@ export function findFiles(targetPath: string): string[] {
 
 // ── Git hooks ──
 
-function hookContent(command: string, timeout: number, skipEnv: string): string {
+function hookContent(
+  lintInvocation: string,
+  npxInvocation: string,
+  timeout: number,
+  skipEnv: string,
+): string {
   return `#!/bin/sh
-# Installed by Lint
+# ${MANAGED_HOOK_MARKER}. Reinstall through:
+#   lint install:hooks
 # Skip: ${skipEnv}=1 git commit ...
 # Skip: git commit --no-verify
 
+set -eu
+
 [ "$${skipEnv}" = "1" ] && exit 0
 
+run_with_timeout() {
+  TIMEOUT_SECONDS="$1"
+  shift
+  TIMEOUT_FLAG="\${TMPDIR:-/tmp}/lint-hook-timeout.$$"
+  rm -f "$TIMEOUT_FLAG"
+
+  "$@" &
+  CMD_PID=$!
+
+  (
+    sleep "$TIMEOUT_SECONDS"
+    if kill -0 "$CMD_PID" 2>/dev/null; then
+      : > "$TIMEOUT_FLAG"
+      kill "$CMD_PID" 2>/dev/null || true
+    fi
+  ) &
+  WATCHER_PID=$!
+
+  wait "$CMD_PID" || STATUS=$?
+  STATUS=\${STATUS:-0}
+  kill "$WATCHER_PID" 2>/dev/null || true
+  wait "$WATCHER_PID" 2>/dev/null || true
+
+  if [ -f "$TIMEOUT_FLAG" ]; then
+    rm -f "$TIMEOUT_FLAG"
+    echo "Lint: hook timed out after ${timeout}s." >&2
+    return 124
+  fi
+
+  rm -f "$TIMEOUT_FLAG"
+  return "$STATUS"
+}
+
 if command -v lint >/dev/null 2>&1; then
-  timeout ${timeout} lint ${command} "$@"
+  ${lintInvocation}
 elif command -v npx >/dev/null 2>&1; then
-  timeout ${timeout} npx --no-install lint ${command} "$@"
+  ${npxInvocation}
 else
   echo "Lint: lint command not found. Skipping hook."
   exit 0
 fi
 `;
+}
+
+function inspectHook(hooksDir: string, name: string): HookInspection {
+  const hookPath = path.join(hooksDir, name);
+  if (!fs.existsSync(hookPath)) {
+    return { hookPath, exists: false, managed: false };
+  }
+
+  const content = fs.readFileSync(hookPath, "utf-8");
+  return {
+    hookPath,
+    exists: true,
+    managed: content.includes(MANAGED_HOOK_MARKER),
+  };
 }
 
 export function installHooks(options?: { timeout?: number; skipEnv?: string }): void {
@@ -154,6 +224,11 @@ export function installHooks(options?: { timeout?: number; skipEnv?: string }): 
 
   const timeout = options?.timeout ?? 60;
   const skipEnv = options?.skipEnv ?? "LINT_SKIP";
+  const gitDir = findGitDir(gitRoot);
+  if (!gitDir) {
+    console.log(chalk.red("Unable to locate .git directory."));
+    return;
+  }
 
   // Detect existing hook managers
   const hasHusky = fs.existsSync(path.join(gitRoot, ".husky"));
@@ -184,26 +259,39 @@ export function installHooks(options?: { timeout?: number; skipEnv?: string }): 
     return;
   }
 
-  const hooksDir = path.join(gitRoot, ".git", "hooks");
+  const hooksDir = path.join(gitDir, "hooks");
   ensureDir(hooksDir);
 
   const hooks: Record<string, string> = {
-    "pre-commit": hookContent("pre-commit -t", timeout, skipEnv),
-    "prepare-commit-msg": hookContent("prepare-commit-msg", timeout, skipEnv),
-    "post-commit": hookContent("post-commit", timeout, skipEnv),
+    "pre-commit": hookContent(
+      `run_with_timeout "${timeout}" lint pre-commit -t "$@"`,
+      `run_with_timeout "${timeout}" npx --no-install lint pre-commit -t "$@"`,
+      timeout,
+      skipEnv,
+    ),
+    "prepare-commit-msg": hookContent(
+      `run_with_timeout "${timeout}" lint prepare-commit-msg "$@"`,
+      `run_with_timeout "${timeout}" npx --no-install lint prepare-commit-msg "$@"`,
+      timeout,
+      skipEnv,
+    ),
+    "post-commit": hookContent(
+      `run_with_timeout "${timeout}" lint post-commit "$@"`,
+      `run_with_timeout "${timeout}" npx --no-install lint post-commit "$@"`,
+      timeout,
+      skipEnv,
+    ),
   };
 
   for (const [name, content] of Object.entries(hooks)) {
     const hookPath = path.join(hooksDir, name);
 
     // Backup existing non-Lint hook
-    if (fs.existsSync(hookPath)) {
-      const existingContent = fs.readFileSync(hookPath, "utf-8");
-      if (!existingContent.includes("Installed by Lint")) {
-        const backupDir = path.join(hooksDir, `backup_${Date.now()}`);
-        ensureDir(backupDir);
-        fs.copyFileSync(hookPath, path.join(backupDir, name));
-      }
+    const inspection = inspectHook(hooksDir, name);
+    if (inspection.exists && !inspection.managed) {
+      const backupDir = path.join(hooksDir, `backup_${Date.now()}`);
+      ensureDir(backupDir);
+      fs.copyFileSync(hookPath, path.join(backupDir, name));
     }
 
     fs.writeFileSync(hookPath, content, { mode: 0o755 });
@@ -221,17 +309,20 @@ export function uninstallHooks(): void {
     return;
   }
 
-  const hooksDir = path.join(gitRoot, ".git", "hooks");
+  const gitDir = findGitDir(gitRoot);
+  if (!gitDir) {
+    console.log(chalk.red("Unable to locate .git directory."));
+    return;
+  }
+
+  const hooksDir = path.join(gitDir, "hooks");
   const hookNames = ["pre-commit", "prepare-commit-msg", "post-commit"];
 
   for (const name of hookNames) {
-    const hookPath = path.join(hooksDir, name);
-    if (fs.existsSync(hookPath)) {
-      const content = fs.readFileSync(hookPath, "utf-8");
-      if (content.includes("Installed by Lint")) {
-        fs.unlinkSync(hookPath);
-        console.log(chalk.yellow(`  ✗ ${name} removed`));
-      }
+    const inspection = inspectHook(hooksDir, name);
+    if (inspection.exists && inspection.managed) {
+      fs.unlinkSync(inspection.hookPath);
+      console.log(chalk.yellow(`  ✗ ${name} removed`));
     }
   }
 
