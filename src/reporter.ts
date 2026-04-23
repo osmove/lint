@@ -58,6 +58,16 @@ export interface RunDecisionReport {
     applicableRules: number;
     byLinter: Record<string, number>;
   };
+  fixStrategy: {
+    autofix: boolean;
+    strategy: string;
+  };
+  conflicts: Array<{
+    winner: string;
+    losers: string[];
+    reason: string;
+  }>;
+  nextSteps: string[];
 }
 
 type JsonRunStatus =
@@ -240,6 +250,20 @@ export function formatRunDecisionReport(report: RunDecisionReport): string[] {
   lines.push(
     `  Policy: ${report.policy.source} (${report.policy.applicableRules}/${report.policy.totalRules} applicable rules)`,
   );
+  lines.push(
+    `  Fix strategy: ${report.fixStrategy.autofix ? "autofix enabled" : "check only"} (${report.fixStrategy.strategy})`,
+  );
+
+  if (report.conflicts.length > 0) {
+    lines.push("");
+    lines.push("  Resolved Conflicts:");
+    lines.push("");
+    for (const conflict of report.conflicts) {
+      lines.push(
+        `    ✓ ${conflict.winner} over ${conflict.losers.join(", ")} (${conflict.reason})`,
+      );
+    }
+  }
 
   lines.push("");
   lines.push("  Selected Linters:");
@@ -300,6 +324,15 @@ export function formatRunDecisionReport(report: RunDecisionReport): string[] {
     lines.push("");
     for (const [linter, count] of Object.entries(report.policy.byLinter)) {
       lines.push(`    ${linter}: ${count}`);
+    }
+  }
+
+  if (report.nextSteps.length > 0) {
+    lines.push("");
+    lines.push("  Recommended Next Steps:");
+    lines.push("");
+    for (const step of report.nextSteps) {
+      lines.push(`    - ${step}`);
     }
   }
 

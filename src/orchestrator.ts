@@ -14,7 +14,13 @@ import { PylintLinter } from "./linters/pylint.js";
 import { RuboCopLinter } from "./linters/rubocop.js";
 import { RuffLinter } from "./linters/ruff.js";
 import { StylelintLinter } from "./linters/stylelint.js";
-import { filterIgnoredFiles, getIgnoredFileDecisions, loadRC, resolveEnabledLinters } from "./rc.js";
+import {
+  filterIgnoredFiles,
+  getIgnoredFileDecisions,
+  getLinterReplacements,
+  loadRC,
+  resolveEnabledLinters,
+} from "./rc.js";
 import {
   formatJsonReport,
   formatRunDecisionReport,
@@ -181,6 +187,87 @@ function summarizePolicyRules(
   };
 }
 
+function describeResolvedConflicts(selection: Array<{
+  name: string;
+  installed: boolean;
+  enabled: boolean;
+  selected: boolean;
+  reason: string;
+}>): Array<{ winner: string; losers: string[]; reason: string }> {
+  const replacements = getLinterReplacements();
+  const selectionByName = new Map(selection.map((entry) => [entry.name, entry]));
+  const conflicts: Array<{ winner: string; losers: string[]; reason: string }> = [];
+
+  for (const [winner, losers] of Object.entries(replacements)) {
+    const winnerSelection = selectionByName.get(winner);
+    if (!winnerSelection?.selected) continue;
+
+    const resolvedLosers = losers.filter((loser) => {
+      const loserSelection = selectionByName.get(loser);
+      return loserSelection?.installed && !loserSelection.selected;
+    });
+
+    if (resolvedLosers.length > 0) {
+      conflicts.push({
+        winner,
+        losers: resolvedLosers,
+        reason: "modern linter replacement rule",
+      });
+    }
+  }
+
+  return conflicts;
+}
+
+function describeNextSteps(report: {
+  linterSelection: Array<{
+    name: string;
+    installed: boolean;
+    enabled: boolean;
+    selected: boolean;
+    reason: string;
+  }>;
+  fileCoverage: {
+    coveredFiles: Array<{ path: string; linters: string[]; reason: string }>;
+    uncoveredFiles: Array<{ path: string; reason: string }>;
+  };
+  policy: {
+    source: "cloud" | "local";
+    totalRules: number;
+    applicableRules: number;
+    byLinter: Record<string, number>;
+  };
+}): string[] {
+  const steps: string[] = [];
+  const missingLinters = report.linterSelection.filter(
+    (entry) => entry.reason === "not installed",
+  );
+
+  if (missingLinters.length > 0) {
+    steps.push(`Install missing linters: ${missingLinters.map((entry) => entry.name).join(", ")}`);
+  }
+
+  const uncoveredByMissingInstall = report.fileCoverage.uncoveredFiles.some((file) =>
+    file.reason.includes("not installed"),
+  );
+  if (uncoveredByMissingInstall) {
+    steps.push("Re-run after installing the missing linters to improve file coverage");
+  }
+
+  const unknownFiles = report.fileCoverage.uncoveredFiles.filter((file) =>
+    file.reason.includes("no known linter supports this file type"),
+  );
+  if (unknownFiles.length > 0) {
+    steps.push("Review uncovered file types to decide whether new linter support is needed");
+  }
+
+  if (report.policy.source === "cloud" && report.policy.totalRules > report.policy.applicableRules) {
+    steps.push("Review cloud policy rules that target linters not currently selected in this repo");
+  }
+
+  return steps;
+}
+
 async function collectRunDecisionReport(options: RunOptions = {}): Promise<RunDecisionReport> {
   const rc = loadRC();
   let discoveredFiles: string[];
@@ -203,6 +290,7 @@ async function collectRunDecisionReport(options: RunOptions = {}): Promise<RunDe
   const linterSelection = describeLinterSelection(rc);
   const selectedLinters = selectLinters(rc);
   const fileCoverage = describeFileCoverage(files, linterSelection, selectedLinters);
+  const conflicts = describeResolvedConflicts(linterSelection);
 
   let policyRules: PolicyRule[] = [];
   try {
@@ -210,6 +298,8 @@ async function collectRunDecisionReport(options: RunOptions = {}): Promise<RunDe
   } catch {
     policyRules = [];
   }
+
+  const policy = summarizePolicyRules(policyRules, selectedLinters);
 
   return {
     cwd: process.cwd(),
@@ -220,7 +310,17 @@ async function collectRunDecisionReport(options: RunOptions = {}): Promise<RunDe
     ignoredFiles,
     linterSelection,
     fileCoverage,
-    policy: summarizePolicyRules(policyRules, selectedLinters),
+    policy,
+    fixStrategy: {
+      autofix: rc.fix?.enabled ?? false,
+      strategy: rc.fix?.strategy ?? "parallel",
+    },
+    conflicts,
+    nextSteps: describeNextSteps({
+      linterSelection,
+      fileCoverage,
+      policy,
+    }),
   };
 }
 

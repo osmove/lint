@@ -265,16 +265,31 @@ describe("reporter", () => {
           applicableRules: 1,
           byLinter: { biome: 1, eslint: 2 },
         },
+        fixStrategy: {
+          autofix: true,
+          strategy: "formatter-first",
+        },
+        conflicts: [
+          {
+            winner: "biome",
+            losers: ["eslint"],
+            reason: "modern linter replacement rule",
+          },
+        ],
+        nextSteps: ["Install missing linters: prettier"],
       });
 
       const output = lines.join("\n");
       expect(output).toContain("Lint Explain Run");
       expect(output).toContain("Files: 2 lintable / 3 discovered");
+      expect(output).toContain("Fix strategy: autofix enabled (formatter-first)");
+      expect(output).toContain("✓ biome over eslint (modern linter replacement rule)");
       expect(output).toContain("✓ biome (available)");
       expect(output).toContain("- eslint (auto-resolved conflict)");
       expect(output).toContain("✓ src/app.ts -> biome");
       expect(output).toContain("- README.txt (no known linter supports this file type)");
       expect(output).toContain("biome: 1");
+      expect(output).toContain("Install missing linters: prettier");
     });
   });
 });
