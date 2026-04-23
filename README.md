@@ -92,11 +92,11 @@ lint ai explain           # Explain linting errors in plain language
 
 ```sh
 lint init                 # Smart setup wizard with auto-detection
-lint bootstrap            # Non-interactive repo-local bootstrap
+lint setup bootstrap      # Non-interactive repo-local bootstrap
 lint setup fix            # Apply recommended repo-local setup in one pass
 lint config recommend     # Print a recommended .lintrc.yaml
-lint doctor               # Diagnose setup, linters, hooks health
-lint doctor --json        # Machine-readable health report
+lint setup doctor         # Diagnose setup, linters, hooks health
+lint setup doctor --json  # Machine-readable health report
 lint explain-run .        # Explain file/linter/policy decisions without linting
 lint machine summary .    # Compact machine-readable summary for automation
 lint install missing .    # Install suggested linters that are not installed yet
@@ -160,11 +160,11 @@ lint hooks status
 ## Doctor
 
 ```sh
-lint doctor
-lint doctor --json
+lint setup doctor
+lint setup doctor --json
 ```
 
-`lint doctor` gives a quick local health check for:
+`lint setup doctor` gives a quick local health check for:
 
 - git root, branch, and dirty/clean state
 - `.lint/config` and `.lintrc.yaml`
@@ -174,6 +174,8 @@ lint doctor --json
 - managed vs unmanaged git hooks
 
 Legacy aliases like `lint setup:fix`, `lint config:recommend`, `lint install:missing`, `lint machine:summary`, `lint install:hooks`, `lint uninstall:hooks`, and `lint hooks:status` still work for backward compatibility, but the canonical API now prefers grouped commands like `lint setup fix`, `lint config recommend`, `lint install missing`, `lint machine summary`, and `lint hooks <action>`.
+
+Top-level aliases like `lint bootstrap` and `lint doctor` also still work, but the canonical setup flow now lives under `lint setup <bootstrap|fix|doctor>`.
 
 Use `lint doctor --json` when you want to consume the report from another tool, CI step, or control plane.
 
