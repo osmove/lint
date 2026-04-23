@@ -41,6 +41,7 @@ lint
 - **Managed hooks** — Portable hook install/uninstall/status with timeout, skip env, Husky/Lefthook compatibility
 - **Zero config** — Works out of the box, customize with `.lintrc.yaml`
 - **Doctor mode** — Inspect branch, dirty state, linters, config, and hook health
+- **Project-aware defaults** — Defers to repo-local linter configs unless cloud policy rules override them
 
 ## Supported Linters
 
@@ -55,6 +56,8 @@ lint
 | Code Formatting | Prettier | — |
 
 When Biome is installed, ESLint/Prettier/oxlint are automatically disabled (configurable in `.lintrc.yaml`).
+
+By default, Lint now respects the target repository's own linter configuration. Temporary configs are only generated when cloud policy rules need to override local behavior.
 
 ## Commands
 
@@ -162,7 +165,7 @@ git clone https://github.com/omnilint/lint.git
 cd lint
 npm install
 npm run build             # Build TypeScript → dist/
-npm test                  # Run tests (84 tests, 10 suites)
+npm test                  # Run tests (90 tests, 10 suites)
 npm run typecheck         # Type check
 npm run lint              # Lint with Biome
 ```
@@ -171,7 +174,7 @@ npm run lint              # Lint with Biome
 
 - TypeScript (strict), ESM
 - Build: tsup → Node 20+
-- Tests: Vitest (84 tests, 10 suites)
+- Tests: Vitest (90 tests, 10 suites)
 - CI: GitHub Actions (Node 20 + 22)
 - AI: Anthropic SDK (Claude)
 

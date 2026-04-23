@@ -16,6 +16,9 @@
 - made hook execution portable on macOS by removing the dependency on GNU `timeout`
 - switched linter process execution to argv-based command spawning for safer path handling
 - improved staged file discovery using `git diff --cached --name-status -z`
+- improved project detection across nested files and framework signals
+- made Biome diagnostics report better line/column positions when source spans are available
+- defaulted linter execution back to repo-local configs unless cloud policy rules explicitly override them
 
 ## [1.0.0] - 2026-04-15
 
