@@ -1,7 +1,6 @@
 import { confirm, input, password } from "@inquirer/prompts";
 import chalk from "chalk";
 import { Command } from "commander";
-import path from "node:path";
 import { saveApiKey } from "./ai/client.js";
 import { printCommitSuggestion } from "./ai/commit.js";
 import { explainErrors } from "./ai/explain.js";
@@ -10,7 +9,14 @@ import { reviewStagedChanges } from "./ai/review.js";
 import * as auth from "./auth.js";
 import { VERSION } from "./config.js";
 import { checkLinterInstallation } from "./detect.js";
-import { getStagedFilePaths, init, installHooks, MANAGED_HOOK_MARKER, uninstallHooks } from "./git.js";
+import {
+  getCurrentBranch,
+  getStagedFilePaths,
+  init,
+  inspectManagedHooks,
+  uninstallHooks,
+  installHooks,
+} from "./git.js";
 import {
   ALL_LINTERS,
   postCommitHook,
@@ -21,7 +27,7 @@ import {
 } from "./orchestrator.js";
 import { findRCFile, loadRC } from "./rc.js";
 import type { LintReport, LinterName } from "./types.js";
-import { findGitDir, findGitRoot, readLintConfig } from "./utils.js";
+import { findGitRoot, readLintConfig, repoIsDirty } from "./utils.js";
 
 const program = new Command();
 
@@ -107,6 +113,38 @@ program
   .action(() => uninstallHooks());
 
 program
+  .command("hooks:status")
+  .description("Inspect Lint git hooks")
+  .option("--json", "Output hook status as JSON")
+  .action((options: { json?: boolean }) => {
+    const gitRoot = findGitRoot();
+    if (!gitRoot) {
+      console.log(chalk.red("Not inside a git repository."));
+      return;
+    }
+
+    const hooks = inspectManagedHooks(gitRoot);
+    if (options.json) {
+      console.log(JSON.stringify(hooks, null, 2));
+      return;
+    }
+
+    console.log(chalk.bold("\n  Lint Hooks\n"));
+    for (const hook of hooks) {
+      const status = !hook.exists
+        ? chalk.gray("missing")
+        : hook.managed
+          ? chalk.green("managed")
+          : chalk.yellow("unmanaged");
+      console.log(`  ${hook.name}: ${status}`);
+      if (hook.exists) {
+        console.log(chalk.gray(`    ${hook.hookPath}`));
+      }
+    }
+    console.log("");
+  });
+
+program
   .command("prettify <extension>")
   .description("Run Prettier on all files with the given extension")
   .action((extension) => prettifyProject(extension));
@@ -124,6 +162,13 @@ program
     console.log(
       gitRoot ? chalk.green(`  ✓ Git: ${gitRoot}`) : chalk.red("  ✗ Not a git repository"),
     );
+    if (gitRoot) {
+      const branch = getCurrentBranch();
+      const dirty = repoIsDirty(gitRoot);
+      const dirtyLabel =
+        dirty === null ? chalk.gray("unknown") : dirty ? chalk.yellow("dirty") : chalk.green("clean");
+      console.log(`  ✓ Branch: ${branch} (${dirtyLabel})`);
+    }
 
     // Config
     const config = readLintConfig();
@@ -178,22 +223,15 @@ program
     // Hooks
     console.log(chalk.bold("\n  Git Hooks:\n"));
     if (gitRoot) {
-      const nodeFs = await import("node:fs");
-      const gitDir = findGitDir(gitRoot);
-      for (const hook of ["pre-commit", "prepare-commit-msg", "post-commit"]) {
-        const hookPath = gitDir
-          ? path.join(gitDir, "hooks", hook)
-          : path.join(gitRoot, ".git", "hooks", hook);
-        if (nodeFs.existsSync(hookPath)) {
-          const content = nodeFs.readFileSync(hookPath, "utf-8");
-          const isLintHook = content.includes(MANAGED_HOOK_MARKER);
+      for (const inspection of inspectManagedHooks(gitRoot)) {
+        if (inspection.exists) {
           console.log(
-            isLintHook
-              ? chalk.green(`    ✓ ${hook}`)
-              : chalk.yellow(`    ~ ${hook} (not Lint)`),
+            inspection.managed
+              ? chalk.green(`    ✓ ${inspection.name}`)
+              : chalk.yellow(`    ~ ${inspection.name} (not Lint)`),
           );
         } else {
-          console.log(chalk.gray(`    - ${hook} (not installed)`));
+          console.log(chalk.gray(`    - ${inspection.name} (not installed)`));
         }
       }
     }

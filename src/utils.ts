@@ -102,6 +102,17 @@ export function findGitRoot(startDir?: string): string | null {
   }
 }
 
+export function repoIsDirty(startDir?: string): boolean | null {
+  const root = findGitRoot(startDir);
+  if (!root) return null;
+  try {
+    const output = execGit(["status", "--short"], root, { silent: true });
+    return output.length > 0;
+  } catch {
+    return null;
+  }
+}
+
 export function getDotLintDir(): string | null {
   const gitRoot = findGitRoot();
   if (!gitRoot) return null;
