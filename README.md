@@ -156,7 +156,8 @@ lint doctor --json
 - git root, branch, and dirty/clean state
 - `.lint/config` and `.lintrc.yaml`
 - auth status
-- installed vs enabled linters
+- project detection: languages, frameworks, package managers, hook managers
+- installed, enabled, and effectively selected linters
 - managed vs unmanaged git hooks
 
 Use `lint doctor --json` when you want to consume the report from another tool, CI step, or control plane.

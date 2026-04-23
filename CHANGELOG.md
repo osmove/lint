@@ -11,6 +11,7 @@
 - `npm run quality-gate` so the repo can run Lint against itself in CI
 - offline API tests using mocked `fetch` instead of real network calls
 - doctor module coverage with dedicated tests
+- richer `lint doctor --json` project and linter selection metadata for machine consumers
 
 ### Changed
 

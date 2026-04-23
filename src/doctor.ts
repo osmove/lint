@@ -1,7 +1,7 @@
 import * as auth from "./auth.js";
-import { checkLinterInstallation } from "./detect.js";
+import { checkLinterInstallation, detectProject, getAllSuggestedLinters } from "./detect.js";
 import { getCurrentBranch, inspectManagedHooks } from "./git.js";
-import { findRCFile, loadRC } from "./rc.js";
+import { autoResolveConflicts, findRCFile, loadRC, resolveEnabledLinters } from "./rc.js";
 import type { LinterName } from "./types.js";
 import { findGitRoot, readLintConfig, repoIsDirty } from "./utils.js";
 
@@ -29,9 +29,18 @@ export interface DoctorLinterStatus {
   name: LinterName;
   installed: boolean;
   enabled: boolean;
+  selected: boolean;
+  source: "rc" | "auto";
+}
+
+export interface DoctorProjectLanguage {
+  name: string;
+  reason: string;
+  suggestedLinters: LinterName[];
 }
 
 export interface DoctorReport {
+  status: "healthy" | "needs_setup";
   git: {
     root: string | null;
     branch: string | null;
@@ -43,26 +52,58 @@ export interface DoctorReport {
     rcFile: string | null;
     loggedIn: boolean;
     username: string | null;
+    hasLintConfig: boolean;
+  };
+  project: {
+    languages: DoctorProjectLanguage[];
+    frameworks: string[];
+    packageManagers: string[];
+    suggestedLinters: LinterName[];
+    hasHusky: boolean;
+    hasLefthook: boolean;
   };
   linters: DoctorLinterStatus[];
   hooks: DoctorHookStatus[];
+  summary: {
+    installedLinters: number;
+    enabledLinters: number;
+    selectedLinters: number;
+    missingSelectedLinters: LinterName[];
+    managedHooks: number;
+  };
 }
 
 export function collectDoctorReport(): DoctorReport {
   const gitRoot = findGitRoot();
   const branch = gitRoot ? getCurrentBranch() : null;
   const dirty = gitRoot ? repoIsDirty(gitRoot) : null;
+  const project = detectProject(gitRoot || process.cwd());
 
   const config = readLintConfig();
   const rcFile = findRCFile();
   const rc = loadRC();
-  const enabledSet = new Set(rc.linters?.enabled || ALL_LINTERS);
+  const installedLinters = checkLinterInstallation(ALL_LINTERS);
+  const installedNames = installedLinters
+    .filter((linter) => linter.installed)
+    .map((linter) => linter.name);
+  const enabledNames = rc.linters?.enabled
+    ? rc.linters.enabled
+    : rc.linters?.disabled
+      ? ALL_LINTERS.filter((name) => !rc.linters?.disabled?.includes(name))
+      : autoResolveConflicts(ALL_LINTERS);
+  const selectedNames = resolveEnabledLinters(rc, installedNames);
+  const enabledSet = new Set(enabledNames);
   const disabledSet = new Set(rc.linters?.disabled || []);
+  const selectedSet = new Set(selectedNames);
+  const source: DoctorLinterStatus["source"] =
+    rc.linters?.enabled || rc.linters?.disabled ? "rc" : "auto";
 
-  const linters = checkLinterInstallation(ALL_LINTERS).map((linter) => ({
+  const linters = installedLinters.map((linter) => ({
     name: linter.name,
     installed: linter.installed,
     enabled: enabledSet.has(linter.name) && !disabledSet.has(linter.name),
+    selected: selectedSet.has(linter.name),
+    source,
   }));
 
   const hooks = gitRoot
@@ -73,8 +114,15 @@ export function collectDoctorReport(): DoctorReport {
         hookPath: hook.hookPath,
       }))
     : [];
+  const missingSelectedLinters = linters
+    .filter((linter) => linter.enabled && !linter.installed)
+    .map((linter) => linter.name);
+  const managedHooks = hooks.filter((hook) => hook.exists && hook.managed).length;
+  const status =
+    gitRoot && (config?.uuid || rcFile) && missingSelectedLinters.length === 0 ? "healthy" : "needs_setup";
 
   return {
+    status,
     git: {
       root: gitRoot,
       branch,
@@ -86,9 +134,25 @@ export function collectDoctorReport(): DoctorReport {
       rcFile,
       loggedIn: auth.isLoggedIn(),
       username: auth.getUsername(),
+      hasLintConfig: Boolean(config?.uuid),
+    },
+    project: {
+      languages: project.languages,
+      frameworks: project.frameworks,
+      packageManagers: project.packageManagers,
+      suggestedLinters: getAllSuggestedLinters(project),
+      hasHusky: project.hasHusky,
+      hasLefthook: project.hasLefthook,
     },
     linters,
     hooks,
+    summary: {
+      installedLinters: linters.filter((linter) => linter.installed).length,
+      enabledLinters: linters.filter((linter) => linter.enabled).length,
+      selectedLinters: linters.filter((linter) => linter.selected).length,
+      missingSelectedLinters,
+      managedHooks,
+    },
   };
 }
 
@@ -96,6 +160,8 @@ export function formatDoctorReport(report: DoctorReport): string[] {
   const lines: string[] = [];
 
   lines.push("  Lint Doctor");
+  lines.push("");
+  lines.push(`  Status: ${report.status}`);
   lines.push("");
 
   if (report.git.root) {
@@ -126,11 +192,43 @@ export function formatDoctorReport(report: DoctorReport): string[] {
   );
 
   lines.push("");
+  lines.push("  Project:");
+  lines.push("");
+  if (report.project.languages.length === 0) {
+    lines.push("    - No languages detected");
+  } else {
+    for (const language of report.project.languages) {
+      const linters =
+        language.suggestedLinters.length > 0 ? ` -> ${language.suggestedLinters.join(", ")}` : "";
+      lines.push(`    ✓ ${language.name} (${language.reason})${linters}`);
+    }
+  }
+  if (report.project.frameworks.length > 0) {
+    lines.push(`    Frameworks: ${report.project.frameworks.join(", ")}`);
+  }
+  if (report.project.packageManagers.length > 0) {
+    lines.push(`    Package managers: ${report.project.packageManagers.join(", ")}`);
+  }
+  if (report.project.hasHusky || report.project.hasLefthook) {
+    lines.push(
+      `    Hook managers: ${[
+        report.project.hasHusky ? "husky" : null,
+        report.project.hasLefthook ? "lefthook" : null,
+      ]
+        .filter(Boolean)
+        .join(", ")}`,
+    );
+  }
+
+  lines.push("");
   lines.push("  Linters:");
   lines.push("");
   for (const linter of report.linters) {
-    const enabled = linter.enabled ? "" : " (disabled in .lintrc.yaml)";
-    lines.push(`    ${linter.installed ? "✓" : "✗"} ${linter.name}: ${linter.installed ? "installed" : "not installed"}${enabled}`);
+    const enabled = linter.enabled ? "" : linter.source === "rc" ? " (disabled in .lintrc.yaml)" : " (auto-disabled)";
+    const selected = linter.selected ? " [selected]" : "";
+    lines.push(
+      `    ${linter.installed ? "✓" : "✗"} ${linter.name}: ${linter.installed ? "installed" : "not installed"}${enabled}${selected}`,
+    );
   }
 
   lines.push("");
@@ -144,6 +242,13 @@ export function formatDoctorReport(report: DoctorReport): string[] {
     } else {
       lines.push(`    ~ ${hook.name} (not Lint)`);
     }
+  }
+
+  if (report.summary.missingSelectedLinters.length > 0) {
+    lines.push("");
+    lines.push(
+      `  Missing selected linters: ${report.summary.missingSelectedLinters.join(", ")}`,
+    );
   }
 
   lines.push("");
