@@ -244,7 +244,9 @@ function describeNextSteps(report: {
   );
 
   if (missingLinters.length > 0) {
-    steps.push(`Install missing linters: ${missingLinters.map((entry) => entry.name).join(", ")}`);
+    steps.push(
+      `Install missing linters: ${missingLinters.map((entry) => entry.name).join(", ")} (or run 'lint install:missing .')`,
+    );
   }
 
   const uncoveredByMissingInstall = report.fileCoverage.uncoveredFiles.some((file) =>

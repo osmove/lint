@@ -2,7 +2,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { checkLinterInstallation, detectProject, getAllSuggestedLinters } from "../src/detect.js";
+import {
+  buildSuggestedLinterPlan,
+  checkLinterInstallation,
+  detectProject,
+  getAllSuggestedLinters,
+} from "../src/detect.js";
 
 const tempDirs: string[] = [];
 
@@ -106,5 +111,46 @@ describe("checkLinterInstallation", () => {
     expect(typeof result[0].installed).toBe("boolean");
     expect(result[1].name).toBe("ruff");
     expect(typeof result[1].installed).toBe("boolean");
+  });
+});
+
+describe("buildSuggestedLinterPlan", () => {
+  it("should keep reasons grouped by suggested linter", () => {
+    const project = {
+      languages: [
+        {
+          name: "JavaScript/TypeScript",
+          reason: "package.json",
+          suggestedLinters: ["biome" as const],
+        },
+        {
+          name: "CSS/SCSS",
+          reason: "stylesheets found",
+          suggestedLinters: ["biome" as const, "stylelint" as const],
+        },
+      ],
+      packageManagers: [],
+      frameworks: [],
+      hasHusky: false,
+      hasLefthook: false,
+    };
+
+    const plan = buildSuggestedLinterPlan(project, [
+      { name: "biome", installed: false },
+      { name: "stylelint", installed: true },
+    ]);
+
+    expect(plan).toEqual([
+      {
+        name: "biome",
+        installed: false,
+        reasons: ["CSS/SCSS (stylesheets found)", "JavaScript/TypeScript (package.json)"],
+      },
+      {
+        name: "stylelint",
+        installed: true,
+        reasons: ["CSS/SCSS (stylesheets found)"],
+      },
+    ]);
   });
 });

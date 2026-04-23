@@ -95,6 +95,7 @@ lint init                 # Smart setup wizard with auto-detection
 lint doctor               # Diagnose setup, linters, hooks health
 lint doctor --json        # Machine-readable health report
 lint explain-run .        # Explain file/linter/policy decisions without linting
+lint install:missing .    # Install suggested linters that are not installed yet
 lint ci --allow-warnings  # Quality gate but keep warnings non-blocking
 lint hooks:status         # Inspect managed hook status
 lint install:hooks        # Install git hooks
@@ -180,6 +181,16 @@ lint explain-run --json .
 - which files are covered or uncovered
 - whether policy rules are local or cloud-backed, and how many are applicable
 - recommended next steps when coverage or tooling is incomplete
+
+## Install Missing
+
+```sh
+lint install:missing .
+lint install:missing src/
+lint install:missing --dry-run .
+```
+
+`lint install:missing` uses project detection to find suggested linters that are still missing, shows why they were suggested, and can install them with the linter-specific install command.
 
 ## JSON Output
 
