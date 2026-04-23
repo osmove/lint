@@ -104,6 +104,7 @@ lint ci --allow-warnings  # Quality gate but keep warnings non-blocking
 lint hooks status         # Inspect managed hook status
 lint hooks install        # Install git hooks
 lint hooks uninstall      # Remove git hooks
+lint format write ts      # Run Prettier on all `*.ts` files
 ```
 
 ### Account
@@ -176,6 +177,8 @@ lint setup doctor --json
 Legacy aliases like `lint setup:fix`, `lint config:recommend`, `lint install:missing`, `lint machine:summary`, `lint install:hooks`, `lint uninstall:hooks`, and `lint hooks:status` still work for backward compatibility, but the canonical API now prefers grouped commands like `lint setup fix`, `lint config recommend`, `lint install missing`, `lint machine summary`, and `lint hooks <action>`.
 
 Top-level aliases like `lint bootstrap` and `lint doctor` also still work, but the canonical setup flow now lives under `lint setup <bootstrap|fix|doctor>`.
+
+`lint prettify <extension>` also still works as a compatibility alias, but the canonical formatting helper is now `lint format write <extension>`.
 
 Use `lint doctor --json` when you want to consume the report from another tool, CI step, or control plane.
 

@@ -318,6 +318,10 @@ function runAuthStatus(): void {
   auth.printStatus();
 }
 
+function runFormatWrite(extension: string): void {
+  prettifyProject(extension);
+}
+
 program.addCommand(
   new Command("pre-commit")
     .description("Pre-commit hook: lint staged files")
@@ -464,6 +468,15 @@ authCommand
     { hidden: true },
   );
 
+const formatCommand = program
+  .command("format")
+  .description("Formatting helpers");
+
+formatCommand
+  .command("write <extension>")
+  .description("Run Prettier on all files with the given extension")
+  .action((extension) => runFormatWrite(extension));
+
 program.addCommand(
   new Command("install:hooks")
     .description("Legacy alias for 'lint hooks install'")
@@ -579,10 +592,12 @@ program.addCommand(
   { hidden: true },
 );
 
-program
-  .command("prettify <extension>")
-  .description("Run Prettier on all files with the given extension")
-  .action((extension) => prettifyProject(extension));
+program.addCommand(
+  new Command("prettify <extension>")
+    .description("Legacy alias for 'lint format write <extension>'")
+    .action((extension) => runFormatWrite(extension)),
+  { hidden: true },
+);
 
 // ── Doctor command ──
 
