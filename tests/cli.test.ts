@@ -6,7 +6,7 @@ describe("cli", () => {
     const commandNames = program.commands.map((command) => command.name());
 
     expect(commandNames).toEqual(
-      expect.arrayContaining(["hooks", "setup", "config", "install", "machine", "auth"]),
+      expect.arrayContaining(["hooks", "setup", "config", "install", "machine", "auth", "format"]),
     );
   });
 
@@ -28,6 +28,7 @@ describe("cli", () => {
         "logout",
         "signup",
         "whoami",
+        "prettify",
       ]),
     );
   });
@@ -39,6 +40,7 @@ describe("cli", () => {
     const install = program.commands.find((command) => command.name() === "install");
     const machine = program.commands.find((command) => command.name() === "machine");
     const auth = program.commands.find((command) => command.name() === "auth");
+    const format = program.commands.find((command) => command.name() === "format");
 
     expect(hooks?.helpInformation()).toContain("install");
     expect(hooks?.helpInformation()).toContain("status");
@@ -55,6 +57,7 @@ describe("cli", () => {
     expect(auth?.helpInformation()).toContain("logout");
     expect(auth?.helpInformation()).toContain("signup");
     expect(auth?.helpInformation()).not.toContain("whoami");
+    expect(format?.helpInformation()).toContain("write");
   });
 
   it("keeps legacy aliases out of the root help output", () => {
@@ -63,6 +66,7 @@ describe("cli", () => {
     expect(help).toContain("hooks");
     expect(help).toContain("setup");
     expect(help).toContain("auth");
+    expect(help).toContain("format");
     expect(help).not.toContain("bootstrap");
     expect(help).not.toContain("doctor");
     expect(help).not.toContain("pre-commit");
@@ -77,5 +81,6 @@ describe("cli", () => {
     expect(help).not.toContain("logout");
     expect(help).not.toContain("signup");
     expect(help).not.toContain("whoami");
+    expect(help).not.toContain("prettify");
   });
 });
