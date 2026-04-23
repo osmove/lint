@@ -110,7 +110,12 @@ describe("reporter", () => {
           policySummary: {
             source: "cloud",
             totalRules: 2,
+            applicableRules: 2,
             byLinter: { eslint: 2 },
+          },
+          fileCoverage: {
+            coveredFiles: [{ path: "src/test.js", linters: ["eslint"] }],
+            uncoveredFiles: [{ path: "notes.txt", reason: "no selected linter supports this file type" }],
           },
         }),
       );
@@ -141,7 +146,12 @@ describe("reporter", () => {
         policy: {
           source: "cloud",
           totalRules: 2,
+          applicableRules: 2,
           byLinter: { eslint: 2 },
+        },
+        file_coverage: {
+          coveredFiles: [{ path: "src/test.js", linters: ["eslint"] }],
+          uncoveredFiles: [{ path: "notes.txt", reason: "no selected linter supports this file type" }],
         },
       });
     });

@@ -172,6 +172,7 @@ Use `lint doctor --json` when you want to consume the report from another tool, 
 - a message field for empty or skipped runs
 - explicit `status` and `exit_code` fields for CI and orchestration consumers
 - a `decisions` block with ignored files, linter selection reasons, and cloud-vs-local policy summary
+- file coverage details showing which selected linters handled which files, plus uncovered files
 
 ## CI / Quality Gate
 

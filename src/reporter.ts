@@ -22,9 +22,14 @@ export interface JsonReportMeta {
     selected: boolean;
     reason: string;
   }>;
+  fileCoverage?: {
+    coveredFiles: Array<{ path: string; linters: string[] }>;
+    uncoveredFiles: Array<{ path: string; reason: string }>;
+  };
   policySummary?: {
     source: "cloud" | "local";
     totalRules: number;
+    applicableRules: number;
     byLinter: Record<string, number>;
   };
 }
@@ -161,9 +166,14 @@ export function formatJsonReport(
       decisions: {
         ignored_files: meta.ignoredFiles ?? [],
         linter_selection: meta.linterSelection ?? [],
+        file_coverage: meta.fileCoverage ?? {
+          coveredFiles: [],
+          uncoveredFiles: [],
+        },
         policy: meta.policySummary ?? {
           source: "local",
           totalRules: meta.policyRuleCount ?? 0,
+          applicableRules: meta.policyRuleCount ?? 0,
           byLinter: {},
         },
       },
