@@ -58,6 +58,9 @@ describe("cli", () => {
     expect(help).toContain("hooks");
     expect(help).toContain("setup");
     expect(help).toContain("auth");
+    expect(help).not.toContain("pre-commit");
+    expect(help).not.toContain("prepare-commit-msg");
+    expect(help).not.toContain("post-commit");
     expect(help).not.toContain("install:hooks");
     expect(help).not.toContain("setup:fix");
     expect(help).not.toContain("config:recommend");
