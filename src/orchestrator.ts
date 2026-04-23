@@ -87,6 +87,63 @@ function describeLinterSelection(rc: ReturnType<typeof loadRC>): Array<{
   });
 }
 
+function describeFileCoverage(
+  files: string[],
+  linters: BaseLinter[],
+): {
+  coveredFiles: Array<{ path: string; linters: string[] }>;
+  uncoveredFiles: Array<{ path: string; reason: string }>;
+} {
+  const coverage = files.map((file) => {
+    const selectedLinters = linters
+      .filter((linter) => linter.selectFiles([file]).length > 0)
+      .map((linter) => linter.name)
+      .sort();
+
+    return {
+      path: file,
+      linters: selectedLinters,
+    };
+  });
+
+  return {
+    coveredFiles: coverage.filter((entry) => entry.linters.length > 0),
+    uncoveredFiles: coverage
+      .filter((entry) => entry.linters.length === 0)
+      .map((entry) => ({
+        path: entry.path,
+        reason: "no selected linter supports this file type",
+      })),
+  };
+}
+
+function summarizePolicyRules(
+  policyRules: PolicyRule[],
+  linters: BaseLinter[],
+): {
+  source: "cloud" | "local";
+  totalRules: number;
+  applicableRules: number;
+  byLinter: Record<string, number>;
+} {
+  const selectedLinterNames = new Set(linters.map((linter) => linter.name));
+  const byLinter = Object.fromEntries(
+    Object.entries(
+      policyRules.reduce<Record<string, number>>((counts, rule) => {
+        counts[rule.linter] = (counts[rule.linter] || 0) + 1;
+        return counts;
+      }, {}),
+    ).sort(([a], [b]) => a.localeCompare(b)),
+  );
+
+  return {
+    source: policyRules.length > 0 ? "cloud" : "local",
+    totalRules: policyRules.length,
+    applicableRules: policyRules.filter((rule) => selectedLinterNames.has(rule.linter)).length,
+    byLinter,
+  };
+}
+
 // ── API helpers ──
 
 async function fetchPolicyRules(): Promise<PolicyRule[]> {
@@ -171,6 +228,8 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
   const ignoredFiles = getIgnoredFileDecisions(files, ignorePatterns);
   files = filterIgnoredFiles(files, ignorePatterns);
   const linterSelection = describeLinterSelection(rc);
+  const selectedLinters = selectLinters(rc);
+  const fileCoverage = describeFileCoverage(files, selectedLinters);
 
   if (files.length === 0) {
     if (isJson) {
@@ -189,11 +248,8 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
           requestedPaths: options.paths ?? [],
           ignoredFiles,
           linterSelection,
-          policySummary: {
-            source: "local",
-            totalRules: 0,
-            byLinter: {},
-          },
+          fileCoverage,
+          policySummary: summarizePolicyRules([], selectedLinters),
         }),
       );
     } else if (!quiet) {
@@ -221,7 +277,7 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
   const commitAttemptId = await createCommitAttempt().catch(() => null);
 
   // ── Select linters (with conflict resolution) ──
-  const linters = selectLinters(rc);
+  const linters = selectedLinters;
 
   if (linters.length === 0) {
     if (isJson) {
@@ -240,18 +296,8 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
           requestedPaths: options.paths ?? [],
           ignoredFiles,
           linterSelection,
-          policySummary: {
-            source: policyRules.length > 0 ? "cloud" : "local",
-            totalRules: policyRules.length,
-            byLinter: Object.fromEntries(
-              Object.entries(
-                policyRules.reduce<Record<string, number>>((counts, rule) => {
-                  counts[rule.linter] = (counts[rule.linter] || 0) + 1;
-                  return counts;
-                }, {}),
-              ).sort(([a], [b]) => a.localeCompare(b)),
-            ),
-          },
+          fileCoverage,
+          policySummary: summarizePolicyRules(policyRules, linters),
         }),
       );
     } else if (!quiet) {
@@ -361,18 +407,8 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
         requestedPaths: options.paths ?? [],
         ignoredFiles,
         linterSelection,
-        policySummary: {
-          source: policyRules.length > 0 ? "cloud" : "local",
-          totalRules: policyRules.length,
-          byLinter: Object.fromEntries(
-            Object.entries(
-              policyRules.reduce<Record<string, number>>((counts, rule) => {
-                counts[rule.linter] = (counts[rule.linter] || 0) + 1;
-                return counts;
-              }, {}),
-            ).sort(([a], [b]) => a.localeCompare(b)),
-          ),
-        },
+        fileCoverage,
+        policySummary: summarizePolicyRules(policyRules, linters),
       }),
     );
   } else {
