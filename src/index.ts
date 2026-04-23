@@ -95,13 +95,6 @@ program
     });
   });
 
-// ── Setup commands ──
-
-program
-  .command("init")
-  .description("Initialize Lint with smart project detection")
-  .action(() => init());
-
 function installManagedHooks(): void {
   console.log("Installing git hooks...");
   const rc = loadRC();
@@ -368,6 +361,11 @@ const setupCommand = program
   .description("Manage repo-local Lint setup");
 
 setupCommand
+  .command("init")
+  .description("Initialize Lint with smart project detection")
+  .action(() => init());
+
+setupCommand
   .command("bootstrap")
   .description("Bootstrap repo-local Lint config without interactive prompts")
   .option("--dry-run", "Preview the bootstrap plan without writing files")
@@ -482,6 +480,13 @@ formatCommand
   .command("write <extension>")
   .description("Run Prettier on all files with the given extension")
   .action((extension) => runFormatWrite(extension));
+
+program.addCommand(
+  new Command("init")
+    .description("Legacy alias for 'lint setup init'")
+    .action(() => init()),
+  { hidden: true },
+);
 
 program.addCommand(
   new Command("explain-run [paths...]")
