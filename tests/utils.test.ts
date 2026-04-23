@@ -82,7 +82,7 @@ describe("formatDuration", () => {
 });
 
 describe("ensureDir", () => {
-  const testDir = path.join("/tmp", `omnilint-test-${Date.now()}`);
+  const testDir = path.join("/tmp", `lint-test-${Date.now()}`);
 
   afterEach(() => {
     try {

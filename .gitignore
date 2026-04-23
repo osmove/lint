@@ -25,7 +25,7 @@ npm-debug.log*
 *.seed
 *.pid.lock
 
-# Omnilint temp files
+# Lint temp files
 .lint/tmp/
 .lint/refs/
 .lint/ai-config

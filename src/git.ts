@@ -128,7 +128,7 @@ export function findFiles(targetPath: string): string[] {
 
 function hookContent(command: string, timeout: number, skipEnv: string): string {
   return `#!/bin/sh
-# Installed by Omnilint
+# Installed by Lint
 # Skip: ${skipEnv}=1 git commit ...
 # Skip: git commit --no-verify
 
@@ -139,7 +139,7 @@ if command -v lint >/dev/null 2>&1; then
 elif command -v npx >/dev/null 2>&1; then
   timeout ${timeout} npx --no-install lint ${command} "$@"
 else
-  echo "Omnilint: lint command not found. Skipping hook."
+  echo "Lint: lint command not found. Skipping hook."
   exit 0
 fi
 `;
@@ -153,7 +153,7 @@ export function installHooks(options?: { timeout?: number; skipEnv?: string }): 
   }
 
   const timeout = options?.timeout ?? 60;
-  const skipEnv = options?.skipEnv ?? "OMNILINT_SKIP";
+  const skipEnv = options?.skipEnv ?? "LINT_SKIP";
 
   // Detect existing hook managers
   const hasHusky = fs.existsSync(path.join(gitRoot, ".husky"));
@@ -162,7 +162,7 @@ export function installHooks(options?: { timeout?: number; skipEnv?: string }): 
     fs.existsSync(path.join(gitRoot, ".lefthook.yml"));
 
   if (hasHusky) {
-    console.log(chalk.yellow("  Husky detected. Adding Omnilint as a Husky hook."));
+    console.log(chalk.yellow("  Husky detected. Adding Lint as a Husky hook."));
     const huskyDir = path.join(gitRoot, ".husky");
     const hookPath = path.join(huskyDir, "pre-commit");
     const existing = fs.existsSync(hookPath) ? fs.readFileSync(hookPath, "utf-8") : "";
@@ -177,7 +177,7 @@ export function installHooks(options?: { timeout?: number; skipEnv?: string }): 
   }
 
   if (hasLefthook) {
-    console.log(chalk.yellow("  Lefthook detected. Add Omnilint manually to lefthook.yml:"));
+    console.log(chalk.yellow("  Lefthook detected. Add Lint manually to lefthook.yml:"));
     console.log(
       chalk.gray("    pre-commit:\n      commands:\n        lint:\n          run: lint pre-commit"),
     );
@@ -196,10 +196,10 @@ export function installHooks(options?: { timeout?: number; skipEnv?: string }): 
   for (const [name, content] of Object.entries(hooks)) {
     const hookPath = path.join(hooksDir, name);
 
-    // Backup existing non-Omnilint hook
+    // Backup existing non-Lint hook
     if (fs.existsSync(hookPath)) {
       const existingContent = fs.readFileSync(hookPath, "utf-8");
-      if (!existingContent.includes("Omnilint")) {
+      if (!existingContent.includes("Installed by Lint")) {
         const backupDir = path.join(hooksDir, `backup_${Date.now()}`);
         ensureDir(backupDir);
         fs.copyFileSync(hookPath, path.join(backupDir, name));
@@ -228,7 +228,7 @@ export function uninstallHooks(): void {
     const hookPath = path.join(hooksDir, name);
     if (fs.existsSync(hookPath)) {
       const content = fs.readFileSync(hookPath, "utf-8");
-      if (content.includes("Omnilint")) {
+      if (content.includes("Installed by Lint")) {
         fs.unlinkSync(hookPath);
         console.log(chalk.yellow(`  ✗ ${name} removed`));
       }
@@ -249,7 +249,7 @@ export async function init(): Promise<void> {
 
   const repoName = path.basename(gitRoot);
 
-  console.log(chalk.cyan.bold("\n  Omnilint Setup\n"));
+  console.log(chalk.cyan.bold("\n  Lint Setup\n"));
 
   // Check existing config
   const existing = readLintConfig();
@@ -278,7 +278,7 @@ export async function init(): Promise<void> {
   let selectedLinters: LinterName[];
   if (linterChoices.length > 0) {
     selectedLinters = await checkbox({
-      message: "Which linters should Omnilint use?",
+      message: "Which linters should Lint use?",
       choices: linterChoices,
     });
   } else {
@@ -338,11 +338,11 @@ export async function init(): Promise<void> {
   if (installHooksAnswer) {
     installHooks({
       timeout: rc.hooks?.timeout ?? 60,
-      skipEnv: rc.hooks?.skip_env ?? "OMNILINT_SKIP",
+      skipEnv: rc.hooks?.skip_env ?? "LINT_SKIP",
     });
   }
 
-  // ── Step 6: Connect to Omnilint API (optional) ──
+  // ── Step 6: Connect to Lint API (optional) ──
   const config: LintConfig = { uuid: `local-${Date.now()}`, repository: repoName };
 
   if (isLoggedIn()) {
@@ -356,7 +356,7 @@ export async function init(): Promise<void> {
       console.log(chalk.green(`  ✓ Connected to cloud: ${repoName}`));
     } else {
       const connectCloud = await confirm({
-        message: "Create repository on Omnilint cloud? (team policies)",
+        message: "Create repository on Lint cloud? (team policies)",
         default: false,
       });
 
@@ -384,12 +384,12 @@ export async function init(): Promise<void> {
   if (fs.existsSync(gitignorePath)) {
     const gitignore = fs.readFileSync(gitignorePath, "utf-8");
     if (!gitignore.includes(".lint/tmp")) {
-      fs.appendFileSync(gitignorePath, "\n# Omnilint\n.lint/tmp/\n", "utf-8");
+      fs.appendFileSync(gitignorePath, "\n# Lint\n.lint/tmp/\n", "utf-8");
     }
   }
 
   // ── Done ──
-  console.log(chalk.green.bold("\n  ✓ Omnilint initialized!\n"));
+  console.log(chalk.green.bold("\n  ✓ Lint initialized!\n"));
   console.log(`  Run ${chalk.cyan("lint")} to lint staged files.`);
   console.log(`  Run ${chalk.cyan("lint .")} to lint the entire project.`);
   console.log(`  Run ${chalk.cyan("lint ai review")} for AI code review.\n`);

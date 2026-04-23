@@ -140,7 +140,7 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
 
   if (!quiet && !isJson) {
     const action = dryRun ? "Checking" : autofix ? "Fixing" : "Linting";
-    console.log(chalk.cyan(`\nOmnilint — ${action} ${files.length} file(s) (${mode})...\n`));
+    console.log(chalk.cyan(`\nLint — ${action} ${files.length} file(s) (${mode})...\n`));
   }
 
   // ── Fetch policy rules ──
