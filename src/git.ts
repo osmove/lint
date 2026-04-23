@@ -224,7 +224,7 @@ function hookContent(
 ): string {
   return `#!/bin/sh
 # ${MANAGED_HOOK_MARKER}. Reinstall through:
-#   lint install:hooks
+#   lint hooks install
 # Skip: ${skipEnv}=1 git commit ...
 # Skip: git commit --no-verify
 

@@ -55,14 +55,14 @@ describe("orchestrator", () => {
             {
               id: "install_missing_linters",
               label: "Install missing linters",
-              command: "lint install:missing .",
+              command: "lint install missing .",
               reason: "Missing selected linters: ruff",
             },
           ],
           primary_action: {
             id: "install_missing_linters",
             label: "Install missing linters",
-            command: "lint install:missing .",
+            command: "lint install missing .",
             reason: "Missing selected linters: ruff",
           },
         }),

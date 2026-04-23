@@ -93,17 +93,17 @@ lint ai explain           # Explain linting errors in plain language
 ```sh
 lint init                 # Smart setup wizard with auto-detection
 lint bootstrap            # Non-interactive repo-local bootstrap
-lint setup:fix            # Apply recommended repo-local setup in one pass
-lint config:recommend     # Print a recommended .lintrc.yaml
+lint setup fix            # Apply recommended repo-local setup in one pass
+lint config recommend     # Print a recommended .lintrc.yaml
 lint doctor               # Diagnose setup, linters, hooks health
 lint doctor --json        # Machine-readable health report
 lint explain-run .        # Explain file/linter/policy decisions without linting
-lint machine:summary .    # Compact machine-readable summary for automation
-lint install:missing .    # Install suggested linters that are not installed yet
+lint machine summary .    # Compact machine-readable summary for automation
+lint install missing .    # Install suggested linters that are not installed yet
 lint ci --allow-warnings  # Quality gate but keep warnings non-blocking
-lint hooks:status         # Inspect managed hook status
-lint install:hooks        # Install git hooks
-lint uninstall:hooks      # Remove git hooks
+lint hooks status         # Inspect managed hook status
+lint hooks install        # Install git hooks
+lint hooks uninstall      # Remove git hooks
 ```
 
 ### Account
@@ -140,8 +140,8 @@ Without `.lintrc.yaml`, Lint uses smart defaults with automatic conflict resolut
 ## Git Hooks
 
 ```sh
-lint install:hooks
-lint hooks:status
+lint hooks install
+lint hooks status
 ```
 
 - Installs pre-commit, prepare-commit-msg, and post-commit hooks
@@ -166,6 +166,8 @@ lint doctor --json
 - installed, enabled, and effectively selected linters
 - managed vs unmanaged git hooks
 
+Legacy aliases like `lint setup:fix`, `lint config:recommend`, `lint install:missing`, `lint machine:summary`, `lint install:hooks`, `lint uninstall:hooks`, and `lint hooks:status` still work for backward compatibility, but the canonical API now prefers grouped commands like `lint setup fix`, `lint config recommend`, `lint install missing`, `lint machine summary`, and `lint hooks <action>`.
+
 Use `lint doctor --json` when you want to consume the report from another tool, CI step, or control plane.
 
 ## Explain Run
@@ -189,12 +191,12 @@ lint explain-run --json .
 ## Install Missing
 
 ```sh
-lint install:missing .
-lint install:missing src/
-lint install:missing --dry-run .
+lint install missing .
+lint install missing src/
+lint install missing --dry-run .
 ```
 
-`lint install:missing` uses project detection to find suggested linters that are still missing, shows why they were suggested, and can install them with the linter-specific install command.
+`lint install missing` uses project detection to find suggested linters that are still missing, shows why they were suggested, and can install them with the linter-specific install command.
 
 ## Bootstrap
 
@@ -210,23 +212,23 @@ lint bootstrap --install-missing --install-hooks
 ## Setup Fix
 
 ```sh
-lint setup:fix
-lint setup:fix --dry-run
-lint setup:fix --json
-lint setup:fix --no-install-missing --no-install-hooks
+lint setup fix
+lint setup fix --dry-run
+lint setup fix --json
+lint setup fix --no-install-missing --no-install-hooks
 ```
 
-`lint setup:fix` is the one-shot setup repair flow. It writes the recommended `.lintrc.yaml`, creates a local `.lint/config` when missing, and by default also installs missing suggested linters and managed hooks.
+`lint setup fix` is the one-shot setup repair flow. It writes the recommended `.lintrc.yaml`, creates a local `.lint/config` when missing, and by default also installs missing suggested linters and managed hooks.
 
 ## Recommended Config
 
 ```sh
-lint config:recommend
-lint config:recommend --json
-lint config:recommend --write
+lint config recommend
+lint config recommend --json
+lint config recommend --write
 ```
 
-`lint config:recommend` builds a recommended `.lintrc.yaml` from project detection and current defaults. It preserves existing custom sections like `rules`, `output`, hook overrides, and custom ignore patterns.
+`lint config recommend` builds a recommended `.lintrc.yaml` from project detection and current defaults. It preserves existing custom sections like `rules`, `output`, hook overrides, and custom ignore patterns.
 
 ## JSON Output
 
@@ -244,11 +246,11 @@ lint config:recommend --write
 For automation consumers that only need a compact health/result snapshot, use:
 
 ```sh
-lint machine:summary .
-lint machine:summary --strict .
+lint machine summary .
+lint machine summary --strict .
 ```
 
-The compact summary also includes structured `actions` with ready-to-run commands like `lint install:missing .`, `lint setup:fix --dry-run`, or `lint explain-run .`, so a control plane can guide remediation without parsing prose.
+The compact summary also includes structured `actions` with ready-to-run commands like `lint install missing .`, `lint setup fix --dry-run`, or `lint explain-run .`, so a control plane can guide remediation without parsing prose.
 It also exposes explicit `signals` booleans like `needs_setup`, `has_missing_selected_linters`, and `has_uncovered_files` for lightweight consumers.
 For even simpler consumers, it now includes a top-level `status`, stable `blocking_reasons` / `warning_reasons`, and a `primary_action`.
 Use `--strict` when a shell script should fail fast on setup gaps or uncovered files without parsing JSON.

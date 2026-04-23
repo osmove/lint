@@ -14,16 +14,18 @@
 - richer `lint doctor --json` project and linter selection metadata for machine consumers
 - `lint explain-run` to inspect run decisions in text or JSON without executing linters
 - enriched `lint explain-run` with resolved conflicts, fix strategy, and recommended next steps
-- `lint install:missing` to turn missing-linter diagnostics into a direct action
+- `lint install missing` to turn missing-linter diagnostics into a direct action
 - `lint bootstrap` for non-interactive repo-local setup and automation-friendly bootstrapping
-- `lint config:recommend` to preview or write a recommended `.lintrc.yaml`
-- `lint setup:fix` to apply recommended repo-local setup in a single command
+- `lint config recommend` to preview or write a recommended `.lintrc.yaml`
+- `lint setup fix` to apply recommended repo-local setup in a single command
 - versioned machine-readable outputs with explicit `schema_version` and `kind`
-- `lint machine:summary` for a compact automation-focused JSON snapshot
-- structured `actions` in `lint machine:summary` so automation consumers can trigger the right remediation commands directly
-- `lint machine:summary --strict` to expose a simple non-zero shell signal for setup or coverage gaps
-- explicit `signals` booleans in `lint machine:summary` so consumers do not need to derive health from counts
-- top-level `status`, `blocking_reasons`, `warning_reasons`, and `primary_action` in `lint machine:summary` for simpler control-plane integration
+- `lint machine summary` for a compact automation-focused JSON snapshot
+- structured `actions` in `lint machine summary` so automation consumers can trigger the right remediation commands directly
+- `lint machine summary --strict` to expose a simple non-zero shell signal for setup or coverage gaps
+- explicit `signals` booleans in `lint machine summary` so consumers do not need to derive health from counts
+- top-level `status`, `blocking_reasons`, `warning_reasons`, and `primary_action` in `lint machine summary` for simpler control-plane integration
+- canonical hook commands are now grouped under `lint hooks <install|status|uninstall>`, with legacy aliases kept for compatibility
+- canonical setup-style commands are now grouped under namespaces like `lint setup fix`, `lint config recommend`, `lint install missing`, and `lint machine summary`, with legacy colon aliases kept for compatibility
 
 ### Changed
 
