@@ -12,6 +12,7 @@ import { collectDoctorReport, formatDoctorReport } from "./doctor.js";
 import { buildSuggestedLinterPlan, detectProject } from "./detect.js";
 import {
   bootstrapProject,
+  fixSetup,
   getStagedFilePaths,
   init,
   inspectManagedHooks,
@@ -151,6 +152,26 @@ program
     installHooks?: boolean;
   }) =>
     bootstrapProject({
+      dryRun: options.dryRun,
+      json: options.json,
+      installMissing: options.installMissing,
+      installHooks: options.installHooks,
+    }));
+
+program
+  .command("setup:fix")
+  .description("Apply recommended repo-local Lint setup in one pass")
+  .option("--dry-run", "Preview the setup changes without writing files")
+  .option("--json", "Output the setup plan as JSON")
+  .option("--no-install-missing", "Skip installing missing suggested linters")
+  .option("--no-install-hooks", "Skip installing managed git hooks")
+  .action((options: {
+    dryRun?: boolean;
+    json?: boolean;
+    installMissing?: boolean;
+    installHooks?: boolean;
+  }) =>
+    fixSetup({
       dryRun: options.dryRun,
       json: options.json,
       installMissing: options.installMissing,

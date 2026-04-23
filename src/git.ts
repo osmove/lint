@@ -6,11 +6,12 @@ import * as api from "./api.js";
 import { getToken, getUsername, isLoggedIn } from "./auth.js";
 import {
   checkLinterInstallation,
+  buildSuggestedLinterPlan,
   detectProject,
   getAllSuggestedLinters,
   printDetectionSummary,
 } from "./detect.js";
-import { generateDefaultRC, writeRC } from "./rc.js";
+import { buildRecommendedRC, generateDefaultRC, loadRC, writeRC } from "./rc.js";
 import type { LintConfig, LinterName, StagedFile } from "./types.js";
 import { ensureDir, execFile, execGit, findGitDir, findGitRoot, readLintConfig, writeLintConfig } from "./utils.js";
 
@@ -31,6 +32,14 @@ export interface BootstrapPlan {
   lintConfigExists: boolean;
   hookTimeout: number;
   hookSkipEnv: string;
+}
+
+export interface SetupFixPlan extends BootstrapPlan {
+  recommendedLinters: LinterName[];
+  willWriteRecommendedConfig: boolean;
+  willCreateLintConfig: boolean;
+  willInstallMissing: boolean;
+  willInstallHooks: boolean;
 }
 
 const INSTALL_COMMANDS: Record<LinterName, string> = {
@@ -64,6 +73,26 @@ export function buildBootstrapPlan(args: {
     lintConfigExists: args.lintConfigExists,
     hookTimeout: rc.hooks?.timeout ?? 60,
     hookSkipEnv: rc.hooks?.skip_env ?? "LINT_SKIP",
+  };
+}
+
+export function buildSetupFixPlan(args: {
+  repoName: string;
+  suggestedLinters: LinterName[];
+  installStatus: Array<{ name: LinterName; installed: boolean }>;
+  rcExists: boolean;
+  lintConfigExists: boolean;
+  installMissing: boolean;
+  installHooks: boolean;
+}): SetupFixPlan {
+  const bootstrapPlan = buildBootstrapPlan(args);
+  return {
+    ...bootstrapPlan,
+    recommendedLinters: args.suggestedLinters,
+    willWriteRecommendedConfig: true,
+    willCreateLintConfig: !args.lintConfigExists,
+    willInstallMissing: args.installMissing && bootstrapPlan.missingLinters.length > 0,
+    willInstallHooks: args.installHooks,
   };
 }
 
@@ -612,4 +641,90 @@ export function bootstrapProject(options?: {
   }
 
   console.log(chalk.green("\nBootstrap complete."));
+}
+
+export function fixSetup(options?: {
+  dryRun?: boolean;
+  json?: boolean;
+  installMissing?: boolean;
+  installHooks?: boolean;
+}): void {
+  const gitRoot = findGitRoot();
+  if (!gitRoot) {
+    console.log(chalk.red("Not inside a git repository. Run 'git init' first."));
+    return;
+  }
+
+  const repoName = path.basename(gitRoot);
+  const project = detectProject(gitRoot);
+  const suggestedPlan = buildSuggestedLinterPlan(project);
+  const suggestedLinters = suggestedPlan.map((entry) => entry.name);
+  const existingRc = loadRC();
+  const recommendedRc = buildRecommendedRC(existingRc, suggestedLinters);
+  const plan = buildSetupFixPlan({
+    repoName,
+    suggestedLinters,
+    installStatus: suggestedPlan.map((entry) => ({ name: entry.name, installed: entry.installed })),
+    rcExists: fs.existsSync(path.join(gitRoot, ".lintrc.yaml")),
+    lintConfigExists: Boolean(readLintConfig()?.uuid),
+    installMissing: options?.installMissing ?? true,
+    installHooks: options?.installHooks ?? true,
+  });
+
+  if (options?.json) {
+    console.log(
+      JSON.stringify(
+        {
+          ...plan,
+          dry_run: options.dryRun ?? false,
+          recommended_config: recommendedRc,
+          suggested_linter_reasons: suggestedPlan,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  console.log(chalk.cyan.bold("\n  Lint Setup Fix\n"));
+  printDetectionSummary(project);
+  console.log("");
+  console.log(`  Repo: ${plan.repoName}`);
+  console.log(`  Recommended linters: ${plan.recommendedLinters.join(", ") || "none"}`);
+  console.log(`  Write recommended config: ${plan.willWriteRecommendedConfig ? "yes" : "no"}`);
+  console.log(`  Create local lint config: ${plan.willCreateLintConfig ? "yes" : "no"}`);
+  console.log(`  Install missing linters: ${plan.willInstallMissing ? "yes" : "no"}`);
+  console.log(`  Install hooks: ${plan.willInstallHooks ? "yes" : "no"}`);
+  console.log("");
+
+  if (options?.dryRun) return;
+
+  writeRC(recommendedRc);
+  console.log(chalk.green("  ✓ Wrote recommended .lintrc.yaml"));
+
+  if (plan.willCreateLintConfig) {
+    writeLintConfig({ uuid: `local-${Date.now()}`, repository: repoName });
+    console.log(chalk.green("  ✓ Wrote .lint/config"));
+  }
+
+  if (plan.willInstallMissing) {
+    for (const name of plan.missingLinters) {
+      const cmd = INSTALL_COMMANDS[name];
+      if (!cmd) continue;
+      try {
+        process.stdout.write(chalk.gray(`  Installing ${name}... `));
+        execFile("sh", ["-lc", cmd], { silent: true });
+        console.log(chalk.green("done"));
+      } catch {
+        console.log(chalk.red("failed"));
+      }
+    }
+  }
+
+  if (plan.willInstallHooks) {
+    installHooks({ timeout: plan.hookTimeout, skipEnv: plan.hookSkipEnv });
+  }
+
+  console.log(chalk.green("\nSetup fix complete."));
 }
