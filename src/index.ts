@@ -283,6 +283,40 @@ function printHooksStatus(options: { json?: boolean }): void {
   console.log("");
 }
 
+async function runLogin(): Promise<void> {
+  if (auth.isLoggedIn()) {
+    console.log(`Already logged in as ${chalk.green(auth.getUsername())}.`);
+    return;
+  }
+  const username = await input({ message: "Username or email:" });
+  const pw = await password({ message: "Password:", mask: "*" });
+  await auth.login(username, pw);
+}
+
+async function runLogout(): Promise<void> {
+  if (!auth.isLoggedIn()) {
+    console.log("Not logged in.");
+    return;
+  }
+  const yes = await confirm({ message: "Are you sure you want to log out?" });
+  if (yes) auth.logout();
+}
+
+async function runSignup(): Promise<void> {
+  if (auth.isLoggedIn()) {
+    console.log(`Already logged in as ${chalk.green(auth.getUsername())}.`);
+    return;
+  }
+  const username = await input({ message: "Username:" });
+  const email = await input({ message: "Email:" });
+  const pw = await password({ message: "Password:", mask: "*" });
+  await auth.signup(username, email, pw);
+}
+
+function runWhoAmI(): void {
+  auth.printStatus();
+}
+
 const hooksCommand = program
   .command("hooks")
   .description("Manage Lint git hooks");
@@ -352,6 +386,30 @@ machineCommand
   .option("--strict", "Exit 1 when the repo still needs setup or has uncovered files")
   .action((paths, options: { strict?: boolean }) => runMachineSummary(paths, options));
 
+const authCommand = program
+  .command("auth")
+  .description("Manage Lint authentication");
+
+authCommand
+  .command("login")
+  .description("Sign in to Lint")
+  .action(async () => runLogin());
+
+authCommand
+  .command("logout")
+  .description("Sign out from Lint")
+  .action(async () => runLogout());
+
+authCommand
+  .command("signup")
+  .description("Create a Lint account")
+  .action(async () => runSignup());
+
+authCommand
+  .command("whoami")
+  .description("Show current login status")
+  .action(() => runWhoAmI());
+
 program.addCommand(
   new Command("install:hooks")
     .description("Legacy alias for 'lint hooks install'")
@@ -412,6 +470,34 @@ program.addCommand(
     .description("Legacy alias for 'lint hooks status'")
     .option("--json", "Output hook status as JSON")
     .action((options: { json?: boolean }) => printHooksStatus(options)),
+  { hidden: true },
+);
+
+program.addCommand(
+  new Command("login")
+    .description("Legacy alias for 'lint auth login'")
+    .action(async () => runLogin()),
+  { hidden: true },
+);
+
+program.addCommand(
+  new Command("logout")
+    .description("Legacy alias for 'lint auth logout'")
+    .action(async () => runLogout()),
+  { hidden: true },
+);
+
+program.addCommand(
+  new Command("signup")
+    .description("Legacy alias for 'lint auth signup'")
+    .action(async () => runSignup()),
+  { hidden: true },
+);
+
+program.addCommand(
+  new Command("whoami")
+    .description("Legacy alias for 'lint auth whoami'")
+    .action(() => runWhoAmI()),
   { hidden: true },
 );
 
@@ -487,52 +573,6 @@ ai.command("setup")
     saveApiKey(apiKey);
     console.log(chalk.green("API key saved. AI features are now enabled."));
   });
-
-// ── Account commands ──
-
-program
-  .command("login")
-  .description("Sign in to Lint")
-  .action(async () => {
-    if (auth.isLoggedIn()) {
-      console.log(`Already logged in as ${chalk.green(auth.getUsername())}.`);
-      return;
-    }
-    const username = await input({ message: "Username or email:" });
-    const pw = await password({ message: "Password:", mask: "*" });
-    await auth.login(username, pw);
-  });
-
-program
-  .command("logout")
-  .description("Sign out from Lint")
-  .action(async () => {
-    if (!auth.isLoggedIn()) {
-      console.log("Not logged in.");
-      return;
-    }
-    const yes = await confirm({ message: "Are you sure you want to log out?" });
-    if (yes) auth.logout();
-  });
-
-program
-  .command("signup")
-  .description("Create a Lint account")
-  .action(async () => {
-    if (auth.isLoggedIn()) {
-      console.log(`Already logged in as ${chalk.green(auth.getUsername())}.`);
-      return;
-    }
-    const username = await input({ message: "Username:" });
-    const email = await input({ message: "Email:" });
-    const pw = await password({ message: "Password:", mask: "*" });
-    await auth.signup(username, email, pw);
-  });
-
-program
-  .command("whoami")
-  .description("Show current login status")
-  .action(() => auth.printStatus());
 
 const entryArg = process.argv[1];
 if (entryArg && import.meta.url === pathToFileURL(entryArg).href) {

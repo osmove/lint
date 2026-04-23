@@ -26,6 +26,7 @@
 - top-level `status`, `blocking_reasons`, `warning_reasons`, and `primary_action` in `lint machine summary` for simpler control-plane integration
 - canonical hook commands are now grouped under `lint hooks <install|status|uninstall>`, with legacy aliases kept for compatibility
 - canonical setup-style commands are now grouped under namespaces like `lint setup fix`, `lint config recommend`, `lint install missing`, and `lint machine summary`, with legacy colon aliases kept for compatibility
+- canonical account commands are now grouped under `lint auth <login|logout|signup|whoami>`, with flat aliases kept for compatibility
 
 ### Changed
 
