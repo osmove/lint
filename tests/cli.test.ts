@@ -46,10 +46,11 @@ describe("cli", () => {
     expect(config?.helpInformation()).toContain("recommend");
     expect(install?.helpInformation()).toContain("missing");
     expect(machine?.helpInformation()).toContain("summary");
+    expect(auth?.helpInformation()).toContain("status");
     expect(auth?.helpInformation()).toContain("login");
     expect(auth?.helpInformation()).toContain("logout");
     expect(auth?.helpInformation()).toContain("signup");
-    expect(auth?.helpInformation()).toContain("whoami");
+    expect(auth?.helpInformation()).not.toContain("whoami");
   });
 
   it("keeps legacy aliases out of the root help output", () => {

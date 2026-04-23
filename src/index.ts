@@ -307,7 +307,7 @@ async function runSignup(): Promise<void> {
   await auth.signup(username, email, pw);
 }
 
-function runWhoAmI(): void {
+function runAuthStatus(): void {
   auth.printStatus();
 }
 
@@ -410,6 +410,11 @@ const authCommand = program
   .description("Manage Lint authentication");
 
 authCommand
+  .command("status")
+  .description("Show current login status")
+  .action(() => runAuthStatus());
+
+authCommand
   .command("login")
   .description("Sign in to Lint")
   .action(async () => runLogin());
@@ -425,9 +430,12 @@ authCommand
   .action(async () => runSignup());
 
 authCommand
-  .command("whoami")
-  .description("Show current login status")
-  .action(() => runWhoAmI());
+  .addCommand(
+    new Command("whoami")
+      .description("Legacy alias for 'lint auth status'")
+      .action(() => runAuthStatus()),
+    { hidden: true },
+  );
 
 program.addCommand(
   new Command("install:hooks")
@@ -516,7 +524,7 @@ program.addCommand(
 program.addCommand(
   new Command("whoami")
     .description("Legacy alias for 'lint auth whoami'")
-    .action(() => runWhoAmI()),
+    .action(() => runAuthStatus()),
   { hidden: true },
 );
 

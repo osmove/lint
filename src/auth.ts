@@ -71,7 +71,7 @@ export async function printStatus(): Promise<void> {
   const username = getUsername();
   const token = getToken();
   if (!username || !token) {
-    console.log(`Not logged in. Run ${chalk.cyan("lint login")} to sign in.`);
+    console.log(`Not logged in. Run ${chalk.cyan("lint auth login")} to sign in.`);
     return;
   }
   const result = await api.fetchUser(username, token);
