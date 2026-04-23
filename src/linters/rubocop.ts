@@ -30,11 +30,14 @@ export class RuboCopLinter extends BaseLinter {
   configFileName = ".rubocop.yml";
 
   createConfig(rules: PolicyRule[], tmpDir: string): string {
+    const rubocopRules = rules.filter((r) => r.linter === "rubocop");
+    if (rubocopRules.length === 0) return "";
+
     const config: Record<string, unknown> = {
       AllCops: { NewCops: "enable", SuggestExtensions: false },
     };
 
-    for (const rule of rules.filter((r) => r.linter === "rubocop")) {
+    for (const rule of rubocopRules) {
       config[rule.slug] = {
         Enabled: rule.status === "enabled",
         Severity: rule.severity === "error" ? "error" : "warning",
@@ -52,8 +55,7 @@ export class RuboCopLinter extends BaseLinter {
       raw = execFile(
         "rubocop",
         [
-          "--config",
-          configPath,
+          ...(configPath ? ["--config", configPath] : []),
           "--format",
           "json",
           ...(autofix ? ["--autocorrect"] : []),

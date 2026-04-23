@@ -20,12 +20,15 @@ export class OxlintLinter extends BaseLinter {
   configFileName = ".oxlintrc.json";
 
   createConfig(rules: PolicyRule[], tmpDir: string): string {
+    const oxlintRulesList = rules.filter((r) => r.linter === "oxlint");
+    if (oxlintRulesList.length === 0) return "";
+
     const config: Record<string, unknown> = {
       rules: {} as Record<string, string>,
     };
 
     const oxlintRules: Record<string, string> = {};
-    for (const rule of rules.filter((r) => r.linter === "oxlint")) {
+    for (const rule of oxlintRulesList) {
       oxlintRules[rule.slug] = rule.status === "enabled" ? rule.severity : "off";
     }
 
@@ -38,7 +41,7 @@ export class OxlintLinter extends BaseLinter {
   run(files: string[], configPath: string, _autofix: boolean): LinterResult {
     let raw: string;
     try {
-      raw = execFile("oxlint", [`--config=${configPath}`, "--format=json", ...files], {
+      raw = execFile("oxlint", [...(configPath ? [`--config=${configPath}`] : []), "--format=json", ...files], {
         silent: true,
       });
     } catch (error) {

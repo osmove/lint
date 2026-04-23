@@ -11,23 +11,15 @@ export class PrettierLinter extends BaseLinter {
   configFileName = ".prettierrc.json";
 
   createConfig(rules: PolicyRule[], tmpDir: string): string {
+    const prettierRules = rules.filter((r) => r.linter === "prettier");
+    if (prettierRules.length === 0) return "";
+
     const config: Record<string, unknown> = {};
 
-    for (const rule of rules.filter((r) => r.linter === "prettier")) {
+    for (const rule of prettierRules) {
       if (rule.status === "enabled" && rule.content?.options) {
         Object.assign(config, rule.content.options);
       }
-    }
-
-    // Sensible defaults if no rules provided
-    if (Object.keys(config).length === 0) {
-      Object.assign(config, {
-        semi: true,
-        singleQuote: false,
-        tabWidth: 2,
-        trailingComma: "all",
-        printWidth: 100,
-      });
     }
 
     const configPath = path.join(tmpDir, this.configFileName);
@@ -38,7 +30,11 @@ export class PrettierLinter extends BaseLinter {
   run(files: string[], configPath: string, autofix: boolean): LinterResult {
     if (autofix) {
       try {
-        execFile("prettier", ["--config", configPath, "--write", ...files], { silent: true });
+        execFile(
+          "prettier",
+          [...(configPath ? ["--config", configPath] : []), "--write", ...files],
+          { silent: true },
+        );
       } catch {
         // Prettier may fail on some files, continue
       }
@@ -48,7 +44,11 @@ export class PrettierLinter extends BaseLinter {
     // Check mode
     let raw: string;
     try {
-      raw = execFile("prettier", ["--config", configPath, "--check", ...files], { silent: true });
+      raw = execFile(
+        "prettier",
+        [...(configPath ? ["--config", configPath] : []), "--check", ...files],
+        { silent: true },
+      );
       return { success: true, report: this.emptyReport(), raw };
     } catch (error) {
       raw = (error as { stdout?: string }).stdout || "";

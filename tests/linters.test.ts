@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { BiomeLinter } from "../src/linters/biome.js";
 import { BrakemanLinter } from "../src/linters/brakeman.js";
 import { ErbLintLinter } from "../src/linters/erblint.js";
@@ -133,6 +136,11 @@ describe("BiomeLinter", () => {
     expect(report.error_count).toBe(0);
     expect(report.files).toEqual([]);
   });
+
+  it("should defer to project config when no biome policy rules are provided", () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lint-biome-"));
+    expect(linter.createConfig([], tmpDir)).toBe("");
+  });
 });
 
 describe("RuffLinter", () => {
@@ -160,6 +168,11 @@ describe("RuffLinter", () => {
     expect(report.files[0].offenses[0].rule).toBe("F401");
     expect(report.files[0].offenses[0].fixable).toBe(true);
   });
+
+  it("should defer to project config when no ruff policy rules are provided", () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lint-ruff-"));
+    expect(linter.createConfig([], tmpDir)).toBe("");
+  });
 });
 
 describe("OxlintLinter", () => {
@@ -178,6 +191,11 @@ describe("StylelintLinter", () => {
   it("should select CSS files", () => {
     const files = ["a.css", "b.scss", "c.less", "d.js"];
     expect(linter.selectFiles(files)).toEqual(["a.css", "b.scss", "c.less"]);
+  });
+
+  it("should defer to project config when no stylelint policy rules are provided", () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lint-stylelint-"));
+    expect(linter.createConfig([], tmpDir)).toBe("");
   });
 });
 

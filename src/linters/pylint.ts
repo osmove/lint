@@ -23,6 +23,9 @@ export class PylintLinter extends BaseLinter {
   configFileName = ".pylintrc";
 
   createConfig(rules: PolicyRule[], tmpDir: string): string {
+    const pylintRules = rules.filter((r) => r.linter === "pylint");
+    if (pylintRules.length === 0) return "";
+
     const sections: Record<string, Record<string, string>> = {
       MAIN: {},
       BASIC: {},
@@ -34,7 +37,7 @@ export class PylintLinter extends BaseLinter {
     const disabled: string[] = [];
     const enabled: string[] = [];
 
-    for (const rule of rules.filter((r) => r.linter === "pylint")) {
+    for (const rule of pylintRules) {
       if (rule.status === "enabled") {
         enabled.push(rule.slug);
       } else {
@@ -64,7 +67,7 @@ export class PylintLinter extends BaseLinter {
     try {
       raw = execFile(
         "pylint",
-        [`--rcfile=${configPath}`, "--output-format=json", ...files],
+        [...(configPath ? [`--rcfile=${configPath}`] : []), "--output-format=json", ...files],
         { silent: true },
       );
     } catch (error) {
