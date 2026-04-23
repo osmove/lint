@@ -23,6 +23,50 @@ export interface HookInspection {
   managed: boolean;
 }
 
+export interface BootstrapPlan {
+  repoName: string;
+  selectedLinters: LinterName[];
+  missingLinters: LinterName[];
+  rcExists: boolean;
+  lintConfigExists: boolean;
+  hookTimeout: number;
+  hookSkipEnv: string;
+}
+
+const INSTALL_COMMANDS: Record<LinterName, string> = {
+  biome: "npm install -g @biomejs/biome",
+  eslint: "npm install -g eslint",
+  prettier: "npm install -g prettier",
+  oxlint: "npm install -g oxlint",
+  stylelint: "npm install -g stylelint",
+  ruff: "pip install ruff",
+  pylint: "pip install pylint",
+  rubocop: "gem install rubocop",
+  erblint: "gem install erb_lint",
+  brakeman: "gem install brakeman",
+};
+
+export function buildBootstrapPlan(args: {
+  repoName: string;
+  suggestedLinters: LinterName[];
+  installStatus: Array<{ name: LinterName; installed: boolean }>;
+  rcExists: boolean;
+  lintConfigExists: boolean;
+}): BootstrapPlan {
+  const rc = generateDefaultRC(args.suggestedLinters);
+  return {
+    repoName: args.repoName,
+    selectedLinters: args.suggestedLinters,
+    missingLinters: args.installStatus
+      .filter((entry) => !entry.installed && args.suggestedLinters.includes(entry.name))
+      .map((entry) => entry.name),
+    rcExists: args.rcExists,
+    lintConfigExists: args.lintConfigExists,
+    hookTimeout: rc.hooks?.timeout ?? 60,
+    hookSkipEnv: rc.hooks?.skip_env ?? "LINT_SKIP",
+  };
+}
+
 // ── Staged files ──
 
 export function getStagedFiles(): StagedFile[] {
@@ -402,19 +446,6 @@ export async function init(): Promise<void> {
     });
 
     if (installMissing) {
-      const INSTALL_COMMANDS: Record<string, string> = {
-        biome: "npm install -g @biomejs/biome",
-        eslint: "npm install -g eslint",
-        prettier: "npm install -g prettier",
-        oxlint: "npm install -g oxlint",
-        stylelint: "npm install -g stylelint",
-        ruff: "pip install ruff",
-        pylint: "pip install pylint",
-        rubocop: "gem install rubocop",
-        erblint: "gem install erb_lint",
-        brakeman: "gem install brakeman",
-      };
-
       for (const l of missing) {
         const cmd = INSTALL_COMMANDS[l.name];
         if (cmd) {
@@ -500,4 +531,85 @@ export async function init(): Promise<void> {
   console.log(`  Run ${chalk.cyan("lint")} to lint staged files.`);
   console.log(`  Run ${chalk.cyan("lint .")} to lint the entire project.`);
   console.log(`  Run ${chalk.cyan("lint ai review")} for AI code review.\n`);
+}
+
+export function bootstrapProject(options?: {
+  dryRun?: boolean;
+  json?: boolean;
+  installMissing?: boolean;
+  installHooks?: boolean;
+}): void {
+  const gitRoot = findGitRoot();
+  if (!gitRoot) {
+    console.log(chalk.red("Not inside a git repository. Run 'git init' first."));
+    return;
+  }
+
+  const repoName = path.basename(gitRoot);
+  const project = detectProject(gitRoot);
+  const suggested = getAllSuggestedLinters(project);
+  const installStatus = checkLinterInstallation(suggested);
+  const plan = buildBootstrapPlan({
+    repoName,
+    suggestedLinters: suggested,
+    installStatus,
+    rcExists: fs.existsSync(path.join(gitRoot, ".lintrc.yaml")),
+    lintConfigExists: Boolean(readLintConfig()?.uuid),
+  });
+
+  if (options?.json) {
+    console.log(
+      JSON.stringify(
+        {
+          ...plan,
+          install_missing_requested: options.installMissing ?? false,
+          install_hooks_requested: options.installHooks ?? false,
+          dry_run: options.dryRun ?? false,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  console.log(chalk.cyan.bold("\n  Lint Bootstrap\n"));
+  printDetectionSummary(project);
+  console.log("");
+  console.log(`  Repo: ${repoName}`);
+  console.log(`  Suggested linters: ${plan.selectedLinters.join(", ") || "none"}`);
+  console.log(`  Missing linters: ${plan.missingLinters.join(", ") || "none"}`);
+  console.log(`  RC config: ${plan.rcExists ? "update" : "create"}`);
+  console.log(`  Lint config: ${plan.lintConfigExists ? "keep existing" : "create local config"}`);
+  console.log("");
+
+  if (options?.dryRun) return;
+
+  writeRC(generateDefaultRC(plan.selectedLinters));
+  console.log(chalk.green("  ✓ Wrote .lintrc.yaml"));
+
+  if (!plan.lintConfigExists) {
+    writeLintConfig({ uuid: `local-${Date.now()}`, repository: repoName });
+    console.log(chalk.green("  ✓ Wrote .lint/config"));
+  }
+
+  if (options?.installMissing && plan.missingLinters.length > 0) {
+    for (const name of plan.missingLinters) {
+      const cmd = INSTALL_COMMANDS[name];
+      if (!cmd) continue;
+      try {
+        process.stdout.write(chalk.gray(`  Installing ${name}... `));
+        execFile("sh", ["-lc", cmd], { silent: true });
+        console.log(chalk.green("done"));
+      } catch {
+        console.log(chalk.red("failed"));
+      }
+    }
+  }
+
+  if (options?.installHooks) {
+    installHooks({ timeout: plan.hookTimeout, skipEnv: plan.hookSkipEnv });
+  }
+
+  console.log(chalk.green("\nBootstrap complete."));
 }
