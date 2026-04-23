@@ -16,6 +16,7 @@
 - enriched `lint explain-run` with resolved conflicts, fix strategy, and recommended next steps
 - `lint install:missing` to turn missing-linter diagnostics into a direct action
 - `lint bootstrap` for non-interactive repo-local setup and automation-friendly bootstrapping
+- `lint config:recommend` to preview or write a recommended `.lintrc.yaml`
 
 ### Changed
 

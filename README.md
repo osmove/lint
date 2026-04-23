@@ -93,6 +93,7 @@ lint ai explain           # Explain linting errors in plain language
 ```sh
 lint init                 # Smart setup wizard with auto-detection
 lint bootstrap            # Non-interactive repo-local bootstrap
+lint config:recommend     # Print a recommended .lintrc.yaml
 lint doctor               # Diagnose setup, linters, hooks health
 lint doctor --json        # Machine-readable health report
 lint explain-run .        # Explain file/linter/policy decisions without linting
@@ -203,6 +204,16 @@ lint bootstrap --install-missing --install-hooks
 ```
 
 `lint bootstrap` is the non-interactive counterpart to `lint init`. It detects the project, writes a repo-local `.lintrc.yaml`, creates a local `.lint/config` when needed, and can optionally install missing linters and hooks.
+
+## Recommended Config
+
+```sh
+lint config:recommend
+lint config:recommend --json
+lint config:recommend --write
+```
+
+`lint config:recommend` builds a recommended `.lintrc.yaml` from project detection and current defaults. It preserves existing custom sections like `rules`, `output`, hook overrides, and custom ignore patterns.
 
 ## JSON Output
 

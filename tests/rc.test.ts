@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   autoResolveConflicts,
+  buildRecommendedRC,
   filterIgnoredFiles,
+  formatRC,
   generateDefaultRC,
   resolveEnabledLinters,
   shouldIgnoreFile,
@@ -113,5 +115,36 @@ describe("generateDefaultRC", () => {
     expect(rc.ignore).toContain("node_modules/**");
     expect(rc.fix?.enabled).toBe(true);
     expect(rc.hooks?.timeout).toBe(60);
+  });
+});
+
+describe("buildRecommendedRC", () => {
+  it("should preserve custom settings while updating defaults", () => {
+    const rc = buildRecommendedRC(
+      {
+        ignore: ["custom/**"],
+        fix: { enabled: false, strategy: "parallel" },
+        hooks: { timeout: 30, skip_env: "CUSTOM_SKIP" },
+        output: { format: "json", quiet: true },
+        rules: { biome: { semi: "always" } },
+      },
+      ["biome", "ruff"],
+    );
+
+    expect(rc.linters?.enabled).toEqual(["biome", "ruff"]);
+    expect(rc.ignore).toContain("custom/**");
+    expect(rc.ignore).toContain("node_modules/**");
+    expect(rc.fix).toEqual({ enabled: false, strategy: "parallel" });
+    expect(rc.hooks).toEqual({ timeout: 30, skip_env: "CUSTOM_SKIP" });
+    expect(rc.output).toEqual({ format: "json", quiet: true });
+    expect(rc.rules).toEqual({ biome: { semi: "always" } });
+  });
+});
+
+describe("formatRC", () => {
+  it("should serialize rc as yaml", () => {
+    const output = formatRC(generateDefaultRC(["biome"]));
+    expect(output).toContain("linters:");
+    expect(output).toContain("- biome");
   });
 });
