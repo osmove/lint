@@ -26,6 +26,7 @@
 - added explicit JSON `status`, `exit_code`, and `requested_paths` fields
 - normalized empty and skipped JSON runs onto the same output schema
 - aligned warning failures across CLI exit codes and machine-readable output
+- added machine-readable run decisions for ignored files, linter selection, and policy origin
 
 ## [1.0.0] - 2026-04-15
 

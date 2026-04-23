@@ -120,6 +120,26 @@ export function filterIgnoredFiles(files: string[], patterns: string[]): string[
   return files.filter((f) => !shouldIgnoreFile(f, patterns));
 }
 
+export function getIgnoredFileDecisions(
+  files: string[],
+  patterns: string[],
+): Array<{ path: string; reason: string }> {
+  if (patterns.length === 0) return [];
+
+  const ignored: Array<{ path: string; reason: string }> = [];
+  for (const file of files) {
+    const matchedPattern = patterns.find((pattern) => shouldIgnoreFile(file, [pattern]));
+    if (matchedPattern) {
+      ignored.push({
+        path: file,
+        reason: `matched ignore pattern '${matchedPattern}'`,
+      });
+    }
+  }
+
+  return ignored;
+}
+
 export function generateDefaultRC(linters: LinterName[]): LintRC {
   return {
     linters: {

@@ -14,6 +14,19 @@ export interface JsonReportMeta {
   message?: string;
   failOnWarnings?: boolean;
   requestedPaths?: string[];
+  ignoredFiles?: Array<{ path: string; reason: string }>;
+  linterSelection?: Array<{
+    name: string;
+    installed: boolean;
+    enabled: boolean;
+    selected: boolean;
+    reason: string;
+  }>;
+  policySummary?: {
+    source: "cloud" | "local";
+    totalRules: number;
+    byLinter: Record<string, number>;
+  };
 }
 
 type JsonRunStatus =
@@ -144,6 +157,15 @@ export function formatJsonReport(
         linters: meta.linterNames ?? reports.map((report) => report.linter),
         policy_rule_count: meta.policyRuleCount ?? 0,
         requested_paths: meta.requestedPaths ?? [],
+      },
+      decisions: {
+        ignored_files: meta.ignoredFiles ?? [],
+        linter_selection: meta.linterSelection ?? [],
+        policy: meta.policySummary ?? {
+          source: "local",
+          totalRules: meta.policyRuleCount ?? 0,
+          byLinter: {},
+        },
       },
       ...(meta.message ? { message: meta.message } : {}),
       linters: reports.map((r) => ({
