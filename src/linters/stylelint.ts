@@ -47,7 +47,13 @@ export class StylelintLinter extends BaseLinter {
     try {
       raw = execFile(
         "stylelint",
-        [...(configPath ? ["--config", configPath] : []), "-f", "json", ...(autofix ? ["--fix"] : []), ...files],
+        [
+          ...(configPath ? ["--config", configPath] : []),
+          "-f",
+          "json",
+          ...(autofix ? ["--fix"] : []),
+          ...files,
+        ],
         { silent: true },
       );
     } catch (error) {

@@ -22,14 +22,14 @@ import {
   resolveEnabledLinters,
 } from "./rc.js";
 import {
-  formatMachineSummaryJson,
+  type MachineSummaryReport,
+  type RunDecisionReport,
   formatJsonReport,
+  formatMachineSummaryJson,
   formatRunDecisionJson,
   formatRunDecisionReport,
   printReport,
   printSummaryTable,
-  type MachineSummaryReport,
-  type RunDecisionReport,
 } from "./reporter.js";
 import type { LintReport, LinterName, LinterResult, PolicyRule, RunOptions } from "./types.js";
 import { cleanTmpDir, formatDuration, readLintConfig } from "./utils.js";
@@ -87,7 +87,10 @@ function describeLinterSelection(rc: ReturnType<typeof loadRC>): Array<{
     if (!installed) {
       reason = "not installed";
     } else if (!selectedNames.has(name)) {
-      reason = rc.linters?.enabled || rc.linters?.disabled ? "filtered by .lintrc" : "auto-resolved conflict";
+      reason =
+        rc.linters?.enabled || rc.linters?.disabled
+          ? "filtered by .lintrc"
+          : "auto-resolved conflict";
     } else if (rc.linters?.enabled || rc.linters?.disabled) {
       reason = "selected by .lintrc";
     }
@@ -122,7 +125,9 @@ function describeFileCoverage(
       .filter((linter) => linter.selectFiles([file]).length > 0)
       .map((linter) => linter.name)
       .sort();
-    const supportedByKnownLinters = ALL_LINTERS.filter((linter) => linter.selectFiles([file]).length > 0)
+    const supportedByKnownLinters = ALL_LINTERS.filter(
+      (linter) => linter.selectFiles([file]).length > 0,
+    )
       .map((linter) => linter.name)
       .sort();
     const supportedInstalledLinters = supportedByKnownLinters.filter(
@@ -156,10 +161,12 @@ function describeFileCoverage(
 
   return {
     coveredFiles: coverage.filter((entry) => entry.linters.length > 0),
-    uncoveredFiles: coverage.filter((entry) => entry.linters.length === 0).map((entry) => ({
-      path: entry.path,
-      reason: entry.reason,
-    })),
+    uncoveredFiles: coverage
+      .filter((entry) => entry.linters.length === 0)
+      .map((entry) => ({
+        path: entry.path,
+        reason: entry.reason,
+      })),
   };
 }
 
@@ -190,13 +197,15 @@ function summarizePolicyRules(
   };
 }
 
-function describeResolvedConflicts(selection: Array<{
-  name: string;
-  installed: boolean;
-  enabled: boolean;
-  selected: boolean;
-  reason: string;
-}>): Array<{ winner: string; losers: string[]; reason: string }> {
+function describeResolvedConflicts(
+  selection: Array<{
+    name: string;
+    installed: boolean;
+    enabled: boolean;
+    selected: boolean;
+    reason: string;
+  }>,
+): Array<{ winner: string; losers: string[]; reason: string }> {
   const replacements = getLinterReplacements();
   const selectionByName = new Map(selection.map((entry) => [entry.name, entry]));
   const conflicts: Array<{ winner: string; losers: string[]; reason: string }> = [];
@@ -242,9 +251,7 @@ function describeNextSteps(report: {
   };
 }): string[] {
   const steps: string[] = [];
-  const missingLinters = report.linterSelection.filter(
-    (entry) => entry.reason === "not installed",
-  );
+  const missingLinters = report.linterSelection.filter((entry) => entry.reason === "not installed");
 
   if (missingLinters.length > 0) {
     steps.push(
@@ -266,14 +273,19 @@ function describeNextSteps(report: {
     steps.push("Review uncovered file types to decide whether new linter support is needed");
   }
 
-  if (report.policy.source === "cloud" && report.policy.totalRules > report.policy.applicableRules) {
+  if (
+    report.policy.source === "cloud" &&
+    report.policy.totalRules > report.policy.applicableRules
+  ) {
     steps.push("Review cloud policy rules that target linters not currently selected in this repo");
   }
 
   return steps;
 }
 
-export async function collectRunDecisionReport(options: RunOptions = {}): Promise<RunDecisionReport> {
+export async function collectRunDecisionReport(
+  options: RunOptions = {},
+): Promise<RunDecisionReport> {
   const rc = loadRC();
   let discoveredFiles: string[];
   let mode: string;
@@ -568,7 +580,9 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
       );
     } else if (!quiet) {
       console.log(
-        chalk.yellow("No linters available. Run 'lint setup init' to set up, or install one manually."),
+        chalk.yellow(
+          "No linters available. Run 'lint setup init' to set up, or install one manually.",
+        ),
       );
     }
     return;
@@ -720,9 +734,7 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
   if (totalWarnings > 0 && failOnWarnings) process.exit(2);
 }
 
-export async function explainRun(
-  options: RunOptions & { json?: boolean } = {},
-): Promise<void> {
+export async function explainRun(options: RunOptions & { json?: boolean } = {}): Promise<void> {
   const report = await collectRunDecisionReport(options);
   if (options.json) {
     console.log(formatRunDecisionJson(report));

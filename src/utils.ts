@@ -79,7 +79,11 @@ export function isCommandAvailable(command: string): boolean {
   }
 }
 
-export function execGit(args: string[], cwd?: string, options: Omit<CommandOptions, "cwd"> = {}): string {
+export function execGit(
+  args: string[],
+  cwd?: string,
+  options: Omit<CommandOptions, "cwd"> = {},
+): string {
   return execFile("git", args, { ...options, cwd });
 }
 

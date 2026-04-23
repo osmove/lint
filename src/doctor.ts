@@ -122,7 +122,9 @@ export function collectDoctorReport(): DoctorReport {
     .map((linter) => linter.name);
   const managedHooks = hooks.filter((hook) => hook.exists && hook.managed).length;
   const status =
-    gitRoot && (config?.uuid || rcFile) && missingSelectedLinters.length === 0 ? "healthy" : "needs_setup";
+    gitRoot && (config?.uuid || rcFile) && missingSelectedLinters.length === 0
+      ? "healthy"
+      : "needs_setup";
 
   return {
     schema_version: LINT_JSON_SCHEMA_VERSION,
@@ -171,8 +173,7 @@ export function formatDoctorReport(report: DoctorReport): string[] {
 
   if (report.git.root) {
     lines.push(`  ✓ Git: ${report.git.root}`);
-    const dirtyLabel =
-      report.git.dirty === null ? "unknown" : report.git.dirty ? "dirty" : "clean";
+    const dirtyLabel = report.git.dirty === null ? "unknown" : report.git.dirty ? "dirty" : "clean";
     lines.push(`  ✓ Branch: ${report.git.branch || "unknown"} (${dirtyLabel})`);
   } else {
     lines.push("  ✗ Not a git repository");
@@ -229,7 +230,11 @@ export function formatDoctorReport(report: DoctorReport): string[] {
   lines.push("  Linters:");
   lines.push("");
   for (const linter of report.linters) {
-    const enabled = linter.enabled ? "" : linter.source === "rc" ? " (disabled in .lintrc.yaml)" : " (auto-disabled)";
+    const enabled = linter.enabled
+      ? ""
+      : linter.source === "rc"
+        ? " (disabled in .lintrc.yaml)"
+        : " (auto-disabled)";
     const selected = linter.selected ? " [selected]" : "";
     lines.push(
       `    ${linter.installed ? "✓" : "✗"} ${linter.name}: ${linter.installed ? "installed" : "not installed"}${enabled}${selected}`,
@@ -251,9 +256,7 @@ export function formatDoctorReport(report: DoctorReport): string[] {
 
   if (report.summary.missingSelectedLinters.length > 0) {
     lines.push("");
-    lines.push(
-      `  Missing selected linters: ${report.summary.missingSelectedLinters.join(", ")}`,
-    );
+    lines.push(`  Missing selected linters: ${report.summary.missingSelectedLinters.join(", ")}`);
   }
 
   lines.push("");

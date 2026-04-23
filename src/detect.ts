@@ -96,7 +96,15 @@ export function detectProject(rootDir?: string): DetectedProject {
 
   function walk(dir: string): void {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      if (entry.name.startsWith(".") && entry.name !== ".ruby-version" && entry.name !== ".python-version" && entry.name !== ".stylelintrc" && entry.name !== ".stylelintrc.json" && entry.name !== ".rubocop.yml" && entry.name !== ".nvmrc") {
+      if (
+        entry.name.startsWith(".") &&
+        entry.name !== ".ruby-version" &&
+        entry.name !== ".python-version" &&
+        entry.name !== ".stylelintrc" &&
+        entry.name !== ".stylelintrc.json" &&
+        entry.name !== ".rubocop.yml" &&
+        entry.name !== ".nvmrc"
+      ) {
         continue;
       }
 

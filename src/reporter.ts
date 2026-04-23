@@ -201,10 +201,7 @@ export function printSummaryTable(reports: LintReport[]): void {
   }
 }
 
-export function formatJsonReport(
-  reports: LintReport[],
-  meta: JsonReportMeta,
-): string {
+export function formatJsonReport(reports: LintReport[], meta: JsonReportMeta): string {
   const totalErrors = reports.reduce((s, r) => s + r.error_count, 0);
   const totalWarnings = reports.reduce((s, r) => s + r.warning_count, 0);
   const totalFixable = reports.reduce(

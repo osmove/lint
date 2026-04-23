@@ -18,6 +18,7 @@
     "security:audit": "npm audit --audit-level=moderate",
     "quality-gate": "node ./dist/index.js ci --format text .",
     "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && npm run lint && npm run security:audit && npm run build && npm run quality-gate && npm test",
     "prepublishOnly": "npm run build"
   },
   "files": [

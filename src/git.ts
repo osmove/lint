@@ -5,8 +5,8 @@ import chalk from "chalk";
 import * as api from "./api.js";
 import { getToken, getUsername, isLoggedIn } from "./auth.js";
 import {
-  checkLinterInstallation,
   buildSuggestedLinterPlan,
+  checkLinterInstallation,
   detectProject,
   getAllSuggestedLinters,
   printDetectionSummary,
@@ -14,7 +14,15 @@ import {
 import { buildRecommendedRC, generateDefaultRC, loadRC, writeRC } from "./rc.js";
 import { LINT_JSON_SCHEMA_VERSION } from "./reporter.js";
 import type { LintConfig, LinterName, StagedFile } from "./types.js";
-import { ensureDir, execFile, execGit, findGitDir, findGitRoot, readLintConfig, writeLintConfig } from "./utils.js";
+import {
+  ensureDir,
+  execFile,
+  execGit,
+  findGitDir,
+  findGitRoot,
+  readLintConfig,
+  writeLintConfig,
+} from "./utils.js";
 
 export const MANAGED_HOOK_MARKER = "Managed by Lint";
 
@@ -101,9 +109,13 @@ export function buildSetupFixPlan(args: {
 
 export function getStagedFiles(): StagedFile[] {
   try {
-    const output = execGit(["diff", "--cached", "--name-status", "-z", "--diff-filter=AMDR"], undefined, {
-      silent: true,
-    });
+    const output = execGit(
+      ["diff", "--cached", "--name-status", "-z", "--diff-filter=AMDR"],
+      undefined,
+      {
+        silent: true,
+      },
+    );
     if (!output) return [];
 
     const entries = output.split("\0").filter(Boolean);

@@ -17,7 +17,10 @@ interface BiomeDiagnostic {
   advices?: { advices: Array<{ log: [string, string] }> };
 }
 
-function offsetToLineColumn(source: string | undefined, offset: number): { line: number; column: number } {
+function offsetToLineColumn(
+  source: string | undefined,
+  offset: number,
+): { line: number; column: number } {
   if (!source || offset <= 0) {
     return { line: 1, column: 1 };
   }
@@ -114,7 +117,10 @@ export class BiomeLinter extends BaseLinter {
     for (const diag of output.diagnostics || []) {
       const file = diag.location?.path?.file || "unknown";
       const offenses = fileMap.get(file) || [];
-      const position = offsetToLineColumn(diag.location?.sourceCode, diag.location?.span?.start || 0);
+      const position = offsetToLineColumn(
+        diag.location?.sourceCode,
+        diag.location?.span?.start || 0,
+      );
       offenses.push({
         rule: diag.category || "biome",
         message: diag.message?.content || diag.description || "Unknown issue",

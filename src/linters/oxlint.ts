@@ -63,9 +63,13 @@ export class OxlintLinter extends BaseLinter {
   run(files: string[], configPath: string, _autofix: boolean): LinterResult {
     let raw: string;
     try {
-      raw = execFile("oxlint", [...(configPath ? [`--config=${configPath}`] : []), "--format=json", ...files], {
-        silent: true,
-      });
+      raw = execFile(
+        "oxlint",
+        [...(configPath ? [`--config=${configPath}`] : []), "--format=json", ...files],
+        {
+          silent: true,
+        },
+      );
     } catch (error) {
       raw = (error as { stdout?: string }).stdout || "[]";
     }
