@@ -23,11 +23,11 @@ It auto-detects your languages, resolves linter conflicts, and lints everything 
 ```sh
 npm i -g lint
 cd /path/to/your/repo
-lint init
+lint setup init
 lint
 ```
 
-`lint init` scans your project, detects languages, suggests linters, installs missing ones, creates `.lintrc.yaml`, and sets up git hooks — all interactively.
+`lint setup init` scans your project, detects languages, suggests linters, installs missing ones, creates `.lintrc.yaml`, and sets up git hooks — all interactively.
 
 ## Features
 
@@ -91,7 +91,7 @@ lint ai explain           # Explain linting errors in plain language
 ### Setup & Diagnostics
 
 ```sh
-lint init                 # Smart setup wizard with auto-detection
+lint setup init           # Smart setup wizard with auto-detection
 lint setup bootstrap      # Non-interactive repo-local bootstrap
 lint setup fix            # Apply recommended repo-local setup in one pass
 lint config recommend     # Print a recommended .lintrc.yaml
@@ -176,7 +176,7 @@ lint setup doctor --json
 
 Legacy aliases like `lint setup:fix`, `lint config:recommend`, `lint install:missing`, `lint machine:summary`, `lint install:hooks`, `lint uninstall:hooks`, and `lint hooks:status` still work for backward compatibility, but the canonical API now prefers grouped commands like `lint setup fix`, `lint config recommend`, `lint install missing`, `lint machine summary`, and `lint hooks <action>`.
 
-Top-level aliases like `lint bootstrap` and `lint doctor` also still work, but the canonical setup flow now lives under `lint setup <bootstrap|fix|doctor>`.
+Top-level aliases like `lint init`, `lint bootstrap`, and `lint doctor` also still work, but the canonical setup flow now lives under `lint setup <init|bootstrap|fix|doctor>`.
 
 `lint prettify <extension>` also still works as a compatibility alias, but the canonical formatting helper is now `lint format write <extension>`.
 
@@ -221,7 +221,7 @@ lint bootstrap --json
 lint bootstrap --install-missing --install-hooks
 ```
 
-`lint bootstrap` is the non-interactive counterpart to `lint init`. It detects the project, writes a repo-local `.lintrc.yaml`, creates a local `.lint/config` when needed, and can optionally install missing linters and hooks.
+`lint setup bootstrap` is the non-interactive counterpart to `lint setup init`. It detects the project, writes a repo-local `.lintrc.yaml`, creates a local `.lint/config` when needed, and can optionally install missing linters and hooks.
 
 ## Setup Fix
 

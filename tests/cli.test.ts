@@ -32,6 +32,7 @@ describe("cli", () => {
         "install:missing",
         "machine:summary",
         "explain-run",
+        "init",
         "bootstrap",
         "doctor",
         "login",
@@ -57,6 +58,7 @@ describe("cli", () => {
     expect(hooks?.helpInformation()).toContain("status");
     expect(hooks?.helpInformation()).toContain("uninstall");
 
+    expect(setup?.helpInformation()).toContain("init");
     expect(setup?.helpInformation()).toContain("bootstrap");
     expect(setup?.helpInformation()).toContain("fix");
     expect(setup?.helpInformation()).toContain("doctor");
@@ -80,6 +82,7 @@ describe("cli", () => {
     expect(help).toContain("auth");
     expect(help).toContain("format");
     expect(help).toContain("explain");
+    expect(help).not.toContain("init");
     expect(help).not.toContain("bootstrap");
     expect(help).not.toContain("doctor");
     expect(help).not.toContain("pre-commit");
