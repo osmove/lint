@@ -291,12 +291,12 @@ lint ci --allow-warnings
 git clone https://github.com/osmove/lint.git
 cd lint
 npm install
-npm run verify            # Full maintainer check: typecheck, lint, audit, build, gate, tests
+npm run verify            # Full maintainer check: typecheck, lint, audit, build, package, gate, tests
 npm run build             # Build TypeScript → dist/
 npm run package:check     # Verify the published npm package contents
 npm run quality-gate      # Run Lint against the whole repo
 npm run security:audit    # Fail on moderate+ dependency vulnerabilities
-npm test                  # Run tests (109 tests, 12 suites)
+npm test                  # Run the Vitest suite
 npm run typecheck         # Type check
 npm run lint              # Lint with Biome
 ```
@@ -307,7 +307,7 @@ npm run lint              # Lint with Biome
 
 - TypeScript (strict), ESM
 - Build: tsup → Node 20+
-- Tests: Vitest (109 tests, 12 suites)
+- Tests: Vitest
 - CI: GitHub Actions (Node 20 + 22)
 - AI: Anthropic SDK (Claude)
 

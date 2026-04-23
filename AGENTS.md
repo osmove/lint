@@ -1,6 +1,6 @@
 # Lint
 
-Lint is a universal code linting CLI that orchestrates multiple language-specific linters through a single interface. It connects to a cloud API (`api.lint.to`) for policy-based rule management, integrates with git hooks, and provides AI-powered code review via Codex.
+Lint is a universal code linting CLI that orchestrates multiple language-specific linters through a single interface. It connects to a cloud API (`api.lint.to`) for policy-based rule management, integrates with git hooks, and provides AI-powered code review via Anthropic/Claude.
 
 **npm package**: `lint` (global command: `lint`)
 
@@ -16,8 +16,9 @@ src/
 ├── detect.ts          → Project auto-detection (languages, frameworks, linters)
 ├── api.ts             → HTTP client for api.lint.to (native fetch)
 ├── auth.ts            → User authentication (login/signup/logout)
-├── git.ts             → Git operations (staged files, hooks, init wizard)
-├── orchestrator.ts    → Main linting engine (parallel, JSON output, dry-run)
+├── doctor.ts          → Repo and setup diagnostics for text/JSON health output
+├── git.ts             → Git operations (staged files, hooks, bootstrap/setup flows)
+├── orchestrator.ts    → Main linting engine (parallel, CI, explain, machine summary)
 ├── reporter.ts        → Terminal + JSON output formatting
 ├── linters/
 │   ├── base.ts        → Abstract BaseLinter class
@@ -56,9 +57,11 @@ src/
 ```bash
 node -v              # Requires Node.js >= 20
 npm install          # Install dependencies
+npm run verify       # Full maintainer validation pass
 npm run build        # Build with tsup → dist/
 npm run dev          # Watch mode
-npm run test         # Run tests with Vitest (80 tests)
+npm run package:check # Check the npm package payload
+npm test             # Run the Vitest suite
 npm run typecheck    # TypeScript type checking
 npm run lint         # Lint with Biome
 ```
@@ -101,17 +104,27 @@ lint file.ts            # Lint specific file
 lint --fix              # Auto-fix issues
 lint --fix --dry-run    # Preview fixes without applying
 lint --format json      # JSON output for CI/CD
+lint ci                 # Repo-local quality gate for CI/control planes
 lint -q                 # Quiet mode (summary only)
 lint pre-commit -t      # Pre-commit hook with timing
-lint init               # Smart setup wizard
-lint doctor             # Diagnose setup health
+lint setup init         # Smart setup wizard
+lint setup bootstrap    # Non-interactive repo-local bootstrap
+lint setup fix          # Repair repo-local setup in one pass
+lint setup doctor       # Diagnose setup health
+lint config recommend   # Recommend a .lintrc.yaml
+lint install missing .  # Install suggested missing linters
+lint explain run .      # Explain linter/file/policy decisions
+lint machine summary .  # Compact machine-readable repo summary
 lint ai review          # AI code review
 lint ai fix             # AI auto-fix suggestions
 lint ai commit          # AI commit message generation
 lint ai explain         # Explain linting errors
 lint ai setup           # Configure Anthropic API key
-lint install:hooks      # Install git hooks
-lint login / signup     # Authentication
+lint hooks install      # Install git hooks
+lint hooks status       # Inspect managed hook state
+lint auth login         # Authenticate with Lint
+lint auth status        # Show current login status
+lint format write ts    # Format all matching files via Prettier
 ```
 
 ## Adding a New Linter

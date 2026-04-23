@@ -24,11 +24,11 @@ import {
   ALL_LINTERS,
   LINTER_MAP,
   explainRun,
+  formatProjectFiles,
   machineSummary,
   postCommitHook,
   preCommit,
   prepareCommitMsg,
-  prettifyProject,
   runLint,
 } from "./orchestrator.js";
 import { buildRecommendedRC, formatRC, loadRC, writeRC } from "./rc.js";
@@ -339,7 +339,7 @@ function runAuthStatus(): void {
 }
 
 function runFormatWrite(extension: string): void {
-  prettifyProject(extension);
+  formatProjectFiles(extension);
 }
 
 addHiddenCommand(
@@ -585,8 +585,6 @@ addLegacyAlias(
   "Legacy alias for 'lint format write <extension>'",
   (command) => command.action((extension) => runFormatWrite(extension)),
 );
-
-// ── Doctor command ──
 
 // ── AI commands ──
 
