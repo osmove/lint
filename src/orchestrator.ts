@@ -387,6 +387,13 @@ export function buildMachineSummary(
   };
 }
 
+export function getMachineSummaryExitCode(summary: MachineSummaryReport): number {
+  if (summary.doctor_status !== "healthy") return 1;
+  if (summary.missing_selected_linters.length > 0) return 1;
+  if (summary.uncovered_file_count > 0) return 1;
+  return 0;
+}
+
 // ── API helpers ──
 
 async function fetchPolicyRules(): Promise<PolicyRule[]> {
@@ -715,14 +722,16 @@ export async function machineSummary(
   options: RunOptions & {
     doctorStatus: "healthy" | "needs_setup";
     missingSelectedLinters: string[];
+    strict?: boolean;
   },
 ): Promise<void> {
   const report = await collectRunDecisionReport(options);
-  console.log(
-    formatMachineSummaryJson(
-      buildMachineSummary(options.doctorStatus, report, options.missingSelectedLinters),
-    ),
-  );
+  const summary = buildMachineSummary(options.doctorStatus, report, options.missingSelectedLinters);
+  console.log(formatMachineSummaryJson(summary));
+  if (options.strict) {
+    const exitCode = getMachineSummaryExitCode(summary);
+    if (exitCode !== 0) process.exit(exitCode);
+  }
 }
 
 // ── Convenience wrappers ──
