@@ -245,9 +245,11 @@ For automation consumers that only need a compact health/result snapshot, use:
 
 ```sh
 lint machine:summary .
+lint machine:summary --strict .
 ```
 
 The compact summary also includes structured `actions` with ready-to-run commands like `lint install:missing .`, `lint setup:fix --dry-run`, or `lint explain-run .`, so a control plane can guide remediation without parsing prose.
+Use `--strict` when a shell script should fail fast on setup gaps or uncovered files without parsing JSON.
 
 ## CI / Quality Gate
 

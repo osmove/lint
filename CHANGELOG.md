@@ -21,6 +21,7 @@
 - versioned machine-readable outputs with explicit `schema_version` and `kind`
 - `lint machine:summary` for a compact automation-focused JSON snapshot
 - structured `actions` in `lint machine:summary` so automation consumers can trigger the right remediation commands directly
+- `lint machine:summary --strict` to expose a simple non-zero shell signal for setup or coverage gaps
 
 ### Changed
 

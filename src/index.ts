@@ -83,12 +83,14 @@ program
 program
   .command("machine:summary [paths...]")
   .description("Output a compact machine-readable repo summary for automation consumers")
-  .action((paths) => {
+  .option("--strict", "Exit 1 when the repo still needs setup or has uncovered files")
+  .action((paths, options: { strict?: boolean }) => {
     const doctor = collectDoctorReport();
     machineSummary({
       paths: paths.length > 0 ? paths : ["."],
       doctorStatus: doctor.status,
       missingSelectedLinters: doctor.summary.missingSelectedLinters,
+      strict: options.strict,
     });
   });
 
