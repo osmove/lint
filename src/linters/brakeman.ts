@@ -1,4 +1,4 @@
-import type { FileReport, LintReport, LinterResult, Offense, PolicyRule } from "../types.js";
+import type { FileReport, LinterResult, LintReport, Offense, PolicyRule } from "../types.js";
 import { execFile } from "../utils.js";
 import { BaseLinter } from "./base.js";
 

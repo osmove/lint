@@ -22,9 +22,9 @@ import {
 } from "./git.js";
 import {
   ALL_LINTERS,
-  LINTER_MAP,
   explainRun,
   formatProjectFiles,
+  LINTER_MAP,
   machineSummary,
   postCommitHook,
   preCommit,

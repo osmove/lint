@@ -32,22 +32,22 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
-    "@inquirer/prompts": "^7.2.0",
+    "@anthropic-ai/sdk": "^0.91.0",
+    "@inquirer/prompts": "^8.4.2",
     "chalk": "^5.4.1",
     "cli-table3": "^0.6.5",
-    "commander": "^13.1.0",
+    "commander": "^14.0.3",
     "js-yaml": "^4.1.1",
     "nanospinner": "^1.2.2",
     "prettier": "^3.5.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "^2.4.13",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^22.13.0",
+    "@types/node": "^25.6.0",
     "tsup": "^8.4.0",
-    "typescript": "^5.7.3",
-    "vitest": "^3.0.4"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
   },
   "author": "Jimmy Douieb",
   "license": "Apache-2.0",

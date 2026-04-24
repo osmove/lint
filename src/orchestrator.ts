@@ -22,16 +22,16 @@ import {
   resolveEnabledLinters,
 } from "./rc.js";
 import {
-  type MachineSummaryReport,
-  type RunDecisionReport,
   formatJsonReport,
   formatMachineSummaryJson,
   formatRunDecisionJson,
   formatRunDecisionReport,
+  type MachineSummaryReport,
   printReport,
   printSummaryTable,
+  type RunDecisionReport,
 } from "./reporter.js";
-import type { LintReport, LinterName, LinterResult, PolicyRule, RunOptions } from "./types.js";
+import type { LinterName, LinterResult, LintReport, PolicyRule, RunOptions } from "./types.js";
 import { cleanTmpDir, execFile, formatDuration, readLintConfig } from "./utils.js";
 
 // ── Linter registry ──
