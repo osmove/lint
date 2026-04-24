@@ -42,7 +42,7 @@
     "prettier": "^3.5.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "^2.4.13",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.13.0",
     "tsup": "^8.4.0",
