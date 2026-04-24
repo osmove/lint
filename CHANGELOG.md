@@ -58,6 +58,9 @@
 - aligned maintainer docs with the grouped canonical CLI surface and removed drift-prone hard-coded test counts
 - aligned `CLAUDE.md` with the current maintainer surface and removed the unused shell-string `exec()` helper from `utils`
 - added `CONTRIBUTING.md` to document maintainer workflow, canonical CLI conventions, and release hygiene in one place
+- renamed default branch from `master` to `main`, aligned CI triggers and README badges
+- patched postcss XSS advisory (GHSA-qx2v-qp2m-jg93)
+- added `.github/PULL_REQUEST_TEMPLATE.md` to keep PR submissions aligned with `CONTRIBUTING.md`
 
 ## [1.0.0] - 2026-04-15
 
