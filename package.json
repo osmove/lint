@@ -32,7 +32,7 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.91.0",
+    "@anthropic-ai/sdk": "^0.91.1",
     "@inquirer/prompts": "^8.4.2",
     "chalk": "^5.4.1",
     "cli-table3": "^0.6.5",
