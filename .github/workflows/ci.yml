@@ -51,10 +51,10 @@ jobs:
         run: pnpm --filter lint test
 
       - name: Type check (server)
-        run: pnpm --filter @osmove/lint-server typecheck
+        run: pnpm --filter lint-server typecheck
 
       - name: Build (server)
-        run: pnpm --filter @osmove/lint-server build
+        run: pnpm --filter lint-server build
 
   publish:
     needs: build-and-test

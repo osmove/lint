@@ -1,5 +1,5 @@
 {
-  "name": "@osmove/lint-server",
+  "name": "lint-server",
   "version": "0.1.0",
   "description": "Lint server — self-hosted backend for the Lint CLI (BUSL 1.1).",
   "license": "BUSL-1.1",

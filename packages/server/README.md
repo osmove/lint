@@ -1,4 +1,4 @@
-# `@osmove/lint-server`
+# `lint-server`
 
 Self-hosted backend for the [Lint CLI](https://www.npmjs.com/package/lint).
 
@@ -19,7 +19,7 @@ The hosted SaaS version lives at [lint.to](https://lint.to) and is the same surf
 ```sh
 corepack enable
 pnpm install
-pnpm --filter @osmove/lint-server dev
+pnpm --filter lint-server dev
 ```
 
 Then:
@@ -31,7 +31,7 @@ curl http://127.0.0.1:3001/health
 ## Quickstart (production)
 
 ```sh
-pnpm --filter @osmove/lint-server build
+pnpm --filter lint-server build
 PORT=3001 node packages/server/dist/index.js
 ```
 
