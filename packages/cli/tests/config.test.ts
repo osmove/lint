@@ -8,8 +8,11 @@ import {
 
 describe("config", () => {
   it("should export a version string", () => {
-    expect(VERSION).toBe("1.0.0");
+    // VERSION is replaced at build time by tsup's `define` from package.json.
+    // In test mode (vitest) the placeholder is not replaced, so we accept the
+    // dev fallback or any valid semver-shaped string.
     expect(typeof VERSION).toBe("string");
+    expect(VERSION).toMatch(/^\d+\.\d+\.\d+(?:[-+].+)?$/);
   });
 
   it("should have a valid API base URL", () => {
