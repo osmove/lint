@@ -1,6 +1,9 @@
 import cors from "@fastify/cors";
 import Fastify, { type FastifyInstance } from "fastify";
+import { registerAuthHooks } from "./auth.js";
+import { registerAuthRoutes } from "./routes/auth.js";
 import { registerHealthRoutes } from "./routes/health.js";
+import { registerPolicyRoutes } from "./routes/policies.js";
 
 declare const __LINT_SERVER_VERSION__: string;
 const VERSION =
@@ -17,7 +20,10 @@ export async function buildServer(): Promise<FastifyInstance> {
     origin: process.env.LINT_SERVER_CORS_ORIGIN ?? true,
   });
 
+  registerAuthHooks(server);
   await registerHealthRoutes(server, { version: VERSION });
+  await registerAuthRoutes(server);
+  await registerPolicyRoutes(server);
 
   return server;
 }
