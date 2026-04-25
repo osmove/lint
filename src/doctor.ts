@@ -89,12 +89,19 @@ export function collectDoctorReport(): DoctorReport {
   const installedNames = installedLinters
     .filter((linter) => linter.installed)
     .map((linter) => linter.name);
+  // Restrict auto-mode to linters that match the detected project, so a
+  // globally-installed Ruby linter is not auto-selected on a TS-only repo.
+  const projectApplicable = getAllSuggestedLinters(project);
+  const projectApplicableSet = new Set(projectApplicable);
   const enabledNames = rc.linters?.enabled
     ? rc.linters.enabled
     : rc.linters?.disabled
-      ? ALL_LINTERS.filter((name) => !rc.linters?.disabled?.includes(name))
-      : autoResolveConflicts(ALL_LINTERS);
-  const selectedNames = resolveEnabledLinters(rc, installedNames);
+      ? projectApplicable.filter((name) => !rc.linters?.disabled?.includes(name))
+      : autoResolveConflicts(projectApplicable);
+  const selectedNames = resolveEnabledLinters(
+    rc,
+    installedNames.filter((name) => projectApplicableSet.has(name)),
+  );
   const enabledSet = new Set(enabledNames);
   const disabledSet = new Set(rc.linters?.disabled || []);
   const selectedSet = new Set(selectedNames);
