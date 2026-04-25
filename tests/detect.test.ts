@@ -65,7 +65,9 @@ describe("detectProject", () => {
     ]);
     const project = detectProject(projectDir);
     expect(project.frameworks).toContain("Rails");
-    expect(project.languages.find((l) => l.name === "Ruby")?.suggestedLinters).toContain("brakeman");
+    expect(project.languages.find((l) => l.name === "Ruby")?.suggestedLinters).toContain(
+      "brakeman",
+    );
     expect(project.languages.find((l) => l.name === "ERB")?.suggestedLinters).toContain("erblint");
   });
 });

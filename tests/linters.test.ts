@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { describe, expect, it } from "vitest";
 import { BiomeLinter } from "../src/linters/biome.js";
 import { BrakemanLinter } from "../src/linters/brakeman.js";
 import { ErbLintLinter } from "../src/linters/erblint.js";

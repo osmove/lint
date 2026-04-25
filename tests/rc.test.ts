@@ -8,7 +8,6 @@ import {
   resolveEnabledLinters,
   shouldIgnoreFile,
 } from "../src/rc.js";
-import type { LinterName } from "../src/types.js";
 
 describe("autoResolveConflicts", () => {
   it("should disable eslint when biome is available", () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  formatMachineSummaryJson,
   formatJsonReport,
+  formatMachineSummaryJson,
   formatRunDecisionJson,
   formatRunDecisionReport,
   printReport,
@@ -128,7 +128,9 @@ describe("reporter", () => {
                 reason: "selected linter matched this file",
               },
             ],
-            uncoveredFiles: [{ path: "notes.txt", reason: "no known linter supports this file type" }],
+            uncoveredFiles: [
+              { path: "notes.txt", reason: "no known linter supports this file type" },
+            ],
           },
         }),
       );
@@ -172,7 +174,9 @@ describe("reporter", () => {
               reason: "selected linter matched this file",
             },
           ],
-          uncoveredFiles: [{ path: "notes.txt", reason: "no known linter supports this file type" }],
+          uncoveredFiles: [
+            { path: "notes.txt", reason: "no known linter supports this file type" },
+          ],
         },
       });
     });
@@ -246,7 +250,13 @@ describe("reporter", () => {
         ignoredFiles: [{ path: "dist/out.js", reason: "matched ignore pattern 'dist/**'" }],
         linterSelection: [
           { name: "biome", installed: true, enabled: true, selected: true, reason: "available" },
-          { name: "eslint", installed: true, enabled: true, selected: false, reason: "auto-resolved conflict" },
+          {
+            name: "eslint",
+            installed: true,
+            enabled: true,
+            selected: false,
+            reason: "auto-resolved conflict",
+          },
         ],
         fileCoverage: {
           coveredFiles: [

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDoctorReport, type DoctorReport } from "../src/doctor.js";
+import { type DoctorReport, formatDoctorReport } from "../src/doctor.js";
 
 describe("doctor", () => {
   it("formats a full doctor report", () => {
@@ -37,8 +37,18 @@ describe("doctor", () => {
         { name: "eslint", installed: false, enabled: false, selected: false, source: "auto" },
       ],
       hooks: [
-        { name: "pre-commit", exists: true, managed: true, hookPath: "/tmp/project/.git/hooks/pre-commit" },
-        { name: "post-commit", exists: false, managed: false, hookPath: "/tmp/project/.git/hooks/post-commit" },
+        {
+          name: "pre-commit",
+          exists: true,
+          managed: true,
+          hookPath: "/tmp/project/.git/hooks/pre-commit",
+        },
+        {
+          name: "post-commit",
+          exists: false,
+          managed: false,
+          hookPath: "/tmp/project/.git/hooks/post-commit",
+        },
       ],
       summary: {
         installedLinters: 1,
@@ -132,9 +142,7 @@ describe("doctor", () => {
         hasHusky: false,
         hasLefthook: false,
       },
-      linters: [
-        { name: "ruff", installed: false, enabled: true, selected: false, source: "rc" },
-      ],
+      linters: [{ name: "ruff", installed: false, enabled: true, selected: false, source: "rc" }],
       hooks: [],
       summary: {
         installedLinters: 0,

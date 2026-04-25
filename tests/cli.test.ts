@@ -48,12 +48,10 @@ describe("cli", () => {
     // `setup init`, `setup bootstrap`, `setup doctor` remain hidden legacy aliases
     // under the `setup` group, even though their canonical forms are top-level.
     const setup = program.commands.find((command) => command.name() === "setup");
-    const setupSubcommandNames = (setup?.commands ?? []).map((command) =>
-      command.name().split(" ")[0],
+    const setupSubcommandNames = (setup?.commands ?? []).map(
+      (command) => command.name().split(" ")[0],
     );
-    expect(setupSubcommandNames).toEqual(
-      expect.arrayContaining(["init", "bootstrap", "doctor"]),
-    );
+    expect(setupSubcommandNames).toEqual(expect.arrayContaining(["init", "bootstrap", "doctor"]));
   });
 
   it("documents grouped subcommands in help output", () => {
