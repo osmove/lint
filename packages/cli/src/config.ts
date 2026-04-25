@@ -1,7 +1,10 @@
 import os from "node:os";
 import path from "node:path";
 
-export const VERSION = "1.0.0";
+declare const __LINT_VERSION__: string;
+// Replaced at build time by tsup's `define` from package.json#version.
+// Falls back to "0.0.0-dev" when running via tsx/dev mode.
+export const VERSION = typeof __LINT_VERSION__ !== "undefined" ? __LINT_VERSION__ : "0.0.0-dev";
 
 export const API_BASE_URL = process.env.LINT_API_URL || "https://api.lint.to";
 
