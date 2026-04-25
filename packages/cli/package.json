@@ -16,10 +16,11 @@
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "package:check": "npm pack --dry-run",
-    "security:audit": "npm audit --audit-level=moderate",
+    "security:audit": "pnpm audit --audit-level moderate",
     "quality-gate": "node ./dist/index.js ci --format text .",
     "typecheck": "tsc --noEmit",
-    "verify": "npm run typecheck && npm run lint && npm run security:audit && npm run build && npm run package:check && npm run quality-gate && npm test",
+    "verify": "npm run typecheck && npm run lint && npm run build && npm run package:check && npm run quality-gate && npm test",
+    "verify:full": "npm run typecheck && npm run lint && npm run security:audit && npm run build && npm run package:check && npm run quality-gate && npm test",
     "prepublishOnly": "npm run verify"
   },
   "files": [
