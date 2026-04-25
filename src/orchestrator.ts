@@ -2,6 +2,7 @@ import chalk from "chalk";
 import { createSpinner } from "nanospinner";
 import * as api from "./api.js";
 import { getToken, isLoggedIn } from "./auth.js";
+import { detectProject, getAllSuggestedLinters } from "./detect.js";
 import { findFiles, getCurrentBranch, getCurrentSha, getStagedFilePaths } from "./git.js";
 import type { BaseLinter } from "./linters/base.js";
 import { BiomeLinter } from "./linters/biome.js";
@@ -55,10 +56,20 @@ const LINTER_MAP = new Map<LinterName, BaseLinter>(
 
 // ── Linter selection with conflict resolution ──
 
+function projectApplicableLinterSet(): Set<LinterName> {
+  const project = detectProject(process.cwd());
+  return new Set(getAllSuggestedLinters(project));
+}
+
 function selectLinters(rc: ReturnType<typeof loadRC>): BaseLinter[] {
   const installed = ALL_LINTERS.filter((l) => l.isInstalled());
-  const installedNames = installed.map((l) => l.name as LinterName);
-  const enabledNames = resolveEnabledLinters(rc, installedNames);
+  // Restrict auto-mode to linters applicable to the detected project, so a
+  // globally-installed Ruby linter is not auto-selected on a TS-only repo.
+  const applicable = projectApplicableLinterSet();
+  const candidateNames = installed
+    .map((l) => l.name as LinterName)
+    .filter((name) => rc.linters?.enabled || applicable.has(name));
+  const enabledNames = resolveEnabledLinters(rc, candidateNames);
   return installed.filter((l) => enabledNames.includes(l.name as LinterName));
 }
 
@@ -72,7 +83,13 @@ function describeLinterSelection(rc: ReturnType<typeof loadRC>): Array<{
   const installedNames = ALL_LINTERS.filter((linter) => linter.isInstalled()).map(
     (linter) => linter.name as LinterName,
   );
-  const selectedNames = new Set(resolveEnabledLinters(rc, installedNames));
+  // Restrict auto-mode to project-applicable linters, so a globally-installed
+  // Ruby linter does not appear "selected" on a TS-only repo.
+  const applicable = projectApplicableLinterSet();
+  const candidateNames = installedNames.filter(
+    (name) => rc.linters?.enabled || applicable.has(name),
+  );
+  const selectedNames = new Set(resolveEnabledLinters(rc, candidateNames));
 
   return ALL_LINTERS.map((linter) => {
     const name = linter.name as LinterName;
