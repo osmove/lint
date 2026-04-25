@@ -18,6 +18,11 @@ COPY packages/server ./packages/server
 RUN pnpm install --frozen-lockfile && \
     pnpm --filter lint-server build
 
+# Use `pnpm deploy` to produce a self-contained, symlink-free node_modules tree
+# that survives being copied into a fresh image without the workspace root.
+RUN pnpm deploy --legacy --filter lint-server --prod /deploy && \
+    cp -r packages/server/dist /deploy/dist
+
 # ── runtime image ──────────────────────────────────────────────────────────
 FROM node:22-slim AS runtime
 
@@ -26,11 +31,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the built bundle and the runtime node_modules tree (better-sqlite3 has
-# a native binding, can't be tree-shaken into the bundle).
-COPY --from=build /workspace/packages/server/dist ./dist
-COPY --from=build /workspace/packages/server/package.json ./package.json
-COPY --from=build /workspace/packages/server/node_modules ./node_modules
+COPY --from=build /deploy/dist ./dist
+COPY --from=build /deploy/package.json ./package.json
+COPY --from=build /deploy/node_modules ./node_modules
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
