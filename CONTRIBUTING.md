@@ -2,7 +2,7 @@
 
 Thanks for contributing to `lint`.
 
-This repo is a pnpm monorepo. Today it contains the CLI in `packages/cli/`. The OSS server (`lint-server`) and any future shared packages will land in additional `packages/*` directories.
+This repo is a pnpm monorepo. It contains the `lint` CLI in `packages/cli/`. The hosted backend (lint.to) is a private project and not part of this repo.
 
 ## Development Setup
 

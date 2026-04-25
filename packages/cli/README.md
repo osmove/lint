@@ -316,12 +316,11 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the maintainer workflow, CLI conven
 ## Sister projects
 
 - [`backlog`](https://www.npmjs.com/package/backlog) — execution engine that turns planning inputs into safe agent runs
-- [`lint-server`](https://github.com/osmove/lint) (in this repo, `packages/server/`) — self-hostable BUSL-1.1 backend for cloud features
-- [`lint-cloud`](https://lint.to) — managed hosted version
+- [`lint.to`](https://lint.to) — managed hosted backend for cloud features (auth, policies, AI proxy, run history)
 
 ## License
 
-[Apache-2.0](./LICENSE) for the CLI. The optional self-hostable server (`lint-server`) ships under [BUSL-1.1](../server/LICENSE) (converts to Apache-2.0 in 2030).
+[Apache-2.0](./LICENSE)
 
 ## Website
 

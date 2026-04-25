@@ -50,15 +50,6 @@ jobs:
       - name: Test
         run: pnpm --filter lint test
 
-      - name: Type check (server)
-        run: pnpm --filter lint-server typecheck
-
-      - name: Build (server)
-        run: pnpm --filter lint-server build
-
-      - name: Test (server)
-        run: pnpm --filter lint-server test
-
   publish:
     needs: build-and-test
     runs-on: ubuntu-latest
