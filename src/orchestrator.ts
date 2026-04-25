@@ -709,14 +709,15 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
       }),
     );
   } else {
-    // Detailed report
-    if (reports.some((r) => r.error_count > 0 || r.warning_count > 0)) {
+    // Detailed report (per-offense): suppressed in quiet mode so consumers
+    // can rely on `-q / --quiet` for a summary-only view.
+    if (!quiet && reports.some((r) => r.error_count > 0 || r.warning_count > 0)) {
       printReport(reports, options.truncate);
       if (verbose) printSummaryTable(reports);
     }
 
-    // Summary
-    if (!quiet) {
+    // Summary line — always shown unless explicitly silenced.
+    {
       console.log("");
       if (dryRun && totalFixable > 0) {
         console.log(
