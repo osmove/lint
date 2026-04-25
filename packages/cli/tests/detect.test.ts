@@ -36,9 +36,9 @@ describe("detectProject", () => {
     expect(jsLang?.suggestedLinters).toContain("biome");
   });
 
-  it("should detect npm as package manager", () => {
+  it("should detect pnpm as package manager", () => {
     const project = detectProject();
-    expect(project.packageManagers).toContain("npm");
+    expect(project.packageManagers).toContain("pnpm");
   });
 
   it("should return arrays for all fields", () => {

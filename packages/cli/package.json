@@ -1,0 +1,76 @@
+{
+  "name": "lint",
+  "version": "1.2.0",
+  "description": "Lint — The universal linter with AI-powered code review.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "lint": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "package:check": "npm pack --dry-run",
+    "security:audit": "npm audit --audit-level=moderate",
+    "quality-gate": "node ./dist/index.js ci --format text .",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && npm run lint && npm run security:audit && npm run build && npm run package:check && npm run quality-gate && npm test",
+    "prepublishOnly": "npm run verify"
+  },
+  "files": [
+    "dist/",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.0",
+    "@inquirer/prompts": "^8.4.2",
+    "chalk": "^5.4.1",
+    "cli-table3": "^0.6.5",
+    "commander": "^14.0.3",
+    "js-yaml": "^4.1.1",
+    "nanospinner": "^1.2.2",
+    "prettier": "^3.5.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.13",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^25.6.0",
+    "tsup": "^8.4.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  },
+  "author": "Jimmy Douieb",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/osmove/lint.git"
+  },
+  "bugs": {
+    "url": "https://github.com/osmove/lint/issues"
+  },
+  "homepage": "https://lint.to",
+  "keywords": [
+    "lint",
+    "linter",
+    "eslint",
+    "prettier",
+    "rubocop",
+    "biome",
+    "ruff",
+    "oxlint",
+    "ai",
+    "code-review",
+    "git-hooks",
+    "pre-commit"
+  ]
+}
