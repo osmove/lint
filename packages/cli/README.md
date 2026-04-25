@@ -313,9 +313,15 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the maintainer workflow, CLI conven
 - CI: GitHub Actions (Node 20 + 22)
 - AI: Anthropic SDK (Claude)
 
+## Sister projects
+
+- [`backlog`](https://www.npmjs.com/package/backlog) — execution engine that turns planning inputs into safe agent runs
+- [`lint-server`](https://github.com/osmove/lint) (in this repo, `packages/server/`) — self-hostable BUSL-1.1 backend for cloud features
+- [`lint-cloud`](https://lint.to) — managed hosted version
+
 ## License
 
-[Apache-2.0](./LICENSE)
+[Apache-2.0](./LICENSE) for the CLI. The optional self-hostable server (`lint-server`) ships under [BUSL-1.1](../server/LICENSE) (converts to Apache-2.0 in 2030).
 
 ## Website
 
