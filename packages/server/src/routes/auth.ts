@@ -5,6 +5,7 @@ import { createSession, deleteSession, hashPassword, requireAuth, verifyPassword
 import { getDatabase, schema } from "../db/index.js";
 
 const credentialsSchema = z.object({
+  username: z.string().min(1).max(64).optional(),
   email: z.string().email().toLowerCase(),
   password: z.string().min(8),
 });
@@ -17,6 +18,7 @@ export async function registerAuthRoutes(server: FastifyInstance): Promise<void>
       return;
     }
     const { email, password } = parsed.data;
+    const username = parsed.data.username?.toLowerCase() ?? email.split("@")[0] ?? email;
     const db = getDatabase();
     const existing = await db.query.users.findFirst({ where: eq(schema.users.email, email) });
     if (existing) {
@@ -24,7 +26,10 @@ export async function registerAuthRoutes(server: FastifyInstance): Promise<void>
       return;
     }
     const passwordHash = await hashPassword(password);
-    const inserted = await db.insert(schema.users).values({ email, passwordHash }).returning();
+    const inserted = await db
+      .insert(schema.users)
+      .values({ username, email, passwordHash })
+      .returning();
     const user = inserted[0];
     if (!user) {
       reply.code(500).send({ error: "user_creation_failed" });
@@ -32,7 +37,7 @@ export async function registerAuthRoutes(server: FastifyInstance): Promise<void>
     }
     const session = await createSession(user.id);
     return {
-      user: { id: user.id, email: user.email },
+      user: { id: user.id, username: user.username, email: user.email },
       token: session.token,
       expires_at: session.expiresAt,
     };
@@ -58,7 +63,7 @@ export async function registerAuthRoutes(server: FastifyInstance): Promise<void>
     }
     const session = await createSession(user.id);
     return {
-      user: { id: user.id, email: user.email },
+      user: { id: user.id, username: user.username, email: user.email },
       token: session.token,
       expires_at: session.expiresAt,
     };
@@ -79,6 +84,6 @@ export async function registerAuthRoutes(server: FastifyInstance): Promise<void>
   server.get("/api/v1/auth/me", async (request, reply) => {
     const user = await requireAuth(request, reply);
     if (!user) return;
-    return { user: { id: user.id, email: user.email } };
+    return { user: { id: user.id, username: user.username, email: user.email } };
   });
 }

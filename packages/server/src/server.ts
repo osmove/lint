@@ -3,6 +3,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { registerAuthHooks } from "./auth.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerHealthRoutes } from "./routes/health.js";
+import { registerLegacyAuthRoutes } from "./routes/legacy-auth.js";
 import { registerPolicyRoutes } from "./routes/policies.js";
 
 declare const __LINT_SERVER_VERSION__: string;
@@ -23,6 +24,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   registerAuthHooks(server);
   await registerHealthRoutes(server, { version: VERSION });
   await registerAuthRoutes(server);
+  await registerLegacyAuthRoutes(server);
   await registerPolicyRoutes(server);
 
   return server;

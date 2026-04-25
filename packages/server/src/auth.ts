@@ -74,6 +74,10 @@ function extractToken(request: FastifyRequest): string | null {
   }
   const headerToken = request.headers["x-lint-token"];
   if (typeof headerToken === "string") return headerToken;
+  // Rails-compat: legacy `?user_token=...` query parameter used by older lint
+  // CLI versions and the lint-cloud Rails backend.
+  const queryToken = (request.query as Record<string, unknown> | undefined)?.user_token;
+  if (typeof queryToken === "string") return queryToken;
   return null;
 }
 
