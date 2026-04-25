@@ -245,7 +245,7 @@ function runRecommendedConfig(options: { json?: boolean; write?: boolean }): voi
   console.log(formatRC(recommended));
 }
 
-function runInstallMissing(paths: string[], options: { dryRun?: boolean }): void {
+function runInstallMissing(_paths: string[], options: { dryRun?: boolean }): void {
   const root = findGitRoot() || process.cwd();
   const project = detectProject(root);
   const plan = buildSuggestedLinterPlan(project);
@@ -502,9 +502,7 @@ addLegacyAlias("explain-run [paths...]", "Legacy alias for 'lint explain run'", 
 
 // Legacy aliases for the demoted `setup *` group (now canonical at top-level).
 setupCommand.addCommand(
-  new Command("init")
-    .description("Legacy alias for 'lint init'")
-    .action(() => init()),
+  new Command("init").description("Legacy alias for 'lint init'").action(() => init()),
   { hidden: true },
 );
 

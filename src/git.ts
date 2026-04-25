@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { checkbox, confirm, input, select } from "@inquirer/prompts";
+import { checkbox, confirm } from "@inquirer/prompts";
 import chalk from "chalk";
 import * as api from "./api.js";
 import { getToken, getUsername, isLoggedIn } from "./auth.js";

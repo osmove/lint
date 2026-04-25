@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import path from "node:path";
 import chalk from "chalk";
 import * as api from "./api.js";
 import { REFS_DIR, TOKEN_PATH, USERNAME_PATH } from "./config.js";

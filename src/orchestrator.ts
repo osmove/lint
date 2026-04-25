@@ -597,9 +597,7 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
       );
     } else if (!quiet) {
       console.log(
-        chalk.yellow(
-          "No linters available. Run 'lint init' to set up, or install one manually.",
-        ),
+        chalk.yellow("No linters available. Run 'lint init' to set up, or install one manually."),
       );
     }
     return;
@@ -715,29 +713,25 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
       printReport(reports, options.truncate);
       if (verbose) printSummaryTable(reports);
     }
+    console.log("");
+    if (dryRun && totalFixable > 0) {
+      console.log(
+        chalk.cyan(`  ${totalFixable} issue(s) would be fixed. Run without --dry-run to apply.`),
+      );
+    }
+    if (totalErrors > 0) {
+      console.log(chalk.red(`✗ ${totalErrors} error(s), ${totalWarnings} warning(s)`));
+      if (totalFixable > 0 && !autofix) {
+        console.log(chalk.yellow(`  ${totalFixable} auto-fixable. Run 'lint --fix' to fix.`));
+      }
+    } else if (totalWarnings > 0) {
+      console.log(chalk.yellow(`⚠ ${totalWarnings} warning(s)`));
+    } else {
+      console.log(chalk.green("✓ All files passed."));
+    }
 
-    // Summary line — always shown unless explicitly silenced.
-    {
-      console.log("");
-      if (dryRun && totalFixable > 0) {
-        console.log(
-          chalk.cyan(`  ${totalFixable} issue(s) would be fixed. Run without --dry-run to apply.`),
-        );
-      }
-      if (totalErrors > 0) {
-        console.log(chalk.red(`✗ ${totalErrors} error(s), ${totalWarnings} warning(s)`));
-        if (totalFixable > 0 && !autofix) {
-          console.log(chalk.yellow(`  ${totalFixable} auto-fixable. Run 'lint --fix' to fix.`));
-        }
-      } else if (totalWarnings > 0) {
-        console.log(chalk.yellow(`⚠ ${totalWarnings} warning(s)`));
-      } else {
-        console.log(chalk.green("✓ All files passed."));
-      }
-
-      if (options.time) {
-        console.log(chalk.gray(`  Done in ${formatDuration(duration)}`));
-      }
+    if (options.time) {
+      console.log(chalk.gray(`  Done in ${formatDuration(duration)}`));
     }
   }
 
