@@ -1,9 +1,11 @@
 services:
   lint-server:
-    build:
-      context: ../..
-      dockerfile: packages/server/Dockerfile
-    image: osmove/lint-server:dev
+    # Pull from GHCR by default. To build locally instead, comment `image:` and
+    # uncomment the `build:` block below.
+    image: ghcr.io/osmove/lint-server:latest
+    # build:
+    #   context: ../..
+    #   dockerfile: packages/server/Dockerfile
     container_name: lint-server
     ports:
       - "3001:3001"
