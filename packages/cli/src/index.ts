@@ -1,3 +1,4 @@
+import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { confirm, input, password } from "@inquirer/prompts";
 import chalk from "chalk";
@@ -642,9 +643,19 @@ ai.command("setup")
     console.log(chalk.green("API key saved. AI features are now enabled."));
   });
 
+// Auto-parse argv when invoked as a CLI (directly or via the npm bin symlink),
+// but stay silent when imported as a module (used by tests).
 const entryArg = process.argv[1];
-if (entryArg && import.meta.url === pathToFileURL(entryArg).href) {
-  program.parse();
+if (entryArg) {
+  let entryHref: string;
+  try {
+    entryHref = pathToFileURL(realpathSync(entryArg)).href;
+  } catch {
+    entryHref = pathToFileURL(entryArg).href;
+  }
+  if (import.meta.url === entryHref) {
+    program.parse();
+  }
 }
 
 export { program };
