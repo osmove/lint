@@ -61,6 +61,8 @@
 - renamed default branch from `master` to `main`, aligned CI triggers and README badges
 - patched postcss XSS advisory (GHSA-qx2v-qp2m-jg93)
 - added `.github/PULL_REQUEST_TEMPLATE.md` to keep PR submissions aligned with `CONTRIBUTING.md`
+- promoted `lint init`, `lint bootstrap`, and `lint doctor` to top-level canonical commands (matching `npm init`, `git init` conventions); the grouped forms `lint setup init`, `lint setup bootstrap`, and `lint setup doctor` are kept as hidden legacy aliases
+- restricted auto-mode linter selection to project-applicable linters, so a globally-installed Ruby linter is no longer auto-selected on a TypeScript-only repo
 
 ## [1.0.0] - 2026-04-15
 

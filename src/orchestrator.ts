@@ -581,7 +581,7 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
     } else if (!quiet) {
       console.log(
         chalk.yellow(
-          "No linters available. Run 'lint setup init' to set up, or install one manually.",
+          "No linters available. Run 'lint init' to set up, or install one manually.",
         ),
       );
     }

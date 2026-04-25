@@ -23,11 +23,11 @@ It auto-detects your languages, resolves linter conflicts, and lints everything 
 ```sh
 npm i -g lint
 cd /path/to/your/repo
-lint setup init
+lint init
 lint
 ```
 
-`lint setup init` scans your project, detects languages, suggests linters, installs missing ones, creates `.lintrc.yaml`, and sets up git hooks — all interactively.
+`lint init` scans your project, detects languages, suggests linters, installs missing ones, creates `.lintrc.yaml`, and sets up git hooks — all interactively.
 
 ## Features
 
@@ -91,12 +91,12 @@ lint ai explain           # Explain linting errors in plain language
 ### Setup & Diagnostics
 
 ```sh
-lint setup init           # Smart setup wizard with auto-detection
-lint setup bootstrap      # Non-interactive repo-local bootstrap
+lint init           # Smart setup wizard with auto-detection
+lint bootstrap      # Non-interactive repo-local bootstrap
 lint setup fix            # Apply recommended repo-local setup in one pass
 lint config recommend     # Print a recommended .lintrc.yaml
-lint setup doctor         # Diagnose setup, linters, hooks health
-lint setup doctor --json  # Machine-readable health report
+lint doctor         # Diagnose setup, linters, hooks health
+lint doctor --json  # Machine-readable health report
 lint explain run .        # Explain file/linter/policy decisions without linting
 lint machine summary .    # Compact machine-readable summary for automation
 lint install missing .    # Install suggested linters that are not installed yet
@@ -161,11 +161,11 @@ lint hooks status
 ## Doctor
 
 ```sh
-lint setup doctor
-lint setup doctor --json
+lint doctor
+lint doctor --json
 ```
 
-`lint setup doctor` gives a quick local health check for:
+`lint doctor` gives a quick local health check for:
 
 - git root, branch, and dirty/clean state
 - `.lint/config` and `.lintrc.yaml`
@@ -176,13 +176,13 @@ lint setup doctor --json
 
 Legacy aliases like `lint setup:fix`, `lint config:recommend`, `lint install:missing`, `lint machine:summary`, `lint install:hooks`, `lint uninstall:hooks`, and `lint hooks:status` still work for backward compatibility, but the canonical API now prefers grouped commands like `lint setup fix`, `lint config recommend`, `lint install missing`, `lint machine summary`, and `lint hooks <action>`.
 
-Top-level aliases like `lint init`, `lint bootstrap`, and `lint doctor` also still work, but the canonical setup flow now lives under `lint setup <init|bootstrap|fix|doctor>`.
+`lint init`, `lint bootstrap`, and `lint doctor` are top-level canonical commands (matching `npm init`, `git init`, etc.). The grouped forms `lint setup init`, `lint setup bootstrap`, and `lint setup doctor` are kept as hidden legacy aliases for backward compatibility.
 
 `lint prettify <extension>` also still works as a compatibility alias, but the canonical formatting helper is now `lint format write <extension>`.
 
 `lint explain-run` also still works as a compatibility alias, but the canonical explain helper is now `lint explain run`.
 
-Use `lint setup doctor --json` when you want to consume the report from another tool, CI step, or control plane.
+Use `lint doctor --json` when you want to consume the report from another tool, CI step, or control plane.
 
 ## Explain Run
 
@@ -215,13 +215,13 @@ lint install missing --dry-run .
 ## Bootstrap
 
 ```sh
-lint setup bootstrap
-lint setup bootstrap --dry-run
-lint setup bootstrap --json
-lint setup bootstrap --install-missing --install-hooks
+lint bootstrap
+lint bootstrap --dry-run
+lint bootstrap --json
+lint bootstrap --install-missing --install-hooks
 ```
 
-`lint setup bootstrap` is the non-interactive counterpart to `lint setup init`. It detects the project, writes a repo-local `.lintrc.yaml`, creates a local `.lint/config` when needed, and can optionally install missing linters and hooks.
+`lint bootstrap` is the non-interactive counterpart to `lint init`. It detects the project, writes a repo-local `.lintrc.yaml`, creates a local `.lint/config` when needed, and can optionally install missing linters and hooks.
 
 ## Setup Fix
 

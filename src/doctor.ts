@@ -189,7 +189,7 @@ export function formatDoctorReport(report: DoctorReport): string[] {
   if (report.config.initialized) {
     lines.push(`  ✓ Config: .lint/config (${report.config.mode})`);
   } else {
-    lines.push("  ✗ No .lint/config — run 'lint setup init'");
+    lines.push("  ✗ No .lint/config — run 'lint init'");
   }
 
   lines.push(

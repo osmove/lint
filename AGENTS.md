@@ -107,10 +107,10 @@ lint --format json      # JSON output for CI/CD
 lint ci                 # Repo-local quality gate for CI/control planes
 lint -q                 # Quiet mode (summary only)
 lint pre-commit -t      # Pre-commit hook with timing
-lint setup init         # Smart setup wizard
-lint setup bootstrap    # Non-interactive repo-local bootstrap
+lint init         # Smart setup wizard
+lint bootstrap    # Non-interactive repo-local bootstrap
 lint setup fix          # Repair repo-local setup in one pass
-lint setup doctor       # Diagnose setup health
+lint doctor       # Diagnose setup health
 lint config recommend   # Recommend a .lintrc.yaml
 lint install missing .  # Install suggested missing linters
 lint explain run .      # Explain linter/file/policy decisions

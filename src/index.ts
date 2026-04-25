@@ -380,20 +380,17 @@ hooksCommand
   .option("--json", "Output hook status as JSON")
   .action((options: { json?: boolean }) => printHooksStatus(options));
 
-const setupCommand = program.command("setup").description("Manage repo-local Lint setup");
-
-setupCommand
+// Top-level canonical: init, doctor, bootstrap (universal CLI conventions).
+program
   .command("init")
   .description("Initialize Lint with smart project detection")
   .action(() => init());
 
-const setupBootstrapCommand = withBootstrapOptions(
-  setupCommand
+withBootstrapOptions(
+  program
     .command("bootstrap")
     .description("Bootstrap repo-local Lint config without interactive prompts"),
-);
-
-setupBootstrapCommand.action(
+).action(
   (options: {
     dryRun?: boolean;
     json?: boolean;
@@ -401,6 +398,15 @@ setupBootstrapCommand.action(
     installHooks?: boolean;
   }) => runSetupBootstrap(options),
 );
+
+program
+  .command("doctor")
+  .description("Diagnose Lint setup and linter health")
+  .option("--json", "Output doctor status as JSON")
+  .action((options: { json?: boolean }) => runDoctor(options));
+
+// `setup` group reserved for genuinely setup-orchestrating commands (e.g. `fix`).
+const setupCommand = program.command("setup").description("Apply or repair repo-local Lint setup");
 
 const setupFixCommand = withSetupFixOptions(
   setupCommand.command("fix").description("Apply recommended repo-local Lint setup in one pass"),
@@ -414,12 +420,6 @@ setupFixCommand.action(
     installHooks?: boolean;
   }) => runSetupFix(options),
 );
-
-setupCommand
-  .command("doctor")
-  .description("Diagnose Lint setup and linter health")
-  .option("--json", "Output doctor status as JSON")
-  .action((options: { json?: boolean }) => runDoctor(options));
 
 const configCommand = program.command("config").description("Manage Lint configuration helpers");
 
@@ -494,14 +494,40 @@ formatCommand
   .description("Run Prettier on all files with the given extension")
   .action((extension) => runFormatWrite(extension));
 
-addLegacyAlias("init", "Legacy alias for 'lint setup init'", (command) =>
-  command.action(() => init()),
-);
-
 addLegacyAlias("explain-run [paths...]", "Legacy alias for 'lint explain run'", (command) =>
   withJsonOption(command, "Output explanation as JSON").action(
     (paths, options: { json?: boolean }) => runExplainRun(paths, options),
   ),
+);
+
+// Legacy aliases for the demoted `setup *` group (now canonical at top-level).
+setupCommand.addCommand(
+  new Command("init")
+    .description("Legacy alias for 'lint init'")
+    .action(() => init()),
+  { hidden: true },
+);
+
+setupCommand.addCommand(
+  withBootstrapOptions(
+    new Command("bootstrap").description("Legacy alias for 'lint bootstrap'"),
+  ).action(
+    (options: {
+      dryRun?: boolean;
+      json?: boolean;
+      installMissing?: boolean;
+      installHooks?: boolean;
+    }) => runSetupBootstrap(options),
+  ),
+  { hidden: true },
+);
+
+setupCommand.addCommand(
+  withJsonOption(
+    new Command("doctor").description("Legacy alias for 'lint doctor'"),
+    "Output doctor status as JSON",
+  ).action((options: { json?: boolean }) => runDoctor(options)),
+  { hidden: true },
 );
 
 addLegacyAlias("install:hooks", "Legacy alias for 'lint hooks install'", (command) =>
@@ -512,17 +538,6 @@ addLegacyAlias("machine:summary [paths...]", "Legacy alias for 'lint machine sum
   command
     .option("--strict", "Exit 1 when the repo still needs setup or has uncovered files")
     .action((paths, options: { strict?: boolean }) => runMachineSummary(paths, options)),
-);
-
-addLegacyAlias("bootstrap", "Legacy alias for 'lint setup bootstrap'", (command) =>
-  withBootstrapOptions(command).action(
-    (options: {
-      dryRun?: boolean;
-      json?: boolean;
-      installMissing?: boolean;
-      installHooks?: boolean;
-    }) => runSetupBootstrap(options),
-  ),
 );
 
 addLegacyAlias("setup:fix", "Legacy alias for 'lint setup fix'", (command) =>
@@ -540,12 +555,6 @@ addLegacyAlias("config:recommend", "Legacy alias for 'lint config recommend'", (
   withJsonOption(command, "Output the recommendation as JSON")
     .option("--write", "Write the recommended config to .lintrc.yaml")
     .action((options: { json?: boolean; write?: boolean }) => runRecommendedConfig(options)),
-);
-
-addLegacyAlias("doctor", "Legacy alias for 'lint setup doctor'", (command) =>
-  withJsonOption(command, "Output doctor status as JSON").action((options: { json?: boolean }) =>
-    runDoctor(options),
-  ),
 );
 
 addLegacyAlias("install:missing [paths...]", "Legacy alias for 'lint install missing'", (command) =>

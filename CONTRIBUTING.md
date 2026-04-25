@@ -28,8 +28,8 @@ npm run verify
 Prefer documenting and designing around the grouped command surface:
 
 ```sh
-lint setup init
-lint setup doctor
+lint init
+lint doctor
 lint hooks install
 lint config recommend
 lint install missing .

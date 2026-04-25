@@ -2,11 +2,16 @@ import { describe, expect, it } from "vitest";
 import { program } from "../src/index.js";
 
 describe("cli", () => {
-  it("exposes grouped canonical commands", () => {
+  it("exposes top-level canonical commands and grouped namespaces", () => {
     const commandNames = program.commands.map((command) => command.name());
 
     expect(commandNames).toEqual(
       expect.arrayContaining([
+        // Top-level canonical
+        "init",
+        "bootstrap",
+        "doctor",
+        // Grouped namespaces
         "hooks",
         "setup",
         "config",
@@ -32,15 +37,22 @@ describe("cli", () => {
         "install:missing",
         "machine:summary",
         "explain-run",
-        "init",
-        "bootstrap",
-        "doctor",
         "login",
         "logout",
         "signup",
         "whoami",
         "prettify",
       ]),
+    );
+
+    // `setup init`, `setup bootstrap`, `setup doctor` remain hidden legacy aliases
+    // under the `setup` group, even though their canonical forms are top-level.
+    const setup = program.commands.find((command) => command.name() === "setup");
+    const setupSubcommandNames = (setup?.commands ?? []).map((command) =>
+      command.name().split(" ")[0],
+    );
+    expect(setupSubcommandNames).toEqual(
+      expect.arrayContaining(["init", "bootstrap", "doctor"]),
     );
   });
 
@@ -58,10 +70,12 @@ describe("cli", () => {
     expect(hooks?.helpInformation()).toContain("status");
     expect(hooks?.helpInformation()).toContain("uninstall");
 
-    expect(setup?.helpInformation()).toContain("init");
-    expect(setup?.helpInformation()).toContain("bootstrap");
+    // `setup` only exposes `fix` in its visible help — `init`, `bootstrap`,
+    // and `doctor` are hidden legacy aliases under setup but canonical at top-level.
     expect(setup?.helpInformation()).toContain("fix");
-    expect(setup?.helpInformation()).toContain("doctor");
+    expect(setup?.helpInformation()).not.toContain(" init");
+    expect(setup?.helpInformation()).not.toContain(" bootstrap");
+    expect(setup?.helpInformation()).not.toContain(" doctor");
     expect(config?.helpInformation()).toContain("recommend");
     expect(install?.helpInformation()).toContain("missing");
     expect(machine?.helpInformation()).toContain("summary");
@@ -82,9 +96,10 @@ describe("cli", () => {
     expect(help).toContain("auth");
     expect(help).toContain("format");
     expect(help).toContain("explain");
-    expect(help).not.toContain("init");
-    expect(help).not.toContain("bootstrap");
-    expect(help).not.toContain("doctor");
+    // Top-level canonical commands ARE in root help
+    expect(help).toContain("init");
+    expect(help).toContain("bootstrap");
+    expect(help).toContain("doctor");
     expect(help).not.toContain("pre-commit");
     expect(help).not.toContain("prepare-commit-msg");
     expect(help).not.toContain("post-commit");
