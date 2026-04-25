@@ -18,11 +18,35 @@ interface CommandFailure extends Error {
   status?: number | null;
 }
 
+// Build a PATH that includes every node_modules/.bin directory walking up from
+// the working directory, mirroring how `npm run` resolves locally-installed
+// binaries. This lets `lint ci` find biome, eslint, etc. installed via
+// `npm install -D` without requiring users to add them to global PATH.
+function pathWithLocalBins(cwd: string | undefined): string {
+  const startDir = cwd ?? process.cwd();
+  const bins: string[] = [];
+  let dir = path.resolve(startDir);
+  while (true) {
+    const candidate = path.join(dir, "node_modules", ".bin");
+    if (fs.existsSync(candidate)) {
+      bins.push(candidate);
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  const existing = process.env.PATH ?? "";
+  return [...bins, existing].filter(Boolean).join(path.delimiter);
+}
+
 export function execFile(command: string, args: string[], options: CommandOptions = {}): string {
+  const baseEnv = options.env ? { ...process.env, ...options.env } : { ...process.env };
+  baseEnv.PATH = pathWithLocalBins(options.cwd);
+
   const result = spawnSync(command, args, {
     cwd: options.cwd,
     encoding: "utf-8",
-    env: options.env ? { ...process.env, ...options.env } : process.env,
+    env: baseEnv,
     input: options.input,
     stdio: options.silent ? "pipe" : ["pipe", "pipe", "pipe"],
     timeout: 120_000,
@@ -51,16 +75,19 @@ export function execFile(command: string, args: string[], options: CommandOption
 }
 
 export function isCommandAvailable(command: string): boolean {
+  // Check global PATH plus local node_modules/.bin directories (npm-style).
+  const env = { ...process.env, PATH: pathWithLocalBins(process.cwd()) };
   try {
-    const result = spawnSync("which", [command], { stdio: "pipe" });
+    const result = spawnSync("which", [command], { stdio: "pipe", env });
+    if (result.status === 0) return true;
+  } catch {
+    /* fall through */
+  }
+  try {
+    const result = spawnSync(command, ["--version"], { stdio: "pipe", env });
     return result.status === 0;
   } catch {
-    try {
-      const result = spawnSync(command, ["--version"], { stdio: "pipe" });
-      return result.status === 0;
-    } catch {
-      return false;
-    }
+    return false;
   }
 }
 
