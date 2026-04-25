@@ -2,6 +2,9 @@
 
 Self-hosted backend for the [Lint CLI](https://www.npmjs.com/package/lint).
 
+[![Docker image](https://ghcr-badge.egpl.dev/osmove/lint-server/latest_tag?label=ghcr.io)](https://github.com/osmove/lint/pkgs/container/lint-server)
+[![License: BUSL-1.1](https://img.shields.io/badge/license-BUSL--1.1-blue)](./LICENSE)
+
 > **Status: 0.1.0 (early).** Auth (signup/login/me/logout) and policies CRUD are functional with SQLite. Repositories, runs, and AI proxy endpoints are still being implemented.
 
 ## What this is
