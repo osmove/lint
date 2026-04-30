@@ -20,6 +20,26 @@ Where severity is one of: 🔴 ERROR, 🟡 WARNING, 🔵 INFO
 
 End with a brief summary.`;
 
+export interface ReviewInput {
+  diff: string;
+  files: string[];
+}
+
+export interface ReviewResult {
+  text: string;
+}
+
+// Programmatic entry point — used by @lint/server's POST /api/ai/review.
+// Returns the full review as a string (no streaming, no stdout writes).
+export async function runReview(input: ReviewInput): Promise<ReviewResult> {
+  const userMessage = `Review these staged changes:\n\nFiles: ${input.files.join(
+    ", ",
+  )}\n\nDiff:\n\`\`\`diff\n${input.diff}\n\`\`\``;
+  const text = await chat(SYSTEM_PROMPT, userMessage, { stream: false, maxTokens: 4096 });
+  return { text };
+}
+
+// CLI form — streams to stdout. Kept for `lint ai review`.
 export async function reviewStagedChanges(): Promise<void> {
   const files = getStagedFilePaths();
   if (files.length === 0) {

@@ -21,6 +21,45 @@ Format each fix as:
 <corrected code>
 \`\`\``;
 
+export interface FixInput {
+  diff: string;
+  files: string[];
+  // Pre-loaded file contents (path → contents). Optional. The server
+  // populates this; the CLI variant reads them from disk itself.
+  fileContents?: Record<string, string>;
+}
+
+export interface FixResult {
+  text: string;
+}
+
+function buildFixUserMessage(input: FixInput): string {
+  const blocks: string[] = [];
+  if (input.fileContents) {
+    for (const [path, content] of Object.entries(input.fileContents)) {
+      if (content.length < 10_000) blocks.push(`--- ${path} ---\n${content}`);
+    }
+  }
+  return `Analyze and suggest fixes for these staged changes:
+
+Diff:
+\`\`\`diff
+${input.diff}
+\`\`\`
+
+${blocks.length > 0 ? `\nFull file contents:\n${blocks.join("\n\n")}` : ""}`;
+}
+
+// Programmatic entry point — used by @lint/server's POST /api/ai/fix.
+export async function runFix(input: FixInput): Promise<FixResult> {
+  const text = await chat(SYSTEM_PROMPT, buildFixUserMessage(input), {
+    stream: false,
+    maxTokens: 4096,
+  });
+  return { text };
+}
+
+// CLI form — streams to stdout. Kept for `lint ai fix`.
 export async function fixStagedChanges(): Promise<void> {
   const files = getStagedFilePaths();
   if (files.length === 0) {
@@ -38,31 +77,21 @@ export async function fixStagedChanges(): Promise<void> {
     chalk.cyan(`\nAnalyzing ${files.length} staged file(s) for auto-fix suggestions...\n`),
   );
 
-  // Also send file contents for full context
-  const fileContents: string[] = [];
+  const fileContents: Record<string, string> = {};
   for (const file of files.slice(0, 10)) {
-    // Limit to 10 files
     try {
       const content = fs.readFileSync(file, "utf-8");
-      if (content.length < 10000) {
-        fileContents.push(`--- ${file} ---\n${content}`);
-      }
+      if (content.length < 10_000) fileContents[file] = content;
     } catch {
       // Skip unreadable files
     }
   }
 
-  const userMessage = `Analyze and suggest fixes for these staged changes:
-
-Diff:
-\`\`\`diff
-${diff}
-\`\`\`
-
-${fileContents.length > 0 ? `\nFull file contents:\n${fileContents.join("\n\n")}` : ""}`;
-
   try {
-    await chat(SYSTEM_PROMPT, userMessage, { stream: true, maxTokens: 4096 });
+    await chat(SYSTEM_PROMPT, buildFixUserMessage({ diff, files, fileContents }), {
+      stream: true,
+      maxTokens: 4096,
+    });
   } catch (error) {
     console.log(chalk.red("\nAI fix failed:"), (error as Error).message);
   }

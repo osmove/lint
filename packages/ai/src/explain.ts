@@ -13,38 +13,59 @@ For each error/warning:
 
 Be concise but educational. Use simple language.`;
 
-export async function explainErrors(reports: LintReport[]): Promise<void> {
-  const allOffenses = reports.flatMap((r) =>
-    r.files.flatMap((f) =>
-      f.offenses.map((o) => ({
-        linter: r.linter,
-        file: f.path,
-        ...o,
-      })),
-    ),
-  );
+export interface ExplainInput {
+  reports: LintReport[];
+}
 
-  if (allOffenses.length === 0) {
+export interface ExplainResult {
+  text: string;
+  uniqueRuleCount: number;
+}
+
+function selectOffenses(reports: LintReport[]) {
+  const all = reports.flatMap((r) =>
+    r.files.flatMap((f) => f.offenses.map((o) => ({ linter: r.linter, file: f.path, ...o }))),
+  );
+  // Cap at 20 unique rules so the prompt stays bounded.
+  const uniqueRules = [...new Set(all.map((o) => o.rule))].slice(0, 20);
+  return uniqueRules
+    .map((rule) => all.find((o) => o.rule === rule))
+    .filter((o): o is NonNullable<typeof o> => o !== undefined);
+}
+
+function buildExplainUserMessage(selectedOffenses: ReturnType<typeof selectOffenses>): string {
+  const summary = selectedOffenses
+    .map((o) => `- [${o.linter}] ${o.rule}: "${o.message}" in ${o.file}:${o.line}`)
+    .join("\n");
+  return `Explain these linting errors:\n\n${summary}`;
+}
+
+// Programmatic entry point — used by @lint/server's POST /api/ai/explain.
+export async function runExplain(input: ExplainInput): Promise<ExplainResult> {
+  const selected = selectOffenses(input.reports);
+  if (selected.length === 0) {
+    return { text: "No errors to explain — your code is clean!", uniqueRuleCount: 0 };
+  }
+  const text = await chat(SYSTEM_PROMPT, buildExplainUserMessage(selected), {
+    stream: false,
+    maxTokens: 4096,
+  });
+  return { text, uniqueRuleCount: selected.length };
+}
+
+// CLI form — streams to stdout. Kept for `lint ai explain`.
+export async function explainErrors(reports: LintReport[]): Promise<void> {
+  const selected = selectOffenses(reports);
+  if (selected.length === 0) {
     console.log(chalk.green("No errors to explain — your code is clean!"));
     return;
   }
-
-  // Limit to first 20 unique rules
-  const uniqueRules = [...new Set(allOffenses.map((o) => o.rule))].slice(0, 20);
-  const selectedOffenses = uniqueRules
-    .map((rule) => allOffenses.find((o) => o.rule === rule))
-    .filter((o) => o !== undefined);
-
-  console.log(chalk.cyan(`\nExplaining ${selectedOffenses.length} linting issue(s)...\n`));
-
-  const errorSummary = selectedOffenses
-    .map((o) => `- [${o.linter}] ${o.rule}: "${o.message}" in ${o.file}:${o.line}`)
-    .join("\n");
-
-  const userMessage = `Explain these linting errors:\n\n${errorSummary}`;
-
+  console.log(chalk.cyan(`\nExplaining ${selected.length} linting issue(s)...\n`));
   try {
-    await chat(SYSTEM_PROMPT, userMessage, { stream: true, maxTokens: 4096 });
+    await chat(SYSTEM_PROMPT, buildExplainUserMessage(selected), {
+      stream: true,
+      maxTokens: 4096,
+    });
   } catch (error) {
     console.log(chalk.red("\nAI explain failed:"), (error as Error).message);
   }
