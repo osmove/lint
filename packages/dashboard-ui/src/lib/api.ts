@@ -22,6 +22,12 @@ export const api = {
   createRun: (body: { paths?: string[]; fix?: boolean; format?: "text" | "json" }) =>
     unwrap(client.POST("/api/runs", { body })),
   listRepos: () => unwrap(client.GET("/api/repos")),
+  createRepo: (body: { path: string; name?: string }) =>
+    unwrap(client.POST("/api/repos", { body })),
+  removeRepo: (id: string) =>
+    unwrap(
+      client.DELETE("/api/repos/{id}", { params: { path: { id } } }),
+    ),
   getPolicies: () => unwrap(client.GET("/api/policies")),
   getLinters: () => unwrap(client.GET("/api/linters")),
   aiReview: (body: { diff?: string; files?: string[] }) =>
