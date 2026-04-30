@@ -1,0 +1,30 @@
+openapi: 3.0.3
+info:
+  title: Lint Cloud API
+  version: 1.0.0
+  description: |
+    Public API for lint.to. Used by the `lint` CLI, Lint Desktop, and any third-party
+    integration that needs typed access to repositories, policies, rules, and
+    commit-attempt history.
+
+    This file is the source of truth — `@osmove/lint-sdk` regenerates its types from it.
+    Re-fetch with `pnpm --filter @osmove/lint-sdk openapi:fetch` once the cloud
+    backend exposes `GET /openapi/v1.yaml`.
+servers:
+  - url: https://api.lint.to
+    description: Production
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+components:
+  schemas: {}
