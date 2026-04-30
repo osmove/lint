@@ -1,0 +1,52 @@
+{
+  "name": "@lint/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "Lint desktop app (Electron) — embeds the local Hono server and dashboard UI in a native window.",
+  "homepage": "https://lint.to",
+  "author": {
+    "name": "Osmove",
+    "email": "hello@lint.to",
+    "url": "https://lint.to"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/osmove/lint.git",
+    "directory": "packages/desktop"
+  },
+  "type": "module",
+  "main": "dist/main.mjs",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup && NODE_ENV=development electron dist/main.mjs",
+    "start": "electron dist/main.mjs",
+    "dist:mac": "pnpm build && electron-builder --mac --x64 --arm64",
+    "dist:linux": "pnpm build && electron-builder --linux --x64 --arm64",
+    "dist:win": "pnpm build && electron-builder --win --x64 --arm64"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.1",
+    "@hono/node-server": "^1.13.7",
+    "@lint/ai": "workspace:*",
+    "@lint/config": "workspace:*",
+    "@lint/core": "workspace:*",
+    "@lint/git": "workspace:*",
+    "@lint/hooks": "workspace:*",
+    "@lint/linters": "workspace:*",
+    "@lint/policies": "workspace:*",
+    "@lint/schemas": "workspace:*",
+    "@lint/server": "workspace:*",
+    "electron-updater": "^6.8.3",
+    "execa": "^9.6.0",
+    "hono": "^4.6.13",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3"
+  }
+}

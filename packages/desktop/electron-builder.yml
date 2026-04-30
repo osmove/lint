@@ -1,0 +1,94 @@
+appId: com.osmove.lint
+productName: Lint
+copyright: Copyright © 2026 Jimmy Douieb
+directories:
+  output: release
+  buildResources: assets
+files:
+  - dist/**/*
+  - package.json
+  - "!**/*.map"
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  notarize: true
+  entitlements: assets/entitlements.mac.plist
+  entitlementsInherit: assets/entitlements.mac.plist
+  icon: assets/icon.png
+dmg:
+  contents:
+    - x: 130
+      y: 220
+      type: link
+      path: /Applications
+    - x: 410
+      y: 220
+      type: file
+linux:
+  category: Development
+  synopsis: Universal linter with AI-powered code review
+  description: |
+    Lint runs entirely locally — orchestrates ESLint, Biome, Ruff, RuboCop,
+    Stylelint, Pylint, oxlint, erb-lint, Brakeman, and Prettier through a
+    single CLI and a native dashboard, with AI-powered review/fix/explain
+    via Anthropic Claude.
+  artifactName: "Lint-${version}-${arch}.${ext}"
+  executableName: lint-desktop
+  target:
+    - target: AppImage
+      arch: [x64, arm64]
+    - target: deb
+      arch: [x64, arm64]
+    - target: rpm
+      arch: [x64]
+  icon: assets/icon.png
+  desktop:
+    entry:
+      Name: Lint
+      Comment: Universal linter with AI-powered code review
+      Categories: Development;IDE;
+      Keywords: lint;linter;code-quality;ai;
+deb:
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+    - libsecret-1-0
+win:
+  artifactName: "Lint-Setup-${version}-${arch}.${ext}"
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+    - target: portable
+      arch: [x64]
+  icon: assets/icon.ico
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  allowElevation: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Lint
+  uninstallDisplayName: Lint Desktop
+portable:
+  artifactName: "Lint-Portable-${version}-${arch}.${ext}"
+
+asar: true
+
+publish:
+  - provider: github
+    owner: osmove
+    repo: lint
+    releaseType: release
