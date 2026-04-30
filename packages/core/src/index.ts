@@ -4,3 +4,4 @@ export * from "./reporter.js";
 export * from "./orchestrator.js";
 export * from "./git-bootstrap.js";
 export * from "./runs-store.js";
+export * from "./projects-registry.js";

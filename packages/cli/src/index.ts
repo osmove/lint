@@ -33,7 +33,13 @@ import {
   runLint,
 } from "@lint/core";
 import { buildRecommendedRC, formatRC, loadRC, writeRC } from "@lint/config";
-import { LINT_JSON_SCHEMA_VERSION } from "@lint/core";
+import {
+  LINT_JSON_SCHEMA_VERSION,
+  listProjects,
+  registerProject,
+  REGISTRY_FILE_PATH,
+  unregisterProject,
+} from "@lint/core";
 import type { LintReport } from "@lint/schemas";
 import { findGitRoot } from "@lint/git";
 
@@ -641,6 +647,66 @@ ai.command("setup")
     }
     saveApiKey(apiKey);
     console.log(chalk.green("API key saved. AI features are now enabled."));
+  });
+
+// ── Repos: user-level project registry (~/.lint/projects.json) ──
+//
+// Mirrors `git`'s top-level repo discovery story: instead of forcing the
+// user to cd into a repo every time, they can register projects once and
+// the desktop / dashboard pick them up across machines (well, per-user).
+// The CLI uses these only for `lint repos {list,add,remove}`; the actual
+// linting still runs on whatever cwd the command was invoked from.
+const reposCommand = program.command("repos").description("Manage the user-level project registry");
+
+reposCommand
+  .command("list")
+  .alias("ls")
+  .description("List registered Lint projects")
+  .option("--json", "Output JSON")
+  .action((options: { json?: boolean }) => {
+    const projects = listProjects();
+    if (options.json) {
+      console.log(JSON.stringify({ registry: REGISTRY_FILE_PATH, projects }, null, 2));
+      return;
+    }
+    if (projects.length === 0) {
+      console.log(chalk.yellow("No projects registered."));
+      console.log(chalk.gray(`  Add the current repo: ${chalk.cyan("lint repos add")}`));
+      return;
+    }
+    console.log(chalk.gray(`  ${REGISTRY_FILE_PATH}\n`));
+    for (const p of projects) {
+      console.log(`  ${chalk.cyan(p.id.padEnd(24))} ${chalk.gray(p.root)}`);
+    }
+  });
+
+reposCommand
+  .command("add [path]")
+  .description("Register a project (defaults to the current git repo)")
+  .option("--name <name>", "Display name (defaults to the directory's basename)")
+  .action((targetPath: string | undefined, options: { name?: string }) => {
+    const root = targetPath ? targetPath : findGitRoot();
+    if (!root) {
+      console.log(chalk.red("Not inside a git repository (and no path given)."));
+      console.log(chalk.gray("  Run from inside a repo, or pass: lint repos add <path>"));
+      process.exit(1);
+    }
+    const entry = registerProject(root, options.name);
+    console.log(chalk.green(`Registered ${chalk.bold(entry.name)}`));
+    console.log(chalk.gray(`  id:   ${entry.id}`));
+    console.log(chalk.gray(`  root: ${entry.root}`));
+  });
+
+reposCommand
+  .command("remove <id>")
+  .alias("rm")
+  .description("Remove a project from the registry by id")
+  .action((id: string) => {
+    if (!unregisterProject(id)) {
+      console.log(chalk.yellow(`No project with id "${id}" — run \`lint repos list\` to see registered ids.`));
+      process.exit(1);
+    }
+    console.log(chalk.green(`Removed ${id}.`));
   });
 
 // Auto-parse argv when invoked as a CLI (directly or via the npm bin symlink),
