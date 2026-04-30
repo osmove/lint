@@ -35,6 +35,7 @@ import {
 import type { LinterName, LinterResult, LintReport, PolicyRule, RunOptions } from "@lint/schemas";
 import { cleanTmpDir, execFile, findGitRoot, formatDuration, readLintConfig } from "@lint/git";
 import { createRunsStore, newRunId } from "./runs-store.js";
+import { postCheckRunIfCI } from "./github-checks.js";
 
 // ── Linter registry ──
 
@@ -768,6 +769,19 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
   if (!options.keep) cleanTmpDir();
 
   recordRun(hasErrors ? "failed" : "passed", totalErrors, totalWarnings);
+
+  // ── GitHub Checks (only when running inside an Actions workflow) ──
+  // Best-effort: detection short-circuits on missing env, post errors
+  // are swallowed inside postCheckRunIfCI. Awaited so the workflow log
+  // shows the Check before exit, but a slow GitHub doesn't extend the
+  // run beyond ~5s of HTTP timeout.
+  await postCheckRunIfCI({
+    reports,
+    totalErrors,
+    totalWarnings,
+    fileCount: files.length,
+    linterCount: linters.length,
+  }).catch(() => null);
 
   // ── Exit codes: 0 = clean, 1 = errors, 2 = warnings only ──
   if (hasErrors) process.exit(1);

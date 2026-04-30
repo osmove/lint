@@ -9,6 +9,9 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write   # `lint quality-gate` posts a Check Run via GITHUB_TOKEN
     strategy:
       matrix:
         node-version: [20, 22]
@@ -46,6 +49,11 @@ jobs:
 
       - name: Quality gate
         run: pnpm --filter lint quality-gate
+        env:
+          # `lint ci` (which `quality-gate` invokes) detects GITHUB_ACTIONS
+          # and posts a Check Run with one annotation per offense via the
+          # token below. checks:write is granted in the job permissions.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Test
         run: pnpm --filter lint test
