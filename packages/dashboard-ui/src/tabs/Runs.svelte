@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createQuery, createMutation, useQueryClient } from "@tanstack/svelte-query";
   import { api } from "../lib/api";
+  import AiPanel from "./AiPanel.svelte";
 
   const qc = useQueryClient();
 
@@ -52,6 +53,8 @@
       {/each}
     </ul>
   {/if}
+
+  <AiPanel />
 </section>
 
 <style>

@@ -24,4 +24,8 @@ export const api = {
   listRepos: () => unwrap(client.GET("/api/repos")),
   getPolicies: () => unwrap(client.GET("/api/policies")),
   getLinters: () => unwrap(client.GET("/api/linters")),
+  aiReview: (body: { diff?: string; files?: string[] }) =>
+    unwrap(client.POST("/api/ai/review", { body })),
+  aiFix: (body: { diff?: string; files?: string[]; fileContents?: Record<string, string> }) =>
+    unwrap(client.POST("/api/ai/fix", { body })),
 };
