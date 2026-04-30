@@ -7,7 +7,7 @@ import {
   getStagedDiff,
   getStagedFilePaths,
   getStagedFiles,
-} from "../src/git.js";
+} from "@lint/core";
 
 describe("git operations", () => {
   describe("getStagedFiles", () => {

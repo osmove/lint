@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getToken, getUsername, isLoggedIn } from "../src/auth.js";
+import { getToken, getUsername, isLoggedIn } from "@lint/policies";
 
 describe("auth", () => {
   describe("getUsername", () => {

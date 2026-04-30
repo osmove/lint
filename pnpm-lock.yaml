@@ -143,6 +143,9 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@25.6.0)(lightningcss@1.32.0)(tsx@4.21.0)
 
   packages/core:
     dependencies:
@@ -189,6 +192,9 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@25.6.0)(lightningcss@1.32.0)(tsx@4.21.0)
 
   packages/dashboard-ui:
     dependencies:
@@ -297,6 +303,9 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@25.6.0)(lightningcss@1.32.0)(tsx@4.21.0)
 
   packages/hooks:
     dependencies:
@@ -344,6 +353,9 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@25.6.0)(lightningcss@1.32.0)(tsx@4.21.0)
 
   packages/policies:
     dependencies:
@@ -366,6 +378,9 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@25.6.0)(lightningcss@1.32.0)(tsx@4.21.0)
 
   packages/schemas:
     dependencies:

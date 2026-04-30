@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type DoctorReport, formatDoctorReport } from "../src/doctor.js";
+import { type DoctorReport, formatDoctorReport } from "@lint/core";
 
 describe("doctor", () => {
   it("formats a full doctor report", () => {

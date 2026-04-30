@@ -7,7 +7,7 @@ import {
   checkLinterInstallation,
   detectProject,
   getAllSuggestedLinters,
-} from "../src/detect.js";
+} from "@lint/core";
 
 const tempDirs: string[] = [];
 

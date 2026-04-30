@@ -6,8 +6,8 @@ import {
   formatRunDecisionReport,
   printReport,
   printSummaryTable,
-} from "../src/reporter.js";
-import type { LintReport } from "../src/types.js";
+} from "@lint/core";
+import type { LintReport } from "@lint/schemas";
 
 describe("reporter", () => {
   const mockReport: LintReport = {

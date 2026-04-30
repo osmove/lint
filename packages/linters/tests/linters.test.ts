@@ -2,16 +2,16 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { BiomeLinter } from "../src/linters/biome.js";
-import { BrakemanLinter } from "../src/linters/brakeman.js";
-import { ErbLintLinter } from "../src/linters/erblint.js";
-import { ESLintLinter } from "../src/linters/eslint.js";
-import { OxlintLinter } from "../src/linters/oxlint.js";
-import { PrettierLinter } from "../src/linters/prettier.js";
-import { PylintLinter } from "../src/linters/pylint.js";
-import { RuboCopLinter } from "../src/linters/rubocop.js";
-import { RuffLinter } from "../src/linters/ruff.js";
-import { StylelintLinter } from "../src/linters/stylelint.js";
+import { BiomeLinter } from "@lint/linters";
+import { BrakemanLinter } from "@lint/linters";
+import { ErbLintLinter } from "@lint/linters";
+import { ESLintLinter } from "@lint/linters";
+import { OxlintLinter } from "@lint/linters";
+import { PrettierLinter } from "@lint/linters";
+import { PylintLinter } from "@lint/linters";
+import { RuboCopLinter } from "@lint/linters";
+import { RuffLinter } from "@lint/linters";
+import { StylelintLinter } from "@lint/linters";
 
 describe("ESLintLinter", () => {
   const linter = new ESLintLinter();

@@ -7,7 +7,7 @@ import {
   generateDefaultRC,
   resolveEnabledLinters,
   shouldIgnoreFile,
-} from "../src/rc.js";
+} from "@lint/config";
 
 describe("autoResolveConflicts", () => {
   it("should disable eslint when biome is available", () => {

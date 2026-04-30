@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getMachineSummaryExitCode } from "../src/orchestrator.js";
+import { getMachineSummaryExitCode } from "@lint/core";
 
 describe("orchestrator", () => {
   describe("getMachineSummaryExitCode", () => {

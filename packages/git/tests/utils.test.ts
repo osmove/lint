@@ -10,7 +10,7 @@ import {
   getFileExtension,
   getRelevantSource,
   isCommandAvailable,
-} from "../src/utils.js";
+} from "@lint/git";
 
 describe("execFile", () => {
   it("should execute a command and return trimmed output", () => {

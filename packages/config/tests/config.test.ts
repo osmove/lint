@@ -4,7 +4,7 @@ import {
   FILE_EXTENSION_TO_LANGUAGE,
   SUPPORTED_EXTENSIONS,
   VERSION,
-} from "../src/config.js";
+} from "@lint/config";
 
 describe("config", () => {
   it("should export a version string", () => {
