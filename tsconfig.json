@@ -1,0 +1,17 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/schemas" },
+    { "path": "./packages/config" },
+    { "path": "./packages/git" },
+    { "path": "./packages/hooks" },
+    { "path": "./packages/linters" },
+    { "path": "./packages/ai" },
+    { "path": "./packages/policies" },
+    { "path": "./packages/core" },
+    { "path": "./packages/sdk" },
+    { "path": "./packages/server" },
+    { "path": "./packages/cli" },
+    { "path": "./packages/desktop" }
+  ]
+}
