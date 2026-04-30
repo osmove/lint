@@ -1,0 +1,257 @@
+name: Desktop release
+
+# Builds the Electron app and uploads installers to GitHub Releases.
+# Triggered when a tag matching desktop-v* is pushed (e.g.
+# `desktop-v1.4.1`). Each platform job runs on its native runner so the
+# platform-specific tooling (codesign on macOS, dpkg/rpm on Linux,
+# signtool on Windows once that lands) is available without a
+# cross-compile dance.
+#
+# electron-builder's `publish: github` block in electron-builder.yml
+# does the actual upload — we just hand it GH_TOKEN and the right
+# platform flag. Auto-update metadata files (`latest-mac.yml`,
+# `latest-linux.yml`) are produced and uploaded automatically; the
+# desktop app's electron-updater picks the right one based on
+# `process.platform`.
+
+on:
+  push:
+    tags:
+      - "desktop-v*"
+  workflow_dispatch:
+    # Manual trigger from the Actions UI when you want a build without
+    # cutting a public release. The Linux job will produce artifacts but
+    # won't publish (no tag = no release).
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # uploading release assets requires write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.7.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # `tsc -b` chains workspace builds in topo order. The dashboard-ui
+      # builds via vite separately because it's not a tsc project.
+      - name: Build internal packages + server
+        run: pnpm --filter "@lint/server..." build
+
+      - name: Build dashboard UI bundle
+        run: pnpm --filter @lint/dashboard-ui build
+
+      - name: Build desktop bundle (main + preload, copies dashboard dist)
+        run: pnpm --filter @lint/desktop build
+
+      - name: Package + publish (Linux)
+        run: pnpm --filter @lint/desktop exec electron-builder --linux --x64 --arm64 --publish ${{ github.event_name == 'push' && 'always' || 'never' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-desktop-linux
+          path: |
+            packages/desktop/release/*.AppImage
+            packages/desktop/release/*.deb
+            packages/desktop/release/*.rpm
+            packages/desktop/release/latest-linux*.yml
+          if-no-files-found: warn
+          retention-days: 14
+
+  # Windows: built on a windows-latest runner because signtool, the
+  # Windows code-signing toolchain, and the NSIS makensis binaries only
+  # run there. v1 ships unsigned — SmartScreen will warn first-time
+  # installers but the install completes. When the EV cert lands, set
+  # WIN_CSC_LINK (PFX, base64) + WIN_CSC_KEY_PASSWORD secrets and
+  # electron-builder picks them up automatically through the env block.
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.7.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build internal packages + server
+        run: pnpm --filter "@lint/server..." build
+
+      - name: Build dashboard UI bundle
+        run: pnpm --filter @lint/dashboard-ui build
+
+      - name: Build desktop bundle
+        run: pnpm --filter @lint/desktop build
+
+      - name: Package + publish (Windows)
+        run: pnpm --filter @lint/desktop exec electron-builder --win --x64 --arm64 --publish ${{ github.event_name == 'push' && 'always' || 'never' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Code-signing secrets — left unset until the EV cert ships.
+          # When set, electron-builder picks them up automatically and
+          # signs the NSIS installer + portable exe.
+          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-desktop-windows
+          path: |
+            packages/desktop/release/*.exe
+            packages/desktop/release/*.msi
+            packages/desktop/release/latest.yml
+          if-no-files-found: warn
+          retention-days: 14
+
+  # macOS: built on macos-latest because Apple's notarization tools
+  # (xcrun notarytool, codesign, productbuild) are macOS-only.
+  #
+  # Required secrets (set in repo settings → Secrets and variables):
+  #   APPLE_ID                       - Apple Developer email
+  #   APPLE_APP_SPECIFIC_PASSWORD    - app-specific password from
+  #                                    appleid.apple.com (NOT the main pw)
+  #   APPLE_TEAM_ID                  - 10-char Team ID from
+  #                                    developer.apple.com/account
+  #   MACOS_CSC_LINK                 - Developer ID Application .p12
+  #                                    base64-encoded (`base64 -i cert.p12`)
+  #   MACOS_CSC_KEY_PASSWORD         - the .p12 export password
+  #
+  # The MACOS_BUILD_ENABLED variable gates this entire job — set it to
+  # `true` in repo settings → Variables only after all 5 secrets above
+  # are configured. Until then this job is skipped, and you can ship
+  # mac DMGs by building locally and `gh release upload` to the existing
+  # tag's release.
+  macos:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    if: ${{ vars.MACOS_BUILD_ENABLED == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.7.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build internal packages + server
+        run: pnpm --filter "@lint/server..." build
+
+      - name: Build dashboard UI bundle
+        run: pnpm --filter @lint/dashboard-ui build
+
+      - name: Build desktop bundle
+        run: pnpm --filter @lint/desktop build
+
+      - name: Package + publish (macOS)
+        run: pnpm --filter @lint/desktop exec electron-builder --mac --x64 --arm64 --publish ${{ github.event_name == 'push' && 'always' || 'never' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+
+      # NOTE: no DMG-stapling step here. electron-builder + electron-osx-sign
+      # notarize and staple Lint.app inside each DMG; the DMG container
+      # itself is never notarized, so `xcrun stapler staple` on the DMG
+      # would fail with "Record not found". When a user downloads
+      # Lint-x.y.z-arm64.dmg, mounts it, drags Lint.app to /Applications,
+      # Gatekeeper inspects the .app, finds the stapled ticket, and
+      # launches without a warning — same shape Slack/Notion/Cursor ship.
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-desktop-macos
+          path: |
+            packages/desktop/release/*.dmg
+            packages/desktop/release/*-mac.zip
+            packages/desktop/release/latest-mac.yml
+          if-no-files-found: warn
+          retention-days: 14
+
+  # Publish the `lint` CLI to npm on the same tag. Runs only on a
+  # desktop-v* tag push (not workflow_dispatch) so CI smoke tests don't
+  # accidentally publish. Existing ci.yml has its own npm publish job
+  # gated on `v*` tags for npm-only releases. This path keeps CLI +
+  # Desktop versions in lockstep on a desktop-v* tag.
+  npm:
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/desktop-v')) ||
+      github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+      id-token: write   # required for npm provenance
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.7.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      # `pnpm --filter lint...` walks the workspace dep graph in topo
+      # order. The CLI's tsup bundles every internal package, but those
+      # packages must have their dist/ + .d.ts produced first or esbuild
+      # can't resolve `@lint/config`, `@lint/core`, etc.
+      - name: Build CLI + transitive workspace deps
+        run: pnpm --filter "lint..." build
+
+      - name: Publish if version is new
+        # `pnpm publish` errors if the version already exists on npm.
+        # Idempotent guard: read local + remote version, only publish on
+        # diff. Lets re-running on a re-pushed tag be safe.
+        run: |
+          LOCAL=$(node -p "require('./packages/cli/package.json').version")
+          REMOTE=$(npm view lint version 2>/dev/null || echo "0.0.0")
+          echo "local=$LOCAL remote=$REMOTE"
+          if [ "$LOCAL" != "$REMOTE" ]; then
+            pnpm --filter lint publish --provenance --access public --no-git-checks
+          else
+            echo "Already published; skipping."
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
