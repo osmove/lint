@@ -198,6 +198,9 @@ importers:
 
   packages/dashboard-ui:
     dependencies:
+      '@osmove/lint-sdk':
+        specifier: workspace:*
+        version: link:../sdk
       '@tanstack/svelte-query':
         specifier: ^5.62.0
         version: 5.90.2(svelte@5.55.5)

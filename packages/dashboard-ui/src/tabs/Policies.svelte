@@ -1,32 +1,28 @@
 <script lang="ts">
+  import { createQuery } from "@tanstack/svelte-query";
   import { api } from "../lib/api";
-  let yaml = $state("");
-  let filePath = $state<string | null>(null);
-  let loading = $state(true);
-  let error = $state<string | null>(null);
 
-  $effect(() => {
-    api.getPolicies()
-      .then((res) => { yaml = res.yaml; filePath = res.filePath; loading = false; })
-      .catch((e: Error) => { error = e.message; loading = false; });
-  });
+  const policiesQuery = createQuery(() => ({
+    queryKey: ["policies"],
+    queryFn: () => api.getPolicies(),
+  }));
 </script>
 
 <section class="tab">
   <h2>Policies</h2>
-  {#if loading}
+  {#if $policiesQuery.isPending}
     <p class="muted">Loading…</p>
-  {:else if error}
-    <p class="error">Error: {error}</p>
+  {:else if $policiesQuery.isError}
+    <p class="error">Error: {String($policiesQuery.error)}</p>
   {:else}
-    <p class="muted">{filePath ?? "No .lintrc.yaml found — using defaults."}</p>
-    <pre>{yaml || "# (empty config)"}</pre>
+    <p class="muted">{$policiesQuery.data?.filePath ?? "No .lintrc.yaml found — using defaults."}</p>
+    <pre>{$policiesQuery.data?.yaml || "# (empty config)"}</pre>
   {/if}
 </section>
 
 <style>
   .tab { padding: 1.5rem 2rem; }
-  .muted { color: #64748b; }
+  .muted { color: #64748b; font-size: 13px; }
   .error { color: #ef4444; }
   pre {
     background: #1e293b;
@@ -35,5 +31,6 @@
     overflow-x: auto;
     font-size: 13px;
     line-height: 1.5;
+    color: #cbd5e1;
   }
 </style>

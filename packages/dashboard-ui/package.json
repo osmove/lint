@@ -12,6 +12,7 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
+    "@osmove/lint-sdk": "workspace:*",
     "@tanstack/svelte-query": "^5.62.0",
     "svelte": "^5.16.0"
   },
