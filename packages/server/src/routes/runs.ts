@@ -1,6 +1,7 @@
 import { Hono } from "hono";
-import { createRunsStore, type Run } from "@lint/core";
+import { createRunsStore, newRunId, type Run } from "@lint/core";
 import type { ServerProject } from "../project-context.js";
+import { subscribeRun } from "../run-events.js";
 import { spawnLintRun } from "../runner.js";
 
 export function runsRouter(workspace: ServerProject): Hono {
@@ -18,7 +19,7 @@ export function runsRouter(workspace: ServerProject): Hono {
   app.post("/", async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as Partial<Run>;
     const run: Run = {
-      id: `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: newRunId(),
       startedAt: new Date().toISOString(),
       errorCount: 0,
       warningCount: 0,
@@ -27,14 +28,14 @@ export function runsRouter(workspace: ServerProject): Hono {
     };
     store.insert(run);
 
-    // Fire-and-forget spawn — return 201 immediately so the caller's UI
-    // can show a "running" state, then patch the record when the lint
-    // process finishes. Errors are captured in errorMessage rather than
-    // thrown, so a failed spawn doesn't kill the server.
+    // Fire-and-forget spawn. The runner emits stdout/stderr/exit events
+    // through run-events.ts so SSE subscribers see them live; we only
+    // wait for the final result here to update the persistent record.
     spawnLintRun({
+      runId: run.id,
       workspace,
-      paths: run.paths,
-      fix: run.fix,
+      ...(run.paths ? { paths: run.paths } : {}),
+      ...(run.fix ? { fix: run.fix } : {}),
     })
       .then((result) => {
         store.update(run.id, {
@@ -56,7 +57,7 @@ export function runsRouter(workspace: ServerProject): Hono {
   });
 
   // PATCH a run — used by external orchestrators (CLI, CI) to push
-  // status/counts onto a run they own.
+  // status / counts onto a run they own.
   app.patch("/:id", async (c) => {
     const id = c.req.param("id");
     const body = (await c.req.json().catch(() => ({}))) as Partial<Omit<Run, "id">>;
@@ -65,19 +66,44 @@ export function runsRouter(workspace: ServerProject): Hono {
     return c.json(updated);
   });
 
-  // SSE stream for a run. Heartbeat skeleton — when @lint/core gains an
-  // event bus, this is where to forward run events.
+  // SSE stream for a run. Forwards stdout/stderr/exit events from the
+  // runner. Late joiners get the buffered replay first, then live events.
   app.get("/:id/stream", (c) => {
+    const runId = c.req.param("id");
     return new Response(
       new ReadableStream({
         start(controller) {
           const encoder = new TextEncoder();
+          const send = (event: string, payload: unknown) => {
+            controller.enqueue(
+              encoder.encode(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`),
+            );
+          };
+
           controller.enqueue(encoder.encode(": stream open\n\n"));
+
+          const sub = subscribeRun(runId, (ev) => {
+            if (ev.type === "stdout" || ev.type === "stderr") {
+              send(ev.type, ev.data);
+            } else {
+              send("exit", { code: ev.code, status: ev.status });
+            }
+          });
+
+          // Replay buffered events for late joiners.
+          for (const ev of sub.replay) {
+            if (ev.type === "stdout" || ev.type === "stderr") send(ev.type, ev.data);
+            else send("exit", { code: ev.code, status: ev.status });
+          }
+
+          // Heartbeat every 15s so proxies don't drop the connection.
           const interval = setInterval(() => {
             controller.enqueue(encoder.encode(`event: heartbeat\ndata: ${Date.now()}\n\n`));
           }, 15_000);
+
           c.req.raw.signal.addEventListener("abort", () => {
             clearInterval(interval);
+            sub.unsubscribe();
             controller.close();
           });
         },

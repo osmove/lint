@@ -1,12 +1,14 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
 import type { ServerProject } from "./project-context.js";
+import { emitRunEvent } from "./run-events.js";
 
-// Spawn the `lint` CLI and parse its JSON report. Capture stdout fully —
-// the CLI is fast (millis to seconds) so streaming isn't worth the
-// complexity yet. SSE in routes/runs.ts can layer on top later.
+// Spawn the `lint` CLI, parse its JSON report, and emit live stdout/
+// stderr/exit events to subscribers via run-events.ts. SSE clients on
+// /api/runs/:id/stream forward those to the dashboard in real time.
 
 export interface LintInvocation {
+  runId: string;
   workspace: ServerProject;
   paths?: string[];
   fix?: boolean;
@@ -22,113 +24,70 @@ export interface LintRunResult {
 }
 
 // CLI lookup order:
-//   1. `lint` on PATH (npm i -g lint, or shimmed by pnpm link)
-//   2. <workspace root>/node_modules/.bin/lint
-//   3. fall back to the workspace's own packages/cli/dist/index.js when
-//      we're running from inside the lint monorepo itself (dev)
-function resolveLintCommand(workspaceRoot: string): { cmd: string; args: string[] } | null {
-  // Try local node_modules first — respects whatever the project has pinned.
-  const localBin = path.join(workspaceRoot, "node_modules", ".bin", "lint");
-  // Note: we can't synchronously test PATH availability here without
-  // child_process.spawnSync; the spawn() call below will surface ENOENT
-  // naturally if `lint` isn't installed. Order: local bin → global lint.
-  // Either way the args list is the same.
-  return { cmd: localBin, args: [] };
+//   1. <workspace>/node_modules/.bin/lint   (project-pinned version)
+//   2. `lint` on PATH                       (npm i -g lint or pnpm link)
+function resolveLintCommand(workspaceRoot: string): { cmd: string } {
+  return { cmd: path.join(workspaceRoot, "node_modules", ".bin", "lint") };
 }
 
 export function spawnLintRun(invocation: LintInvocation): Promise<LintRunResult> {
-  const { workspace, paths = ["."], fix = false } = invocation;
+  const { runId, workspace, paths = ["."], fix = false } = invocation;
   return new Promise((resolve) => {
-    const resolved = resolveLintCommand(workspace.root);
-    if (!resolved) {
-      resolve({
-        exitCode: -1,
-        errorCount: 0,
-        warningCount: 0,
-        status: "failed",
-        errorMessage: "could not locate lint CLI — is the `lint` package installed?",
-      });
-      return;
-    }
-
     const args = ["--format", "json", ...(fix ? ["--fix"] : []), ...paths];
-    let child: ReturnType<typeof spawn>;
-    try {
-      child = spawn(resolved.cmd, [...resolved.args, ...args], {
-        cwd: workspace.root,
-        env: process.env,
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-    } catch (error) {
-      // Try the global `lint` as a fallback.
+    const localBin = resolveLintCommand(workspace.root).cmd;
+
+    let child = trySpawn(localBin, args, workspace.root);
+    let fellBack = false;
+
+    function trySpawn(cmd: string, a: string[], cwd: string) {
       try {
-        child = spawn("lint", args, {
-          cwd: workspace.root,
-          env: process.env,
-          stdio: ["ignore", "pipe", "pipe"],
-        });
-      } catch (fallbackError) {
-        resolve({
-          exitCode: -1,
-          errorCount: 0,
-          warningCount: 0,
-          status: "failed",
-          errorMessage: `failed to spawn lint: ${(fallbackError as Error).message}`,
-        });
-        return;
+        return spawn(cmd, a, { cwd, env: process.env, stdio: ["ignore", "pipe", "pipe"] });
+      } catch {
+        return null;
       }
     }
 
-    let stdout = "";
-    let stderr = "";
-    child.stdout?.on("data", (chunk: Buffer) => {
-      stdout += chunk.toString();
-    });
-    child.stderr?.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString();
-    });
+    function attach(c: NonNullable<ReturnType<typeof trySpawn>>) {
+      let stdout = "";
+      let stderr = "";
 
-    // ENOENT (no `lint` on local bin) — fall back to global.
-    let fellBack = false;
-    child.on("error", (err: NodeJS.ErrnoException) => {
-      if (err.code === "ENOENT" && !fellBack) {
-        fellBack = true;
-        const fallback = spawn("lint", args, {
-          cwd: workspace.root,
-          env: process.env,
-          stdio: ["ignore", "pipe", "pipe"],
-        });
-        fallback.stdout?.on("data", (chunk: Buffer) => {
-          stdout += chunk.toString();
-        });
-        fallback.stderr?.on("data", (chunk: Buffer) => {
-          stderr += chunk.toString();
-        });
-        fallback.on("error", (err2: Error) =>
-          resolve({
-            exitCode: -1,
-            errorCount: 0,
-            warningCount: 0,
-            status: "failed",
-            errorMessage: `lint not found on PATH: ${err2.message}`,
-          }),
-        );
-        fallback.on("close", (code: number | null) => finalize(code));
-      } else {
-        resolve({
-          exitCode: -1,
-          errorCount: 0,
-          warningCount: 0,
-          status: "failed",
-          errorMessage: err.message,
-        });
-      }
-    });
-    child.on("close", (code: number | null) => {
-      if (!fellBack) finalize(code);
-    });
+      c.stdout?.on("data", (chunk: Buffer) => {
+        const text = chunk.toString();
+        stdout += text;
+        emitRunEvent(runId, { type: "stdout", data: text });
+      });
+      c.stderr?.on("data", (chunk: Buffer) => {
+        const text = chunk.toString();
+        stderr += text;
+        emitRunEvent(runId, { type: "stderr", data: text });
+      });
 
-    function finalize(exitCode: number | null) {
+      c.on("error", (err: NodeJS.ErrnoException) => {
+        if (err.code === "ENOENT" && !fellBack) {
+          fellBack = true;
+          const fallback = trySpawn("lint", args, workspace.root);
+          if (!fallback) {
+            const message = `lint not found on PATH and no local bin: ${err.message}`;
+            emitRunEvent(runId, { type: "stderr", data: message });
+            emitRunEvent(runId, { type: "exit", code: -1, status: "failed" });
+            resolve(failure(message));
+            return;
+          }
+          attach(fallback);
+        } else {
+          emitRunEvent(runId, { type: "stderr", data: err.message });
+          emitRunEvent(runId, { type: "exit", code: -1, status: "failed" });
+          resolve(failure(err.message));
+        }
+      });
+
+      c.on("close", (code: number | null) => {
+        if (fellBack && c === child) return; // first child died, fallback took over
+        finalize(code, stdout, stderr);
+      });
+    }
+
+    function finalize(exitCode: number | null, stdout: string, stderr: string) {
       let parsed: unknown;
       try {
         parsed = JSON.parse(stdout);
@@ -139,14 +98,41 @@ export function spawnLintRun(invocation: LintInvocation): Promise<LintRunResult>
         parsed && typeof parsed === "object" && "summary" in parsed
           ? (parsed as { summary?: { errors?: number; warnings?: number } }).summary
           : undefined;
+      const status: "passed" | "failed" = (exitCode ?? 1) === 0 ? "passed" : "failed";
+      emitRunEvent(runId, { type: "exit", code: exitCode ?? -1, status });
       resolve({
         exitCode: exitCode ?? -1,
         errorCount: summary?.errors ?? 0,
         warningCount: summary?.warnings ?? 0,
-        status: (exitCode ?? 1) === 0 ? "passed" : "failed",
+        status,
         rawJson: parsed,
         errorMessage: stderr || undefined,
       });
     }
+
+    function failure(message: string): LintRunResult {
+      return {
+        exitCode: -1,
+        errorCount: 0,
+        warningCount: 0,
+        status: "failed",
+        errorMessage: message,
+      };
+    }
+
+    if (!child) {
+      // Local bin spawn failed synchronously — try global lint immediately.
+      fellBack = true;
+      const fallback = trySpawn("lint", args, workspace.root);
+      if (!fallback) {
+        const msg = "could not locate lint CLI — is the `lint` package installed?";
+        emitRunEvent(runId, { type: "stderr", data: msg });
+        emitRunEvent(runId, { type: "exit", code: -1, status: "failed" });
+        resolve(failure(msg));
+        return;
+      }
+      child = fallback;
+    }
+    attach(child);
   });
 }
