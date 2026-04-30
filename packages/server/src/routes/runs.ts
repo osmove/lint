@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import type { ServerProject } from "../project-context.js";
+import { spawnLintRun } from "../runner.js";
 import { createRunsStore, type Run } from "../runs-store.js";
 
 export function runsRouter(workspace: ServerProject): Hono {
@@ -25,11 +26,37 @@ export function runsRouter(workspace: ServerProject): Hono {
       ...body,
     };
     store.insert(run);
+
+    // Fire-and-forget spawn — return 201 immediately so the caller's UI
+    // can show a "running" state, then patch the record when the lint
+    // process finishes. Errors are captured in errorMessage rather than
+    // thrown, so a failed spawn doesn't kill the server.
+    spawnLintRun({
+      workspace,
+      paths: run.paths,
+      fix: run.fix,
+    })
+      .then((result) => {
+        store.update(run.id, {
+          status: result.status,
+          errorCount: result.errorCount,
+          warningCount: result.warningCount,
+          finishedAt: new Date().toISOString(),
+        });
+      })
+      .catch((error) => {
+        store.update(run.id, {
+          status: "failed",
+          finishedAt: new Date().toISOString(),
+        });
+        console.error(`[runs] spawn failed for ${run.id}:`, error);
+      });
+
     return c.json(run, 201);
   });
 
-  // PATCH a run — used by the orchestrator to mark a run completed and
-  // attach final counts. Body is a partial Run minus id.
+  // PATCH a run — used by external orchestrators (CLI, CI) to push
+  // status/counts onto a run they own.
   app.patch("/:id", async (c) => {
     const id = c.req.param("id");
     const body = (await c.req.json().catch(() => ({}))) as Partial<Omit<Run, "id">>;
