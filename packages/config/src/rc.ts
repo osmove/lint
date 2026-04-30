@@ -25,6 +25,19 @@ export interface LintRC {
     format?: "text" | "json";
     quiet?: boolean;
   };
+  notify?: {
+    /** Which run outcomes trigger a webhook. Defaults to ["failed"]. */
+    on?: ("passed" | "failed")[];
+    /**
+     * Slack incoming-webhook URL, or a `${ENV_VAR}` template that's
+     * resolved from the environment at fire time. Recommended: keep
+     * the URL out of the file via `${SLACK_WEBHOOK}` and set the env
+     * in CI / .env.local.
+     */
+    slack?: string;
+    /** Discord webhook URL — same templating rules as `slack`. */
+    discord?: string;
+  };
 }
 
 const RC_FILENAMES = [".lintrc.yaml", ".lintrc.yml", ".lintrc.json"];

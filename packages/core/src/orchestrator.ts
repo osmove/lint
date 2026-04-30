@@ -36,6 +36,7 @@ import type { LinterName, LinterResult, LintReport, PolicyRule, RunOptions } fro
 import { cleanTmpDir, execFile, findGitRoot, formatDuration, readLintConfig } from "@lint/git";
 import { createRunsStore, newRunId } from "./runs-store.js";
 import { postCheckRunIfCI } from "./github-checks.js";
+import { fireNotifyWebhooks } from "./notify.js";
 
 // ── Linter registry ──
 
@@ -782,6 +783,18 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
     fileCount: files.length,
     linterCount: linters.length,
   }).catch(() => null);
+
+  // ── Slack / Discord webhooks (rc.notify) ──
+  const notifyRoot = findGitRoot();
+  if (notifyRoot) {
+    await fireNotifyWebhooks({
+      status: hasErrors ? "failed" : "passed",
+      totalErrors,
+      totalWarnings,
+      repoRoot: notifyRoot,
+      ...(rc.notify ? { notify: rc.notify } : {}),
+    }).catch(() => undefined);
+  }
 
   // ── Exit codes: 0 = clean, 1 = errors, 2 = warnings only ──
   if (hasErrors) process.exit(1);
