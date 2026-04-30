@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc -b",
     "dev": "tsx --watch src/dev-server.ts",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "engines": { "node": ">=20" },
