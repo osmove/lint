@@ -98,11 +98,29 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List linked repositories (always 1 for @lint/server) */
+        /** List registered repositories (registry merged with workspace) */
         get: operations["listRepos"];
         put?: never;
-        post?: never;
+        /** Register a repository in ~/.lint/projects.json */
+        post: operations["createRepo"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/repos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Unregister a repository */
+        delete: operations["removeRepo"];
         options?: never;
         head?: never;
         patch?: never;
@@ -115,7 +133,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Repo health snapshot */
+        /** Repo health snapshot (latest run + recent history) */
         get: operations["getRepoHealth"];
         put?: never;
         post?: never;
@@ -229,12 +247,29 @@ export interface components {
             };
             yaml?: string;
         };
+        ProjectEntry: {
+            id: string;
+            name: string;
+            root: string;
+            /** Format: date-time */
+            addedAt: string;
+        };
         Repo: {
             id: string;
             name: string;
             root: string;
+            /** Format: date-time */
+            addedAt?: string | null;
+            ephemeral: boolean;
             /** @enum {string} */
             health: "unknown" | "passed" | "failed";
+            latestRun?: components["schemas"]["Run"] | null;
+            summary?: {
+                total?: number;
+                passed?: number;
+                failed?: number;
+                running?: number;
+            };
         };
         RepoHealth: {
             id: string;
@@ -483,6 +518,64 @@ export interface operations {
                         repos?: components["schemas"]["Repo"][];
                     };
                 };
+            };
+        };
+    };
+    createRepo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    path: string;
+                    name?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Registered */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectEntry"];
+                };
+            };
+        };
+    };
+    removeRepo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ok?: boolean;
+                    };
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -138,7 +138,7 @@ paths:
   /api/repos:
     get:
       tags: [repos]
-      summary: List linked repositories (always 1 for @lint/server)
+      summary: List registered repositories (registry merged with workspace)
       operationId: listRepos
       responses:
         "200":
@@ -151,11 +151,51 @@ paths:
                   repos:
                     type: array
                     items: { $ref: "#/components/schemas/Repo" }
+    post:
+      tags: [repos]
+      summary: Register a repository in ~/.lint/projects.json
+      operationId: createRepo
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path]
+              properties:
+                path: { type: string }
+                name: { type: string }
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectEntry" }
+
+  /api/repos/{id}:
+    delete:
+      tags: [repos]
+      summary: Unregister a repository
+      operationId: removeRepo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        "404": { description: Not found }
 
   /api/repos/{id}/health:
     get:
       tags: [repos]
-      summary: Repo health snapshot
+      summary: Repo health snapshot (latest run + recent history)
       operationId: getRepoHealth
       parameters:
         - name: id
@@ -270,16 +310,38 @@ components:
         rc:       { type: object, additionalProperties: true }
         yaml:     { type: string }
 
+    ProjectEntry:
+      type: object
+      required: [id, name, root, addedAt]
+      properties:
+        id:      { type: string }
+        name:    { type: string }
+        root:    { type: string }
+        addedAt: { type: string, format: date-time }
+
     Repo:
       type: object
-      required: [id, name, root, health]
+      required: [id, name, root, ephemeral, health]
       properties:
-        id:     { type: string }
-        name:   { type: string }
-        root:   { type: string }
+        id:        { type: string }
+        name:      { type: string }
+        root:      { type: string }
+        addedAt:   { type: string, nullable: true, format: date-time }
+        ephemeral: { type: boolean }
         health:
           type: string
           enum: [unknown, passed, failed]
+        latestRun:
+          oneOf:
+            - { $ref: "#/components/schemas/Run" }
+            - { type: "null" }
+        summary:
+          type: object
+          properties:
+            total:   { type: integer, minimum: 0 }
+            passed:  { type: integer, minimum: 0 }
+            failed:  { type: integer, minimum: 0 }
+            running: { type: integer, minimum: 0 }
 
     RepoHealth:
       type: object

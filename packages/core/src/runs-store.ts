@@ -21,13 +21,6 @@ export interface Run {
   fix?: boolean;
 }
 
-export interface RunsStore {
-  list(): Run[];
-  get(id: string): Run | null;
-  insert(run: Run): void;
-  update(id: string, patch: Partial<Omit<Run, "id">>): Run | null;
-}
-
 function runsFilePath(workspaceRoot: string): string {
   return path.join(workspaceRoot, ".lint", "runs.jsonl");
 }
@@ -52,14 +45,41 @@ function appendRun(filePath: string, run: Run): void {
   fs.appendFileSync(filePath, `${JSON.stringify(run)}\n`, "utf-8");
 }
 
+export interface RunsStore {
+  list(): Run[];
+  get(id: string): Run | null;
+  /** Newest run with status passed | failed (excludes still-running entries). */
+  latest(): Run | null;
+  /** Aggregate counts for the dashboard's per-repo health card. */
+  summary(): { total: number; passed: number; failed: number; running: number };
+  insert(run: Run): void;
+  update(id: string, patch: Partial<Omit<Run, "id">>): Run | null;
+}
+
 export function createRunsStore(workspaceRoot: string): RunsStore {
   const filePath = runsFilePath(workspaceRoot);
+  const sorted = () =>
+    readAllRuns(filePath).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+
   return {
     list(): Run[] {
-      return readAllRuns(filePath).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+      return sorted();
     },
     get(id: string): Run | null {
       return readAllRuns(filePath).find((r) => r.id === id) ?? null;
+    },
+    latest(): Run | null {
+      return sorted().find((r) => r.status !== "running") ?? null;
+    },
+    summary() {
+      const all = readAllRuns(filePath);
+      const out = { total: all.length, passed: 0, failed: 0, running: 0 };
+      for (const r of all) {
+        if (r.status === "passed") out.passed++;
+        else if (r.status === "failed") out.failed++;
+        else if (r.status === "running") out.running++;
+      }
+      return out;
     },
     insert(run: Run): void {
       appendRun(filePath, run);

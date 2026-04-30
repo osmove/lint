@@ -62,6 +62,29 @@ describe("createRunsStore", () => {
     expect(store.list().map((r) => r.id)).toEqual(["new", "old"]);
   });
 
+  it("latest() returns the newest non-running run", () => {
+    const store = createRunsStore(tmpDir);
+    store.insert(makeRun({ id: "old", startedAt: "2026-01-01T00:00:00.000Z", status: "passed" }));
+    store.insert(makeRun({ id: "running", startedAt: "2026-03-01T00:00:00.000Z", status: "running" }));
+    store.insert(makeRun({ id: "new-fail", startedAt: "2026-02-01T00:00:00.000Z", status: "failed" }));
+    expect(store.latest()?.id).toBe("new-fail");
+  });
+
+  it("latest() returns null when only running runs exist", () => {
+    const store = createRunsStore(tmpDir);
+    store.insert(makeRun({ status: "running" }));
+    expect(store.latest()).toBeNull();
+  });
+
+  it("summary() aggregates by status", () => {
+    const store = createRunsStore(tmpDir);
+    store.insert(makeRun({ id: "a", status: "passed" }));
+    store.insert(makeRun({ id: "b", status: "passed" }));
+    store.insert(makeRun({ id: "c", status: "failed" }));
+    store.insert(makeRun({ id: "d", status: "running" }));
+    expect(store.summary()).toEqual({ total: 4, passed: 2, failed: 1, running: 1 });
+  });
+
   it("survives malformed lines (best-effort parse)", () => {
     const file = path.join(tmpDir, ".lint/runs.jsonl");
     fs.mkdirSync(path.dirname(file), { recursive: true });
