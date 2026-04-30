@@ -1,9 +1,8 @@
 import createOpenApiClient, { type Client, type ClientOptions } from "openapi-fetch";
+import type { paths } from "./generated/openapi-types.js";
 
-// Generated types — placeholder until `pnpm --filter @osmove/lint-sdk openapi:types`
-// runs against the published spec at api.lint.to/openapi/v1.yaml. The empty
-// `paths` shape keeps the client typed-but-permissive in the meantime.
-export interface paths {}
+export type { paths } from "./generated/openapi-types.js";
+export type { components, operations } from "./generated/openapi-types.js";
 
 export interface CreateLintClientOptions extends ClientOptions {
   baseUrl?: string;

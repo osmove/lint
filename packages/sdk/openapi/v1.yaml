@@ -1,30 +1,375 @@
 openapi: 3.0.3
 info:
-  title: Lint Cloud API
+  title: Lint API
   version: 1.0.0
   description: |
-    Public API for lint.to. Used by the `lint` CLI, Lint Desktop, and any third-party
-    integration that needs typed access to repositories, policies, rules, and
-    commit-attempt history.
+    Public API surface shared by:
+      - Lint Cloud (lint.to / api.lint.to) — managed SaaS, hosts policies and team data
+      - @lint/server — local Hono server embedded in @lint/desktop and runnable standalone
 
-    This file is the source of truth — `@osmove/lint-sdk` regenerates its types from it.
-    Re-fetch with `pnpm --filter @osmove/lint-sdk openapi:fetch` once the cloud
-    backend exposes `GET /openapi/v1.yaml`.
+    @osmove/lint-sdk is the typed TypeScript client for both. End-users point
+    `createLintClient({ baseUrl })` at whichever instance they're talking to.
+
+    Regenerate types after editing this file:
+      pnpm --filter @osmove/lint-sdk openapi:fetch    # (cloud only)
+      pnpm --filter @osmove/lint-sdk openapi:types
 servers:
   - url: https://api.lint.to
-    description: Production
+    description: Lint Cloud (production)
+  - url: http://127.0.0.1:7878
+    description: Local @lint/server
+
+tags:
+  - name: meta
+  - name: runs
+  - name: policies
+  - name: repos
+  - name: linters
+  - name: ai
+
 paths:
-  /health:
+  /api/health:
     get:
-      summary: Health check
+      tags: [meta]
+      summary: Liveness probe
+      operationId: getHealth
       responses:
         "200":
-          description: Service healthy
+          description: Service is up
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+
+  /api/runs:
+    get:
+      tags: [runs]
+      summary: List recent lint runs
+      operationId: listRuns
+      responses:
+        "200":
+          description: Run list
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  status: { type: string }
+                  runs:
+                    type: array
+                    items: { $ref: "#/components/schemas/Run" }
+    post:
+      tags: [runs]
+      summary: Trigger a new lint run
+      operationId: createRun
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateRun" }
+      responses:
+        "201":
+          description: Run accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Run" }
+
+  /api/runs/{id}:
+    get:
+      tags: [runs]
+      summary: Get a single run by id
+      operationId: getRun
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Run
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Run" }
+        "404": { description: Not found }
+
+  /api/runs/{id}/stream:
+    get:
+      tags: [runs]
+      summary: Subscribe to live run events (Server-Sent Events)
+      operationId: streamRun
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: text/event-stream — heartbeat events while the run is alive
+          content:
+            text/event-stream:
+              schema: { type: string }
+
+  /api/policies:
+    get:
+      tags: [policies]
+      summary: Read .lintrc.yaml from the workspace
+      operationId: getPolicies
+      responses:
+        "200":
+          description: Current policy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PolicyView" }
+    put:
+      tags: [policies]
+      summary: Overwrite .lintrc.yaml
+      operationId: updatePolicies
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+
+  /api/repos:
+    get:
+      tags: [repos]
+      summary: List linked repositories (always 1 for @lint/server)
+      operationId: listRepos
+      responses:
+        "200":
+          description: Repo list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repos:
+                    type: array
+                    items: { $ref: "#/components/schemas/Repo" }
+
+  /api/repos/{id}/health:
+    get:
+      tags: [repos]
+      summary: Repo health snapshot
+      operationId: getRepoHealth
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Health
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RepoHealth" }
+
+  /api/linters:
+    get:
+      tags: [linters]
+      summary: Detect languages/frameworks and recommend linters
+      operationId: detectLinters
+      responses:
+        "200":
+          description: Detection
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LinterDetection" }
+
+  /api/ai/review:
+    post:
+      tags: [ai]
+      summary: AI review of a diff
+      operationId: aiReview
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AiReviewRequest" }
+      responses:
+        "200":
+          description: Review text
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AiTextResult" }
+        "400": { description: Missing key or empty body }
+        "500": { description: Anthropic error }
+
+  /api/ai/fix:
+    post:
+      tags: [ai]
+      summary: AI fix suggestions for a diff
+      operationId: aiFix
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AiFixRequest" }
+      responses:
+        "200":
+          description: Fix text
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AiTextResult" }
+
+  /api/ai/explain:
+    post:
+      tags: [ai]
+      summary: Plain-language explanation of lint offenses
+      operationId: aiExplain
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AiExplainRequest" }
+      responses:
+        "200":
+          description: Explain text
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AiExplainResult" }
+
 components:
-  schemas: {}
+  schemas:
+    Health:
+      type: object
+      required: [status, service, version]
+      properties:
+        status:  { type: string, example: "ok" }
+        service: { type: string, example: "lint-server" }
+        version: { type: string, example: "0.1.0" }
+
+    Run:
+      type: object
+      required: [id, startedAt, errorCount, warningCount, status]
+      properties:
+        id:           { type: string }
+        startedAt:    { type: string, format: date-time }
+        finishedAt:   { type: string, format: date-time, nullable: true }
+        errorCount:   { type: integer, minimum: 0 }
+        warningCount: { type: integer, minimum: 0 }
+        status:
+          type: string
+          enum: [running, passed, failed]
+
+    CreateRun:
+      type: object
+      properties:
+        paths:
+          type: array
+          items: { type: string }
+        fix:    { type: boolean }
+        format: { type: string, enum: [text, json] }
+
+    PolicyView:
+      type: object
+      properties:
+        filePath: { type: string, nullable: true }
+        rc:       { type: object, additionalProperties: true }
+        yaml:     { type: string }
+
+    Repo:
+      type: object
+      required: [id, name, root, health]
+      properties:
+        id:     { type: string }
+        name:   { type: string }
+        root:   { type: string }
+        health:
+          type: string
+          enum: [unknown, passed, failed]
+
+    RepoHealth:
+      type: object
+      required: [id, status]
+      properties:
+        id:      { type: string }
+        status:  { type: string, enum: [unknown, passed, failed] }
+        lastRun: { $ref: "#/components/schemas/Run", nullable: true }
+
+    LinterDetection:
+      type: object
+      required: [detected, suggested]
+      properties:
+        detected:
+          type: object
+          additionalProperties: true
+        suggested:
+          type: array
+          items: { type: string }
+
+    AiReviewRequest:
+      type: object
+      properties:
+        diff:  { type: string }
+        files:
+          type: array
+          items: { type: string }
+
+    AiFixRequest:
+      type: object
+      properties:
+        diff:  { type: string }
+        files:
+          type: array
+          items: { type: string }
+        fileContents:
+          type: object
+          additionalProperties: { type: string }
+
+    AiExplainRequest:
+      type: object
+      required: [reports]
+      properties:
+        reports:
+          type: array
+          items: { $ref: "#/components/schemas/LintReport" }
+
+    AiTextResult:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string }
+
+    AiExplainResult:
+      allOf:
+        - $ref: "#/components/schemas/AiTextResult"
+        - type: object
+          properties:
+            uniqueRuleCount: { type: integer, minimum: 0 }
+
+    LintReport:
+      type: object
+      required: [linter, files, error_count, warning_count]
+      properties:
+        linter: { type: string }
+        files:
+          type: array
+          items: { $ref: "#/components/schemas/FileReport" }
+        error_count:           { type: integer }
+        warning_count:         { type: integer }
+        fixable_error_count:   { type: integer }
+        fixable_warning_count: { type: integer }
+
+    FileReport:
+      type: object
+      required: [path, offenses]
+      properties:
+        path: { type: string }
+        offenses:
+          type: array
+          items: { $ref: "#/components/schemas/Offense" }
+
+    Offense:
+      type: object
+      required: [rule, message, severity, line, column]
+      properties:
+        rule:     { type: string }
+        message:  { type: string }
+        severity: { type: string, enum: [error, warning, info] }
+        line:     { type: integer, minimum: 1 }
+        column:   { type: integer, minimum: 0 }
+        source:   { type: string }
+        fixable:  { type: boolean }

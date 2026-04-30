@@ -9,7 +9,6 @@
     { "path": "./packages/ai" },
     { "path": "./packages/policies" },
     { "path": "./packages/core" },
-    { "path": "./packages/sdk" },
     { "path": "./packages/server" },
     { "path": "./packages/cli" },
     { "path": "./packages/desktop" }
