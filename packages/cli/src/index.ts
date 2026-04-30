@@ -3,15 +3,15 @@ import { pathToFileURL } from "node:url";
 import { confirm, input, password } from "@inquirer/prompts";
 import chalk from "chalk";
 import { Command } from "commander";
-import { saveApiKey } from "./ai/client.js";
-import { printCommitSuggestion } from "./ai/commit.js";
-import { explainErrors } from "./ai/explain.js";
-import { fixStagedChanges } from "./ai/fix.js";
-import { reviewStagedChanges } from "./ai/review.js";
-import * as auth from "./auth.js";
-import { VERSION } from "./config.js";
-import { buildSuggestedLinterPlan, detectProject } from "./detect.js";
-import { collectDoctorReport, formatDoctorReport } from "./doctor.js";
+import { saveApiKey } from "@lint/ai";
+import { printCommitSuggestion } from "@lint/ai";
+import { explainErrors } from "@lint/ai";
+import { fixStagedChanges } from "@lint/ai";
+import { reviewStagedChanges } from "@lint/ai";
+import * as auth from "@lint/policies";
+import { VERSION } from "@lint/config";
+import { buildSuggestedLinterPlan, detectProject } from "@lint/core";
+import { collectDoctorReport, formatDoctorReport } from "@lint/core";
 import {
   bootstrapProject,
   fixSetup,
@@ -20,7 +20,7 @@ import {
   inspectManagedHooks,
   installHooks,
   uninstallHooks,
-} from "./git.js";
+} from "@lint/core";
 import {
   ALL_LINTERS,
   explainRun,
@@ -31,11 +31,11 @@ import {
   preCommit,
   prepareCommitMsg,
   runLint,
-} from "./orchestrator.js";
-import { buildRecommendedRC, formatRC, loadRC, writeRC } from "./rc.js";
-import { LINT_JSON_SCHEMA_VERSION } from "./reporter.js";
-import type { LintReport } from "./types.js";
-import { findGitRoot } from "./utils.js";
+} from "@lint/core";
+import { buildRecommendedRC, formatRC, loadRC, writeRC } from "@lint/config";
+import { LINT_JSON_SCHEMA_VERSION } from "@lint/core";
+import type { LintReport } from "@lint/schemas";
+import { findGitRoot } from "@lint/git";
 
 const program = new Command();
 

@@ -3,9 +3,7 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
-    "moduleResolution": "bundler",
-    "module": "ESNext"
+    "tsBuildInfoFile": "./tsconfig.tsbuildinfo"
   },
   "references": [
     { "path": "../schemas" },
@@ -13,10 +11,8 @@
     { "path": "../git" },
     { "path": "../hooks" },
     { "path": "../linters" },
-    { "path": "../ai" },
-    { "path": "../policies" },
-    { "path": "../core" }
+    { "path": "../policies" }
   ],
   "include": ["src/**/*"],
-  "exclude": ["dist", "node_modules", "tests"]
+  "exclude": ["dist", "node_modules"]
 }

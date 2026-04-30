@@ -10,12 +10,14 @@ export default defineConfig({
   outDir: "dist",
   clean: true,
   sourcemap: true,
-  dts: true,
+  dts: false,
+  // Bundle every workspace-internal package into the single CLI tarball that
+  // ships to npm. End-users install `lint` and get everything in one shot —
+  // no separate @lint/* dist artifacts needed at runtime.
+  noExternal: [/^@lint\//],
   banner: {
     js: "#!/usr/bin/env node",
   },
-  // Inject version from package.json at build time so the CLI's --version
-  // never drifts from the published package version.
   define: {
     __LINT_VERSION__: JSON.stringify(pkg.version),
   },

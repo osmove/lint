@@ -1,0 +1,206 @@
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import yaml from "js-yaml";
+import type { LintConfig } from "@lint/schemas";
+
+export interface CommandOptions {
+  cwd?: string;
+  silent?: boolean;
+  env?: NodeJS.ProcessEnv;
+  input?: string;
+  okExitCodes?: number[];
+}
+
+interface CommandFailure extends Error {
+  stdout?: string;
+  stderr?: string;
+  status?: number | null;
+}
+
+// Build a PATH that includes every node_modules/.bin directory walking up from
+// the working directory, mirroring how `npm run` resolves locally-installed
+// binaries. This lets `lint ci` find biome, eslint, etc. installed via
+// `npm install -D` without requiring users to add them to global PATH.
+function pathWithLocalBins(cwd: string | undefined): string {
+  const startDir = cwd ?? process.cwd();
+  const bins: string[] = [];
+  let dir = path.resolve(startDir);
+  while (true) {
+    const candidate = path.join(dir, "node_modules", ".bin");
+    if (fs.existsSync(candidate)) {
+      bins.push(candidate);
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  const existing = process.env.PATH ?? "";
+  return [...bins, existing].filter(Boolean).join(path.delimiter);
+}
+
+export function execFile(command: string, args: string[], options: CommandOptions = {}): string {
+  const baseEnv = options.env ? { ...process.env, ...options.env } : { ...process.env };
+  baseEnv.PATH = pathWithLocalBins(options.cwd);
+
+  const result = spawnSync(command, args, {
+    cwd: options.cwd,
+    encoding: "utf-8",
+    env: baseEnv,
+    input: options.input,
+    stdio: options.silent ? "pipe" : ["pipe", "pipe", "pipe"],
+    timeout: 120_000,
+  });
+
+  if (result.error) {
+    const error = result.error as CommandFailure;
+    error.stdout = result.stdout?.toString() || "";
+    error.stderr = result.stderr?.toString() || "";
+    error.status = result.status;
+    throw error;
+  }
+
+  const okExitCodes = new Set(options.okExitCodes ?? [0]);
+  if (okExitCodes.has(result.status ?? 0)) {
+    return (result.stdout || "").toString().trim();
+  }
+
+  const error = new Error(
+    (result.stderr || "").toString().trim() || `${command} exited with code ${result.status}`,
+  ) as CommandFailure;
+  error.stdout = (result.stdout || "").toString().trim();
+  error.stderr = (result.stderr || "").toString().trim();
+  error.status = result.status;
+  throw error;
+}
+
+export function isCommandAvailable(command: string): boolean {
+  // Check global PATH plus local node_modules/.bin directories (npm-style).
+  const env = { ...process.env, PATH: pathWithLocalBins(process.cwd()) };
+  try {
+    const result = spawnSync("which", [command], { stdio: "pipe", env });
+    if (result.status === 0) return true;
+  } catch {
+    /* fall through */
+  }
+  try {
+    const result = spawnSync(command, ["--version"], { stdio: "pipe", env });
+    return result.status === 0;
+  } catch {
+    return false;
+  }
+}
+
+export function execGit(
+  args: string[],
+  cwd?: string,
+  options: Omit<CommandOptions, "cwd"> = {},
+): string {
+  return execFile("git", args, { ...options, cwd });
+}
+
+export function findGitDir(startDir?: string): string | null {
+  const root = findGitRoot(startDir);
+  if (!root) return null;
+  try {
+    const gitDir = execGit(["rev-parse", "--git-dir"], root, { silent: true });
+    return path.resolve(root, gitDir);
+  } catch {
+    return null;
+  }
+}
+
+export function findGitRoot(startDir?: string): string | null {
+  try {
+    return execGit(["rev-parse", "--show-toplevel"], startDir || process.cwd(), { silent: true });
+  } catch {
+    return null;
+  }
+}
+
+export function repoIsDirty(startDir?: string): boolean | null {
+  const root = findGitRoot(startDir);
+  if (!root) return null;
+  try {
+    const output = execGit(["status", "--short"], root, { silent: true });
+    return output.length > 0;
+  } catch {
+    return null;
+  }
+}
+
+export function getDotLintDir(): string | null {
+  const gitRoot = findGitRoot();
+  if (!gitRoot) return null;
+  return path.join(gitRoot, ".lint");
+}
+
+export function ensureDir(dirPath: string): void {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+}
+
+export function readLintConfig(): LintConfig | null {
+  const dotLint = getDotLintDir();
+  if (!dotLint) return null;
+  const configPath = path.join(dotLint, "config");
+  if (!fs.existsSync(configPath)) return null;
+  try {
+    const content = fs.readFileSync(configPath, "utf-8");
+    return yaml.load(content) as LintConfig;
+  } catch {
+    return null;
+  }
+}
+
+export function writeLintConfig(config: LintConfig): void {
+  const dotLint = getDotLintDir();
+  if (!dotLint) throw new Error("Not inside a git repository");
+  ensureDir(dotLint);
+  const configPath = path.join(dotLint, "config");
+  fs.writeFileSync(configPath, yaml.dump(config), "utf-8");
+}
+
+export function cleanTmpDir(): void {
+  const dotLint = getDotLintDir();
+  if (!dotLint) return;
+  const tmpDir = path.join(dotLint, "tmp");
+  if (fs.existsSync(tmpDir)) {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
+export function ensureTmpDir(): string {
+  const dotLint = getDotLintDir();
+  if (!dotLint) throw new Error("Not inside a git repository");
+  const tmpDir = path.join(dotLint, "tmp");
+  ensureDir(tmpDir);
+  return tmpDir;
+}
+
+export function getFileExtension(filePath: string): string {
+  return path.extname(filePath).toLowerCase();
+}
+
+export function filterFilesByExtensions(files: string[], extensions: string[]): string[] {
+  return files.filter((file) => extensions.includes(getFileExtension(file)));
+}
+
+export function getRelevantSource(filePath: string, line: number, context = 2): string[] {
+  try {
+    const content = fs.readFileSync(filePath, "utf-8");
+    const lines = content.split("\n");
+    const start = Math.max(0, line - context - 1);
+    const end = Math.min(lines.length, line + context);
+    return lines.slice(start, end);
+  } catch {
+    return [];
+  }
+}
+
+export function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${Math.floor(ms / 60_000)}m ${Math.round((ms % 60_000) / 1000)}s`;
+}

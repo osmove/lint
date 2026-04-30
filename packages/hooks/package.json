@@ -1,0 +1,27 @@
+{
+  "name": "@lint/hooks",
+  "version": "0.1.0",
+  "description": "Git hooks (pre-commit/prepare-commit-msg/post-commit) for Lint — install, inspect, uninstall.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+  },
+  "files": ["dist/", "templates/", "README.md"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@lint/git": "workspace:*",
+    "chalk": "^5.4.1"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3"
+  }
+}
