@@ -33,7 +33,8 @@ import {
   type RunDecisionReport,
 } from "@lint/core";
 import type { LinterName, LinterResult, LintReport, PolicyRule, RunOptions } from "@lint/schemas";
-import { cleanTmpDir, execFile, formatDuration, readLintConfig } from "@lint/git";
+import { cleanTmpDir, execFile, findGitRoot, formatDuration, readLintConfig } from "@lint/git";
+import { createRunsStore, newRunId } from "./runs-store.js";
 
 // ── Linter registry ──
 
@@ -492,6 +493,29 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
   const startTime = Date.now();
   const rc = loadRC();
 
+  // Record the run to .lint/runs.jsonl on every exit path (early returns
+  // for "no files" / "no linters", and the natural end). Best-effort —
+  // any I/O error here is silently swallowed.
+  const recordRun = (status: "passed" | "failed", errors = 0, warnings = 0): void => {
+    const repoRoot = findGitRoot();
+    if (!repoRoot) return;
+    try {
+      createRunsStore(repoRoot).insert({
+        id: newRunId(),
+        startedAt: new Date(startTime).toISOString(),
+        finishedAt: new Date().toISOString(),
+        errorCount: errors,
+        warningCount: warnings,
+        status,
+        ...(options.paths ? { paths: options.paths } : {}),
+        ...(options.fix ? { fix: true } : {}),
+        ...(options.format ? { format: options.format } : {}),
+      });
+    } catch {
+      // intentionally silent — observability, not correctness
+    }
+  };
+
   // Merge RC defaults with CLI options
   const autofix = options.fix ?? rc.fix?.enabled ?? false;
   const dryRun = options.dryRun ?? false;
@@ -550,6 +574,7 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
     } else if (!quiet) {
       console.log(chalk.green("No files to lint."));
     }
+    recordRun("passed");
     return;
   }
 
@@ -600,6 +625,7 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
         chalk.yellow("No linters available. Run 'lint init' to set up, or install one manually."),
       );
     }
+    recordRun("passed");
     return;
   }
 
@@ -740,6 +766,8 @@ export async function runLint(options: RunOptions = {}): Promise<void> {
 
   // ── Cleanup ──
   if (!options.keep) cleanTmpDir();
+
+  recordRun(hasErrors ? "failed" : "passed", totalErrors, totalWarnings);
 
   // ── Exit codes: 0 = clean, 1 = errors, 2 = warnings only ──
   if (hasErrors) process.exit(1);

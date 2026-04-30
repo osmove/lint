@@ -1,11 +1,11 @@
 import { Hono } from "hono";
+import { createRunsStore, type Run } from "@lint/core";
 import type { ServerProject } from "../project-context.js";
 import { spawnLintRun } from "../runner.js";
-import { createRunsStore, type Run } from "../runs-store.js";
 
 export function runsRouter(workspace: ServerProject): Hono {
   const app = new Hono();
-  const store = createRunsStore(workspace);
+  const store = createRunsStore(workspace.root);
 
   app.get("/", (c) => c.json({ runs: store.list() }));
 
