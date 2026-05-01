@@ -3,6 +3,7 @@ import { aiRouter } from "./routes/ai.js";
 import { healthRouter } from "./routes/health.js";
 import { lintersRouter } from "./routes/linters.js";
 import { policiesRouter } from "./routes/policies.js";
+import { projectsRouter } from "./routes/projects.js";
 import { reposRouter } from "./routes/repos.js";
 import { runsRouter } from "./routes/runs.js";
 import type { ServerProject } from "./project-context.js";
@@ -27,6 +28,7 @@ export function buildApp(options: BuildAppOptions): AppHandles {
   app.route("/api/health", healthRouter(workspace));
   app.route("/api/runs", runsRouter(workspace));
   app.route("/api/policies", policiesRouter(workspace));
+  app.route("/api/projects", projectsRouter(workspace));
   app.route("/api/repos", reposRouter(workspace));
   app.route("/api/linters", lintersRouter(workspace));
   app.route("/api/ai", aiRouter(workspace));

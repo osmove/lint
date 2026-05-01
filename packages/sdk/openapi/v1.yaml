@@ -23,6 +23,7 @@ tags:
   - name: meta
   - name: runs
   - name: policies
+  - name: projects
   - name: repos
   - name: linters
   - name: ai
@@ -169,7 +170,113 @@ paths:
           description: Registered
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/ProjectEntry" }
+              schema: { $ref: "#/components/schemas/RepoEntry" }
+
+  /api/projects:
+    get:
+      tags: [projects]
+      summary: List projects with repository children
+      operationId: listProjects
+      responses:
+        "200":
+          description: Project list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items: { $ref: "#/components/schemas/Project" }
+    post:
+      tags: [projects]
+      summary: Create a project, optionally seeded with a repository root
+      operationId: createProject
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                root: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Project" }
+
+  /api/projects/{id}:
+    get:
+      tags: [projects]
+      summary: Get a project by id
+      operationId: getProject
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Project
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Project" }
+        "404": { description: Not found }
+
+  /api/projects/{id}/repos:
+    post:
+      tags: [projects]
+      summary: Attach a repository to a project
+      operationId: addProjectRepo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path]
+              properties:
+                path: { type: string }
+                name: { type: string }
+      responses:
+        "201":
+          description: Attached
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Repo" }
+        "404": { description: Not found }
+
+  /api/projects/{id}/repos/{repoId}:
+    delete:
+      tags: [projects]
+      summary: Remove a repository from a project
+      operationId: removeProjectRepo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: repoId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        "404": { description: Not found }
 
   /api/repos/{id}:
     delete:
@@ -312,6 +419,18 @@ components:
 
     ProjectEntry:
       type: object
+      required: [id, name, addedAt, repositories]
+      properties:
+        id:      { type: string }
+        name:    { type: string }
+        root:    { type: string, nullable: true }
+        addedAt: { type: string, format: date-time }
+        repositories:
+          type: array
+          items: { $ref: "#/components/schemas/RepoEntry" }
+
+    RepoEntry:
+      type: object
       required: [id, name, root, addedAt]
       properties:
         id:      { type: string }
@@ -319,13 +438,28 @@ components:
         root:    { type: string }
         addedAt: { type: string, format: date-time }
 
+    Project:
+      type: object
+      required: [id, name, ephemeral, repositories]
+      properties:
+        id:        { type: string }
+        name:      { type: string }
+        root:      { type: string, nullable: true }
+        addedAt:   { type: string, nullable: true, format: date-time }
+        ephemeral: { type: boolean }
+        repositories:
+          type: array
+          items: { $ref: "#/components/schemas/Repo" }
+
     Repo:
       type: object
-      required: [id, name, root, ephemeral, health]
+      required: [id, name, root, projectId, projectName, ephemeral, health]
       properties:
         id:        { type: string }
         name:      { type: string }
         root:      { type: string }
+        projectId: { type: string }
+        projectName: { type: string }
         addedAt:   { type: string, nullable: true, format: date-time }
         ephemeral: { type: boolean }
         health:

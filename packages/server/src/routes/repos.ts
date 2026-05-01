@@ -2,7 +2,7 @@ import path from "node:path";
 import { Hono } from "hono";
 import {
   createRunsStore,
-  listProjects,
+  listRepositories,
   registerProject,
   unregisterProject,
   type Run,
@@ -13,6 +13,8 @@ interface RepoView {
   id: string;
   name: string;
   root: string;
+  projectId: string;
+  projectName: string;
   addedAt: string | null;
   ephemeral: boolean;
   health: "passed" | "failed" | "unknown";
@@ -20,7 +22,7 @@ interface RepoView {
   summary: { total: number; passed: number; failed: number; running: number };
 }
 
-function readHealth(root: string): {
+export function readRepoHealth(root: string): {
   health: RepoView["health"];
   latestRun: Run | null;
   summary: RepoView["summary"];
@@ -54,36 +56,42 @@ export function reposRouter(workspace: ServerProject): Hono {
   // derived from <root>/.lint/runs.jsonl. This is what powers the
   // dashboard Repos tab's coloured cards.
   app.get("/", (c) => {
-    const registered = listProjects();
-    const ids = new Set(registered.map((p) => p.id));
+    const registered = listRepositories();
+    const roots = new Set(registered.map((p) => path.resolve(p.root)));
     const out: RepoView[] = [];
 
-    for (const p of registered) {
+    for (const repo of registered) {
       out.push({
-        id: p.id,
-        name: p.name,
-        root: p.root,
-        addedAt: p.addedAt,
+        id: repo.id,
+        name: repo.name,
+        root: repo.root,
+        projectId: repo.projectId,
+        projectName: repo.projectName,
+        addedAt: repo.addedAt,
         ephemeral: false,
-        ...readHealth(p.root),
+        ...readRepoHealth(repo.root),
       });
     }
 
-    if (!ids.has(workspace.name)) {
+    if (!roots.has(path.resolve(workspace.root))) {
       out.push({
         id: workspace.name,
         name: workspace.name,
         root: workspace.root,
+        projectId: workspace.name,
+        projectName: workspace.name,
         addedAt: null,
         ephemeral: true,
-        ...readHealth(workspace.root),
+        ...readRepoHealth(workspace.root),
       });
     }
 
     return c.json({ repos: out });
   });
 
-  // POST /api/repos { path, name? } — register a path. Idempotent.
+  // POST /api/repos { path, name? } — register a path as a one-repo project.
+  // Prefer /api/projects/:id/repos when attaching a repo to an existing
+  // project; this route stays for the CLI/desktop compatibility path.
   app.post("/", async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as { path?: string; name?: string };
     if (!body.path || typeof body.path !== "string") {
@@ -106,13 +114,20 @@ export function reposRouter(workspace: ServerProject): Hono {
   app.get("/:id/health", (c) => {
     const id = c.req.param("id");
     const all = [
-      ...listProjects(),
-      { id: workspace.name, name: workspace.name, root: workspace.root, addedAt: null },
+      ...listRepositories(),
+      {
+        id: workspace.name,
+        name: workspace.name,
+        root: workspace.root,
+        projectId: workspace.name,
+        projectName: workspace.name,
+        addedAt: null,
+      },
     ];
     const target = all.find((p) => p.id === id);
     if (!target) return c.json({ error: "not found" }, 404);
 
-    const { health, latestRun, summary } = readHealth(target.root);
+    const { health, latestRun, summary } = readRepoHealth(target.root);
     let recentRuns: Run[] = [];
     try {
       recentRuns = createRunsStore(target.root).list().slice(0, 10);

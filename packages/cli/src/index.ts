@@ -35,7 +35,11 @@ import {
 import { buildRecommendedRC, formatRC, loadRC, writeRC } from "@lint/config";
 import {
   LINT_JSON_SCHEMA_VERSION,
+  addRepositoryToProject,
+  createProject,
   listProjects,
+  listRepositories,
+  removeRepositoryFromProject,
   registerProject,
   REGISTRY_FILE_PATH,
   unregisterProject,
@@ -649,19 +653,17 @@ ai.command("setup")
     console.log(chalk.green("API key saved. AI features are now enabled."));
   });
 
-// ── Repos: user-level project registry (~/.lint/projects.json) ──
+// ── Projects / repos: user-level registry (~/.lint/projects.json) ──
 //
-// Mirrors `git`'s top-level repo discovery story: instead of forcing the
-// user to cd into a repo every time, they can register projects once and
-// the desktop / dashboard pick them up across machines (well, per-user).
-// The CLI uses these only for `lint repos {list,add,remove}`; the actual
-// linting still runs on whatever cwd the command was invoked from.
-const reposCommand = program.command("repos").description("Manage the user-level project registry");
+// Mirrors Backlog/Twoody/Osmove vocabulary: a project is the work
+// container, and it can contain one or more git repositories. `lint repos`
+// stays as the fast compatibility path for adding/removing repository roots.
+const projectsCommand = program.command("projects").description("Manage Lint projects");
 
-reposCommand
+projectsCommand
   .command("list")
   .alias("ls")
-  .description("List registered Lint projects")
+  .description("List registered Lint projects and their repositories")
   .option("--json", "Output JSON")
   .action((options: { json?: boolean }) => {
     const projects = listProjects();
@@ -671,39 +673,125 @@ reposCommand
     }
     if (projects.length === 0) {
       console.log(chalk.yellow("No projects registered."));
+      console.log(chalk.gray(`  Add the current repo as a project: ${chalk.cyan("lint repos add")}`));
+      return;
+    }
+    console.log(chalk.gray(`  ${REGISTRY_FILE_PATH}\n`));
+    for (const project of projects) {
+      console.log(`  ${chalk.cyan(project.id.padEnd(24))} ${chalk.bold(project.name)}`);
+      for (const repo of project.repositories) {
+        console.log(`    ${chalk.gray(repo.id.padEnd(22))} ${chalk.gray(repo.root)}`);
+      }
+    }
+  });
+
+projectsCommand
+  .command("add <name>")
+  .description("Create a project, optionally seeded with the current git repo")
+  .option("--root <path>", "Repository root to attach to the new project")
+  .option("--current", "Attach the current git repository")
+  .action((name: string, options: { root?: string; current?: boolean }) => {
+    const root = options.root ?? (options.current ? findGitRoot() : undefined);
+    if (options.current && !root) {
+      console.log(chalk.red("Not inside a git repository."));
+      process.exit(1);
+    }
+    const project = createProject(name, root ? { root } : {});
+    console.log(chalk.green(`Created project ${chalk.bold(project.name)}`));
+    console.log(chalk.gray(`  id: ${project.id}`));
+    if (project.repositories.length > 0) {
+      console.log(chalk.gray(`  repo: ${project.repositories[0]!.root}`));
+    }
+  });
+
+projectsCommand
+  .command("add-repo <projectId> [path]")
+  .description("Attach a repository to an existing project")
+  .option("--name <name>", "Repository display name")
+  .action((projectId: string, targetPath: string | undefined, options: { name?: string }) => {
+    const root = targetPath ? targetPath : findGitRoot();
+    if (!root) {
+      console.log(chalk.red("Not inside a git repository (and no path given)."));
+      process.exit(1);
+    }
+    const repo = addRepositoryToProject(projectId, root, options.name);
+    if (!repo) {
+      console.log(chalk.yellow(`No project with id "${projectId}" — run \`lint projects list\` to see ids.`));
+      process.exit(1);
+    }
+    console.log(chalk.green(`Attached ${chalk.bold(repo.name)} to ${projectId}`));
+    console.log(chalk.gray(`  id:   ${repo.id}`));
+    console.log(chalk.gray(`  root: ${repo.root}`));
+  });
+
+projectsCommand
+  .command("remove-repo <projectId> <repoId>")
+  .alias("rm-repo")
+  .description("Remove a repository from a project")
+  .action((projectId: string, repoId: string) => {
+    if (!removeRepositoryFromProject(projectId, repoId)) {
+      console.log(chalk.yellow(`No repository "${repoId}" in project "${projectId}".`));
+      process.exit(1);
+    }
+    console.log(chalk.green(`Removed ${repoId} from ${projectId}.`));
+  });
+
+const reposCommand = program.command("repos").description("Manage registered repository roots");
+
+reposCommand
+  .command("list")
+  .alias("ls")
+  .description("List registered repositories")
+  .option("--json", "Output JSON")
+  .action((options: { json?: boolean }) => {
+    const repos = listRepositories();
+    if (options.json) {
+      console.log(JSON.stringify({ registry: REGISTRY_FILE_PATH, repos }, null, 2));
+      return;
+    }
+    if (repos.length === 0) {
+      console.log(chalk.yellow("No repositories registered."));
       console.log(chalk.gray(`  Add the current repo: ${chalk.cyan("lint repos add")}`));
       return;
     }
     console.log(chalk.gray(`  ${REGISTRY_FILE_PATH}\n`));
-    for (const p of projects) {
-      console.log(`  ${chalk.cyan(p.id.padEnd(24))} ${chalk.gray(p.root)}`);
+    for (const repo of repos) {
+      console.log(`  ${chalk.cyan(repo.id.padEnd(24))} ${chalk.bold(repo.projectName)} ${chalk.gray(repo.root)}`);
     }
   });
 
 reposCommand
   .command("add [path]")
-  .description("Register a project (defaults to the current git repo)")
+  .description("Register a repository as a single-repo project by default")
   .option("--name <name>", "Display name (defaults to the directory's basename)")
-  .action((targetPath: string | undefined, options: { name?: string }) => {
+  .option("--project <id>", "Attach to an existing project instead of creating a one-repo project")
+  .action((targetPath: string | undefined, options: { name?: string; project?: string }) => {
     const root = targetPath ? targetPath : findGitRoot();
     if (!root) {
       console.log(chalk.red("Not inside a git repository (and no path given)."));
       console.log(chalk.gray("  Run from inside a repo, or pass: lint repos add <path>"));
       process.exit(1);
     }
-    const entry = registerProject(root, options.name);
+    const entry = options.project
+      ? addRepositoryToProject(options.project, root, options.name)
+      : registerProject(root, options.name);
+    if (!entry) {
+      console.log(chalk.yellow(`No project with id "${options.project}" — run \`lint projects list\` to see ids.`));
+      process.exit(1);
+    }
     console.log(chalk.green(`Registered ${chalk.bold(entry.name)}`));
-    console.log(chalk.gray(`  id:   ${entry.id}`));
-    console.log(chalk.gray(`  root: ${entry.root}`));
+    console.log(chalk.gray(`  id:      ${entry.id}`));
+    console.log(chalk.gray(`  project: ${"projectId" in entry ? entry.projectId : options.project}`));
+    console.log(chalk.gray(`  root:    ${entry.root}`));
   });
 
 reposCommand
   .command("remove <id>")
   .alias("rm")
-  .description("Remove a project from the registry by id")
+  .description("Remove a repository or single-repo project from the registry by id")
   .action((id: string) => {
     if (!unregisterProject(id)) {
-      console.log(chalk.yellow(`No project with id "${id}" — run \`lint repos list\` to see registered ids.`));
+      console.log(chalk.yellow(`No repository or project with id "${id}" — run \`lint repos list\` to see registered ids.`));
       process.exit(1);
     }
     console.log(chalk.green(`Removed ${id}.`));

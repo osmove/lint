@@ -21,12 +21,19 @@ export const api = {
   getRun: (id: string) => unwrap(client.GET("/api/runs/{id}", { params: { path: { id } } })),
   createRun: (body: { paths?: string[]; fix?: boolean; format?: "text" | "json" }) =>
     unwrap(client.POST("/api/runs", { body })),
+  listProjects: () => unwrap(client.GET("/api/projects")),
+  createProject: (body: { name: string; root?: string }) =>
+    unwrap(client.POST("/api/projects", { body })),
   listRepos: () => unwrap(client.GET("/api/repos")),
   createRepo: (body: { path: string; name?: string }) =>
     unwrap(client.POST("/api/repos", { body })),
   removeRepo: (id: string) =>
     unwrap(
       client.DELETE("/api/repos/{id}", { params: { path: { id } } }),
+    ),
+  removeProjectRepo: (projectId: string, repoId: string) =>
+    unwrap(
+      client.DELETE("/api/projects/{id}/repos/{repoId}", { params: { path: { id: projectId, repoId } } }),
     ),
   getPolicies: () => unwrap(client.GET("/api/policies")),
   getLinters: () => unwrap(client.GET("/api/linters")),

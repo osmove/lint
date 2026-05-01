@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { app, BrowserWindow, dialog, Menu, MenuItem } from "electron";
-import { listProjects, registerProject } from "@lint/core";
+import { listRepositories, registerProject } from "@lint/core";
 
 const LAST_WORKSPACE_KEY = "lint.lastWorkspace";
 
@@ -49,7 +49,7 @@ async function pickViaOSDialog(parent: BrowserWindow | null): Promise<string | n
 // another folder" escape hatch.
 function buildCandidates(prefs: PrefsStore): string[] {
   const last = prefs.get(LAST_WORKSPACE_KEY);
-  const registered = listProjects().map((p) => p.root);
+  const registered = listRepositories().map((p) => p.root);
   const all = [last, ...registered].filter((p): p is string => !!p && fs.existsSync(p));
   return [...new Set(all)];
 }
@@ -110,11 +110,11 @@ export async function resolveWorkspace(parent: BrowserWindow | null): Promise<st
 // main.ts after the window is created, so the menu can dispatch into
 // the renderer (or here, swap the workspace by reloading the URL).
 export function buildRecentReposMenu(onPick: (root: string) => void): MenuItem[] {
-  const items = listProjects().map(
-    (p) =>
+  const items = listRepositories().map(
+    (repo) =>
       new MenuItem({
-        label: `${p.name}  —  ${p.root}`,
-        click: () => onPick(p.root),
+        label: `${repo.projectName} / ${repo.name}  —  ${repo.root}`,
+        click: () => onPick(repo.root),
       }),
   );
   if (items.length === 0) {

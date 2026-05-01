@@ -96,6 +96,29 @@ export const RepositorySchema = z.object({
 });
 export type Repository = z.infer<typeof RepositorySchema>;
 
+export const ProjectRepositoryEntrySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  root: z.string(),
+  addedAt: z.string(),
+});
+export type ProjectRepositoryEntry = z.infer<typeof ProjectRepositoryEntrySchema>;
+
+export const ProjectEntrySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  root: z.string().optional(),
+  addedAt: z.string(),
+  repositories: z.array(ProjectRepositoryEntrySchema),
+});
+export type ProjectEntry = z.infer<typeof ProjectEntrySchema>;
+
+export const ProjectsRegistrySchema = z.object({
+  version: z.literal(2),
+  projects: z.array(ProjectEntrySchema),
+});
+export type ProjectsRegistry = z.infer<typeof ProjectsRegistrySchema>;
+
 export const CommitAttemptSchema = z.object({
   id: z.number(),
   sha: z.string(),

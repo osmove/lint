@@ -16,8 +16,9 @@ This repo is a **pnpm monorepo**. Read [CONTRIBUTING.md](./CONTRIBUTING.md) befo
 ## Package boundaries
 
 - `packages/schemas/` (Zod) is the **source of truth for cross-boundary types**.
+- Product vocabulary matches Backlog, Twoody, and Osmove: a **project** is the work container; a project can contain multiple git **repositories**. The user registry is `~/.lint/projects.json` (version 2).
 - Internal packages use `workspace:*` deps; tsup bundles everything for the published `lint` tarball.
-- The cloud backend (Lint Cloud — Rails) lives in the sister repo `lint-cloud/` and is not part of this monorepo.
+- The cloud backend (Lint Cloud — Rails) lives in the sister repo `lint-backend/` and is not part of this monorepo.
 
 ## Common commands
 
@@ -47,6 +48,6 @@ pnpm --filter @lint/desktop dist:mac      # build signable DMG
 ## Open core
 
 - `osmove/lint` — this repo (CLI + SDK + Server + Desktop, Apache-2.0)
-- Lint Cloud — managed hosted backend (Rails, `lint-cloud/`), private repo, paid SaaS
+- Lint Cloud — managed hosted backend (Rails, `lint-backend/`), private repo, paid SaaS
 
 See [docs/ROADMAP.md](./docs/ROADMAP.md) for the broader plan.

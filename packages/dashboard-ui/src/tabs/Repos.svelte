@@ -6,6 +6,8 @@
     id: string;
     name: string;
     root: string;
+    projectId: string;
+    projectName: string;
     addedAt: string | null;
     ephemeral: boolean;
     health: "passed" | "failed" | "unknown";
@@ -15,21 +17,29 @@
 
   const qc = useQueryClient();
 
-  const reposQuery = createQuery(() => ({
+  type ReposResponse = Awaited<ReturnType<typeof api.listRepos>>;
+  type CreateRepoResponse = Awaited<ReturnType<typeof api.createRepo>>;
+  type RemoveRepoResponse = Awaited<ReturnType<typeof api.removeProjectRepo>>;
+
+  const reposQuery = createQuery<ReposResponse>({
     queryKey: ["repos"],
     queryFn: () => api.listRepos(),
     refetchInterval: 5_000, // health changes whenever a run completes
-  }));
+  });
 
-  const registerCurrent = createMutation(() => ({
+  const registerCurrent = createMutation<CreateRepoResponse, Error, Repo>({
     mutationFn: (repo: Repo) => api.createRepo({ path: repo.root, name: repo.name }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["repos"] }),
-  }));
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["repos"] });
+    },
+  });
 
-  const removeRepo = createMutation(() => ({
-    mutationFn: (id: string) => api.removeRepo(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["repos"] }),
-  }));
+  const removeRepo = createMutation<RemoveRepoResponse, Error, { projectId: string; repoId: string }>({
+    mutationFn: ({ projectId, repoId }) => api.removeProjectRepo(projectId, repoId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["repos"] });
+    },
+  });
 
   function badgeColor(health: string): string {
     if (health === "passed") return "#22c55e";
@@ -42,66 +52,88 @@
     if (health === "failed") return "failing";
     return "no runs yet";
   }
+
+  function projectGroups(repos: Repo[]): Array<{ id: string; name: string; repos: Repo[] }> {
+    const groups = new Map<string, { id: string; name: string; repos: Repo[] }>();
+    for (const repo of repos) {
+      const id = repo.projectId || repo.id;
+      const name = repo.projectName || repo.name;
+      const group = groups.get(id) ?? { id, name, repos: [] };
+      group.repos.push(repo);
+      groups.set(id, group);
+    }
+    return [...groups.values()];
+  }
 </script>
 
 <section class="tab">
-  <h2>Repos</h2>
+  <h2>Projects</h2>
   {#if $reposQuery.isPending}
     <p class="muted">Loading…</p>
   {:else if $reposQuery.isError}
     <p class="error">Error: {String($reposQuery.error)}</p>
   {:else}
-    <div class="grid">
-      {#each ($reposQuery.data?.repos ?? []) as repo (repo.id)}
-        {@const r = repo as Repo}
-        <article class="card" class:ephemeral={r.ephemeral}>
-          <header>
-            <span class="badge" style:background={badgeColor(r.health)}></span>
-            <h3>{r.name}</h3>
-            {#if r.ephemeral}
-              <span class="tag">unregistered</span>
-            {/if}
+    <div class="projects">
+      {#each projectGroups(($reposQuery.data?.repos ?? []) as Repo[]) as project (project.id)}
+        <section class="project">
+          <header class="project-head">
+            <h3>{project.name}</h3>
+            <span class="muted">{project.repos.length} repo{project.repos.length > 1 ? "s" : ""}</span>
           </header>
-          <p class="root">{r.root}</p>
+          <div class="grid">
+            {#each project.repos as repo (repo.id)}
+              {@const r = repo as Repo}
+              <article class="card" class:ephemeral={r.ephemeral}>
+                <header>
+                  <span class="badge" style:background={badgeColor(r.health)}></span>
+                  <h4>{r.name}</h4>
+                  {#if r.ephemeral}
+                    <span class="tag">unregistered</span>
+                  {/if}
+                </header>
+                <p class="root">{r.root}</p>
 
-          <div class="health">
-            <span class="status" data-status={r.health}>{badgeLabel(r.health)}</span>
-            {#if r.latestRun}
-              <span class="muted">{r.latestRun.errorCount}E / {r.latestRun.warningCount}W</span>
-            {/if}
+                <div class="health">
+                  <span class="status" data-status={r.health}>{badgeLabel(r.health)}</span>
+                  {#if r.latestRun}
+                    <span class="muted">{r.latestRun.errorCount}E / {r.latestRun.warningCount}W</span>
+                  {/if}
+                </div>
+
+                {#if r.summary.total > 0}
+                  <div class="bar" aria-label="passed/failed split" title={`${r.summary.passed} passed · ${r.summary.failed} failed · ${r.summary.running} running`}>
+                    <span class="seg pass" style:flex={r.summary.passed}></span>
+                    <span class="seg fail" style:flex={r.summary.failed}></span>
+                    <span class="seg run" style:flex={r.summary.running}></span>
+                  </div>
+                  <div class="counts muted">
+                    {r.summary.total} run{r.summary.total > 1 ? "s" : ""} · {r.summary.passed} passed · {r.summary.failed} failed
+                  </div>
+                {/if}
+
+                <footer>
+                  {#if r.ephemeral}
+                    <button
+                      class="cta-small"
+                      disabled={$registerCurrent.isPending}
+                      onclick={() => $registerCurrent.mutate(r)}
+                    >
+                      Register repo
+                    </button>
+                  {:else}
+                    <button
+                      class="link"
+                      disabled={$removeRepo.isPending}
+                      onclick={() => $removeRepo.mutate({ projectId: r.projectId, repoId: r.id })}
+                    >
+                      remove
+                    </button>
+                  {/if}
+                </footer>
+              </article>
+            {/each}
           </div>
-
-          {#if r.summary.total > 0}
-            <div class="bar" aria-label="passed/failed split" title={`${r.summary.passed} passed · ${r.summary.failed} failed · ${r.summary.running} running`}>
-              <span class="seg pass" style:flex={r.summary.passed}></span>
-              <span class="seg fail" style:flex={r.summary.failed}></span>
-              <span class="seg run" style:flex={r.summary.running}></span>
-            </div>
-            <div class="counts muted">
-              {r.summary.total} run{r.summary.total > 1 ? "s" : ""} · {r.summary.passed} passed · {r.summary.failed} failed
-            </div>
-          {/if}
-
-          <footer>
-            {#if r.ephemeral}
-              <button
-                class="cta-small"
-                disabled={$registerCurrent.isPending}
-                onclick={() => $registerCurrent.mutate(r)}
-              >
-                Register repo
-              </button>
-            {:else}
-              <button
-                class="link"
-                disabled={$removeRepo.isPending}
-                onclick={() => $removeRepo.mutate(r.id)}
-              >
-                remove
-              </button>
-            {/if}
-          </footer>
-        </article>
+        </section>
       {/each}
     </div>
   {/if}
@@ -111,11 +143,19 @@
   .tab { padding: 1.5rem 2rem; }
   .muted { color: #64748b; font-size: 13px; }
   .error { color: #ef4444; }
+  .projects { display: flex; flex-direction: column; gap: 1.25rem; margin-top: 1rem; }
+  .project { display: flex; flex-direction: column; gap: 0.75rem; }
+  .project-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .project-head h3 { margin: 0; font-size: 15px; color: #e2e8f0; }
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1rem;
-    margin-top: 1rem;
   }
   .card {
     background: #1e293b;
@@ -131,7 +171,7 @@
     align-items: center;
     gap: 0.5rem;
   }
-  .card h3 { margin: 0; font-size: 14px; color: #e2e8f0; flex: 1; }
+  .card h4 { margin: 0; font-size: 14px; color: #e2e8f0; flex: 1; }
   .tag {
     background: #334155;
     color: #cbd5e1;
