@@ -10,9 +10,8 @@ import {
   detectProject,
   getAllSuggestedLinters,
   printDetectionSummary,
-} from "@lint/core";
+} from "./detect.js";
 import { buildRecommendedRC, generateDefaultRC, loadRC, writeRC } from "@lint/config";
-import { LINT_JSON_SCHEMA_VERSION } from "@lint/core";
 import type { LintConfig, LinterName, StagedFile } from "@lint/schemas";
 import {
   ensureDir,
@@ -23,6 +22,7 @@ import {
   readLintConfig,
   writeLintConfig,
 } from "@lint/git";
+import { LINT_JSON_SCHEMA_VERSION } from "./reporter.js";
 
 export const MANAGED_HOOK_MARKER = "Managed by Lint";
 

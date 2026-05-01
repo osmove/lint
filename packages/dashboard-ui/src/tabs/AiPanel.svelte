@@ -6,14 +6,16 @@
   // staged set on the server when no body is provided — same UX as
   // `lint ai review` / `lint ai fix` on the CLI.
   type Mode = "review" | "fix";
+  type AiResponse = Awaited<ReturnType<typeof api.aiReview>>;
+
   let mode = $state<Mode>("review");
 
-  const runAi = createMutation(() => ({
+  const runAi = createMutation<AiResponse, Error, void>({
     mutationFn: () =>
       mode === "review"
         ? api.aiReview({})
         : api.aiFix({}),
-  }));
+  });
 </script>
 
 <aside class="panel">

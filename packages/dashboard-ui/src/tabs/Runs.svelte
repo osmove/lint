@@ -6,21 +6,24 @@
 
   const qc = useQueryClient();
 
-  const runsQuery = createQuery(() => ({
+  type RunsResponse = Awaited<ReturnType<typeof api.listRuns>>;
+  type CreateRunResponse = Awaited<ReturnType<typeof api.createRun>>;
+
+  const runsQuery = createQuery<RunsResponse>({
     queryKey: ["runs"],
     queryFn: () => api.listRuns(),
     refetchInterval: 2_000, // poll while runs are visible — cheap, ~1KB/req
-  }));
+  });
 
-  const triggerRun = createMutation(() => ({
+  const triggerRun = createMutation<CreateRunResponse, Error, void>({
     mutationFn: () => api.createRun({ paths: ["."] }),
     onSuccess: (created) => {
-      qc.invalidateQueries({ queryKey: ["runs"] });
+      void qc.invalidateQueries({ queryKey: ["runs"] });
       // Auto-attach the live stream panel to the run we just kicked off.
       streamRunId = created.id;
       streamLines = [];
     },
-  }));
+  });
 
   // Live stream state for one selected run id.
   let streamRunId = $state<string | null>(null);
@@ -78,19 +81,19 @@
   {:else}
     <ul class="runs">
       {#each $runsQuery.data?.runs ?? [] as run}
-        <li
-          class:selectable={true}
-          class:active={run.id === streamRunId}
-          onclick={() => { streamRunId = run.id; streamLines = []; }}
-          onkeydown={(e) => { if (e.key === "Enter") { streamRunId = run.id; streamLines = []; } }}
-          role="button"
-          tabindex="0"
-        >
-          <span class="dot" style:background={badge(run.status)}></span>
-          <span class="id">{run.id}</span>
-          <span class="muted">{new Date(run.startedAt).toLocaleString()}</span>
-          <span class="counts">{run.errorCount}E / {run.warningCount}W</span>
-          <span class="status" data-status={run.status}>{run.status}</span>
+        <li>
+          <button
+            type="button"
+            class="run-row"
+            class:active={run.id === streamRunId}
+            onclick={() => { streamRunId = run.id; streamLines = []; }}
+          >
+            <span class="dot" style:background={badge(run.status)}></span>
+            <span class="id">{run.id}</span>
+            <span class="muted">{new Date(run.startedAt).toLocaleString()}</span>
+            <span class="counts">{run.errorCount}E / {run.warningCount}W</span>
+            <span class="status" data-status={run.status}>{run.status}</span>
+          </button>
         </li>
       {/each}
     </ul>
@@ -145,20 +148,24 @@
   }
 
   .runs { list-style: none; padding: 0; margin: 1rem 0 0; }
-  .runs li {
+  .runs li { margin-bottom: 0.375rem; }
+  .run-row {
     display: grid;
     grid-template-columns: 16px 1fr auto auto auto;
     align-items: center;
     gap: 0.75rem;
+    width: 100%;
     padding: 0.625rem 0.875rem;
     background: #1e293b;
+    border: none;
     border-radius: 8px;
-    margin-bottom: 0.375rem;
+    color: inherit;
+    text-align: left;
     font-size: 13px;
   }
-  .runs li.selectable { cursor: pointer; transition: background 120ms; }
-  .runs li.selectable:hover { background: #334155; }
-  .runs li.active { outline: 2px solid #0ea5e9; outline-offset: -2px; }
+  .run-row { cursor: pointer; transition: background 120ms; }
+  .run-row:hover { background: #334155; }
+  .run-row.active { outline: 2px solid #0ea5e9; outline-offset: -2px; }
   .dot { width: 10px; height: 10px; border-radius: 50%; }
   .id { font-family: ui-monospace, monospace; color: #cbd5e1; }
   .counts { font-family: ui-monospace, monospace; color: #94a3b8; font-size: 12px; }

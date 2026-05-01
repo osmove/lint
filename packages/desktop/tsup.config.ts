@@ -15,7 +15,7 @@ export default defineConfig([
     external: ["electron"],
     splitting: false,
     sourcemap: true,
-    clean: true,
+    clean: false,
     dts: false,
     shims: true,
     outDir: "dist",

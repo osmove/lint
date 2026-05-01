@@ -1,10 +1,10 @@
 import * as auth from "@lint/policies";
-import { checkLinterInstallation, detectProject, getAllSuggestedLinters } from "@lint/core";
-import { getCurrentBranch, inspectManagedHooks } from "@lint/core";
 import { autoResolveConflicts, findRCFile, loadRC, resolveEnabledLinters } from "@lint/config";
-import { LINT_JSON_SCHEMA_VERSION } from "@lint/core";
 import type { LinterName } from "@lint/schemas";
 import { findGitRoot, readLintConfig, repoIsDirty } from "@lint/git";
+import { checkLinterInstallation, detectProject, getAllSuggestedLinters } from "./detect.js";
+import { getCurrentBranch, inspectManagedHooks } from "./git-bootstrap.js";
+import { LINT_JSON_SCHEMA_VERSION } from "./reporter.js";
 
 const ALL_LINTERS: LinterName[] = [
   "biome",

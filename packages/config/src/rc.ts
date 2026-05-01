@@ -53,17 +53,27 @@ export function getLinterReplacements(): Record<LinterName, LinterName[]> {
   return LINTER_REPLACEMENTS as Record<LinterName, LinterName[]>;
 }
 
-export function findRCFile(): string | null {
-  const gitRoot = findGitRoot() || process.cwd();
-  for (const name of RC_FILENAMES) {
-    const filePath = path.join(gitRoot, name);
-    if (fs.existsSync(filePath)) return filePath;
+export function findRCFile(startDir = process.cwd()): string | null {
+  const gitRoot = findGitRoot(startDir) || startDir;
+  let current = path.resolve(startDir);
+
+  while (true) {
+    for (const name of RC_FILENAMES) {
+      const filePath = path.join(current, name);
+      if (fs.existsSync(filePath)) return filePath;
+    }
+
+    if (current === gitRoot) break;
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    current = parent;
   }
+
   return null;
 }
 
-export function loadRC(): LintRC {
-  const filePath = findRCFile();
+export function loadRC(startDir = process.cwd()): LintRC {
+  const filePath = findRCFile(startDir);
   if (!filePath) return {};
 
   try {

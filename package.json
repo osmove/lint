@@ -3,17 +3,17 @@
   "private": true,
   "packageManager": "pnpm@10.7.1",
   "scripts": {
-    "build": "pnpm --filter lint build",
+    "build": "pnpm -r --if-present build",
     "build:tsc": "tsc -b",
     "clean": "find . -name '*.tsbuildinfo' -delete && find packages -name dist -type d -prune -exec rm -rf {} +",
     "dev": "pnpm --filter lint dev",
-    "test": "pnpm --filter lint test",
+    "test": "pnpm -r --if-present test",
     "test:watch": "pnpm --filter lint test:watch",
     "test:coverage": "pnpm --filter lint test:coverage",
     "lint": "pnpm --filter lint lint",
     "lint:fix": "pnpm --filter lint lint:fix",
-    "typecheck": "tsc -b",
-    "verify": "pnpm --filter lint verify",
+    "typecheck": "tsc -b && pnpm --filter @osmove/lint-sdk typecheck && pnpm --filter @lint/dashboard-ui typecheck",
+    "verify": "pnpm typecheck && pnpm test && pnpm build && pnpm pack:check",
     "pack:check": "pnpm --filter lint package:check"
   },
   "engines": {

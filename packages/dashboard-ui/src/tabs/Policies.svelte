@@ -2,10 +2,12 @@
   import { createQuery } from "@tanstack/svelte-query";
   import { api } from "../lib/api";
 
-  const policiesQuery = createQuery(() => ({
+  type PoliciesResponse = Awaited<ReturnType<typeof api.getPolicies>>;
+
+  const policiesQuery = createQuery<PoliciesResponse>({
     queryKey: ["policies"],
     queryFn: () => api.getPolicies(),
-  }));
+  });
 </script>
 
 <section class="tab">

@@ -1,10 +1,16 @@
+import fs from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   autoResolveConflicts,
   buildRecommendedRC,
+  findRCFile,
   filterIgnoredFiles,
   formatRC,
   generateDefaultRC,
+  loadRC,
   resolveEnabledLinters,
   shouldIgnoreFile,
 } from "@lint/config";
@@ -145,5 +151,23 @@ describe("formatRC", () => {
     const output = formatRC(generateDefaultRC(["biome"]));
     expect(output).toContain("linters:");
     expect(output).toContain("- biome");
+  });
+});
+
+describe("findRCFile", () => {
+  it("prefers the nearest rc between cwd and git root", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "lint-rc-test-"));
+    try {
+      fs.mkdirSync(path.join(root, ".git"));
+      fs.writeFileSync(path.join(root, ".lintrc.yaml"), "linters:\n  enabled: [eslint]\n");
+      const example = path.join(root, "examples", "biome-only");
+      fs.mkdirSync(example, { recursive: true });
+      fs.writeFileSync(path.join(example, ".lintrc.yaml"), "linters:\n  enabled: [biome]\n");
+
+      expect(findRCFile(example)).toBe(path.join(example, ".lintrc.yaml"));
+      expect(loadRC(example).linters?.enabled).toEqual(["biome"]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

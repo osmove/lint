@@ -2,8 +2,6 @@ import chalk from "chalk";
 import { createSpinner } from "nanospinner";
 import * as api from "@lint/policies";
 import { getToken, isLoggedIn } from "@lint/policies";
-import { detectProject, getAllSuggestedLinters } from "@lint/core";
-import { findFiles, getCurrentBranch, getCurrentSha, getStagedFilePaths } from "@lint/core";
 import type { BaseLinter } from "@lint/linters";
 import { BiomeLinter } from "@lint/linters";
 import { BrakemanLinter } from "@lint/linters";
@@ -31,9 +29,11 @@ import {
   printReport,
   printSummaryTable,
   type RunDecisionReport,
-} from "@lint/core";
+} from "./reporter.js";
 import type { LinterName, LinterResult, LintReport, PolicyRule, RunOptions } from "@lint/schemas";
 import { cleanTmpDir, execFile, findGitRoot, formatDuration, readLintConfig } from "@lint/git";
+import { detectProject, getAllSuggestedLinters } from "./detect.js";
+import { findFiles, getCurrentBranch, getCurrentSha, getStagedFilePaths } from "./git-bootstrap.js";
 import { createRunsStore, newRunId } from "./runs-store.js";
 import { postCheckRunIfCI } from "./github-checks.js";
 import { fireNotifyWebhooks } from "./notify.js";

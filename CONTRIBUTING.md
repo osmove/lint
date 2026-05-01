@@ -2,7 +2,7 @@
 
 Thanks for contributing to `lint`.
 
-This repo is a pnpm monorepo. It contains the `lint` CLI in `packages/cli/`. The hosted backend (lint.to) is a private project and not part of this repo.
+This repo is a pnpm monorepo. It contains the `lint` CLI, SDK, local Hono server, Svelte dashboard, Electron desktop app, and shared internal packages. The hosted backend (lint.to / api.lint.to) lives in the sibling `lint-backend/` repo and is not part of this monorepo.
 
 ## Development Setup
 
@@ -14,15 +14,13 @@ pnpm install
 pnpm verify
 ```
 
-`pnpm verify` is the maintainer baseline. It runs `pnpm --filter lint verify`, which runs:
+`pnpm verify` is the maintainer baseline. It runs:
 
-- type checking
-- Biome on `src/`
-- `pnpm audit`
-- build via `tsup`
-- npm packaging check with `npm pack --dry-run`
-- repo-local quality gate via `lint ci`
-- Vitest
+- TypeScript project references for the Node packages
+- SDK and Svelte dashboard type checks
+- Vitest across packages that define tests
+- builds for packages that define builds
+- npm packaging check for the public `lint` CLI
 
 ## Repo layout
 
@@ -31,13 +29,12 @@ lint/
 ├── package.json               (private, "lint-monorepo")
 ├── pnpm-workspace.yaml
 ├── packages/
-│   └── cli/
-│       ├── package.json       (public, "lint")
-│       ├── src/
-│       ├── tests/
-│       ├── README.md          (canonical, symlinked at root)
-│       ├── CHANGELOG.md       (canonical, symlinked at root)
-│       └── LICENSE            (canonical, symlinked at root)
+│   ├── cli/                   (public npm package: "lint")
+│   ├── sdk/                   (public npm package: "@osmove/lint-sdk")
+│   ├── server/                (local Hono REST/SSE server)
+│   ├── dashboard-ui/          (Svelte 5 dashboard)
+│   ├── desktop/               (Electron wrapper)
+│   └── {schemas,config,git,hooks,linters,ai,policies,core}/
 ├── AGENTS.md / CLAUDE.md      (canonical at root)
 ├── CONTRIBUTING.md
 ├── CODE_OF_CONDUCT.md
@@ -93,9 +90,13 @@ Useful commands from the repo root:
 ```sh
 pnpm test
 pnpm typecheck
+pnpm build
 pnpm lint
 pnpm pack:check
 pnpm --filter lint quality-gate
+pnpm --filter @lint/server test
+pnpm --filter @lint/dashboard-ui typecheck
+pnpm --filter @lint/desktop build
 ```
 
 Or directly from `packages/cli/`:
@@ -113,6 +114,8 @@ Add or update tests when you change:
 - project detection
 - linter orchestration
 - hook installation or inspection
+- local server API contracts
+- dashboard API consumption or state handling
 
 ## Release Hygiene
 

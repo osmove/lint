@@ -14,7 +14,7 @@
   },
   "files": ["dist/", "README.md"],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && tsc -b --emitDeclarationOnly --force",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit"
   },
