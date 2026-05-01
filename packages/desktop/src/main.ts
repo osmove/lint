@@ -78,6 +78,7 @@ async function createWindow(): Promise<void> {
     uiDistDir: uiDistDir(),
   });
 
+  console.log(`Lint desktop serving ${workspace} at ${serverHandle.url}`);
   await mainWindow.loadURL(serverHandle.url);
   mainWindow.show();
 

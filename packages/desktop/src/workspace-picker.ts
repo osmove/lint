@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { app, BrowserWindow, dialog, Menu, MenuItem } from "electron";
 import { listRepositories, registerProject } from "@lint/core";
+import { findGitRoot } from "@lint/git";
 
 const LAST_WORKSPACE_KEY = "lint.lastWorkspace";
 
@@ -49,9 +50,35 @@ async function pickViaOSDialog(parent: BrowserWindow | null): Promise<string | n
 // another folder" escape hatch.
 function buildCandidates(prefs: PrefsStore): string[] {
   const last = prefs.get(LAST_WORKSPACE_KEY);
+  const current = findGitRoot(process.cwd());
   const registered = listRepositories().map((p) => p.root);
-  const all = [last, ...registered].filter((p): p is string => !!p && fs.existsSync(p));
+  const all = [last, current, ...registered]
+    .filter((p): p is string => !!p && fs.existsSync(p))
+    .map((p) => findGitRoot(p))
+    .filter((p): p is string => !!p && fs.existsSync(p));
   return [...new Set(all)];
+}
+
+async function resolvePickedWorkspace(parent: BrowserWindow | null): Promise<string | null> {
+  const picked = await pickViaOSDialog(parent);
+  if (!picked) return null;
+
+  const root = findGitRoot(picked);
+  if (!root) {
+    const messageOptions: Electron.MessageBoxOptions = {
+      type: "warning",
+      title: "Lint",
+      message: "Choose a Git repository",
+      detail: `${picked} is not inside a Git repository.`,
+    };
+    if (parent) {
+      await dialog.showMessageBox(parent, messageOptions);
+    } else {
+      await dialog.showMessageBox(messageOptions);
+    }
+    return resolvePickedWorkspace(parent);
+  }
+  return root;
 }
 
 export async function resolveWorkspace(parent: BrowserWindow | null): Promise<string | null> {
@@ -60,7 +87,7 @@ export async function resolveWorkspace(parent: BrowserWindow | null): Promise<st
 
   // No history → straight to the OS picker.
   if (candidates.length === 0) {
-    const picked = await pickViaOSDialog(parent);
+    const picked = await resolvePickedWorkspace(parent);
     if (picked) {
       prefs.set(LAST_WORKSPACE_KEY, picked);
       registerProject(picked);
@@ -98,7 +125,7 @@ export async function resolveWorkspace(parent: BrowserWindow | null): Promise<st
   }
 
   // "Open another folder…"
-  const picked = await pickViaOSDialog(parent);
+  const picked = await resolvePickedWorkspace(parent);
   if (picked) {
     prefs.set(LAST_WORKSPACE_KEY, picked);
     registerProject(picked);
