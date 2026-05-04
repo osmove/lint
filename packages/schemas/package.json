@@ -20,7 +20,7 @@
   },
   "engines": { "node": ">=20" },
   "dependencies": {
-    "zod": "^3.24.4"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "tsup": "^8.4.0",
