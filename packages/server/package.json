@@ -25,7 +25,7 @@
     "@lint/linters": "workspace:*",
     "@lint/policies": "workspace:*",
     "@lint/schemas": "workspace:*",
-    "hono": "^4.6.13",
+    "hono": "^4.12.18",
     "zod": "^3.24.4"
   },
   "devDependencies": {
