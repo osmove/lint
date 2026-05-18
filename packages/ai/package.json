@@ -17,8 +17,8 @@
   },
   "engines": { "node": ">=20" },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.91.0",
-    "@inquirer/prompts": "^8.4.2",
+    "@anthropic-ai/sdk": "^0.96.0",
+    "@inquirer/prompts": "^8.4.3",
     "@lint/config": "workspace:*",
     "@lint/core": "workspace:*",
     "@lint/git": "workspace:*",

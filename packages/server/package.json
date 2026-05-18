@@ -15,7 +15,7 @@
   },
   "engines": { "node": ">=20" },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.91.1",
+    "@anthropic-ai/sdk": "^0.96.0",
     "@hono/node-server": "^1.13.7",
     "@lint/ai": "workspace:*",
     "@lint/config": "workspace:*",
@@ -25,7 +25,7 @@
     "@lint/linters": "workspace:*",
     "@lint/policies": "workspace:*",
     "@lint/schemas": "workspace:*",
-    "hono": "^4.6.13",
+    "hono": "^4.12.19",
     "zod": "^3.24.4"
   },
   "devDependencies": {
