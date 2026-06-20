@@ -39,7 +39,7 @@
     "@lint/server": "workspace:*",
     "electron-updater": "^6.8.3",
     "execa": "^9.6.0",
-    "hono": "^4.6.13",
+    "hono": "^4.12.25",
     "zod": "^3.24.4"
   },
   "devDependencies": {
